@@ -22,6 +22,16 @@ test, or a real deployment.
 
 Every later push to `main` redeploys automatically (`autoDeployTrigger: commit`).
 
+## GitHub Pages (automatic)
+
+`.github/workflows/deploy-pages.yml` lints, tests and builds the frontend on
+every push to `main`, then publishes it to GitHub Pages. Nothing has to be
+clicked: `actions/configure-pages` enables Pages on the first run.
+
+The site lives at `https://hylgidra-cmd.github.io/qala-run/`. A project site is
+served under `/<repo>/`, so the workflow builds with `VITE_BASE=/qala-run/`;
+every other target keeps the default `/`.
+
 ## Quick alternative without deploying
 
 ```bash
