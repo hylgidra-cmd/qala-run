@@ -3,12 +3,17 @@
 # Deploys the whole stack: PostGIS, Redis, the FastAPI backend and the static
 # frontend. Migrations run before every deploy through preDeployCommand.
 #
+# Everything is on Render's free tier, which has two consequences for a demo:
+# a free database is removed after 30 days, and a free web service sleeps
+# after 15 minutes idle, so the first request afterwards takes about a
+# minute. Move the database and the API to a paid plan before relying on it.
+#
 # The database needs the PostGIS extension, which migration 0001 creates.
 databases:
   - name: qalarun-db
     databaseName: qrun
     user: qrun
-    plan: basic-256mb
+    plan: free
     postgresMajorVersion: "16"
 
 services:
@@ -21,7 +26,7 @@ services:
   - type: web
     name: qalarun-api
     runtime: docker
-    plan: starter
+    plan: free
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     healthCheckPath: /health/live
