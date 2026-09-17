@@ -43,3 +43,18 @@ class TestLoopClosure:
 
     def test_a_threshold_can_be_restored_without_code_changes(self) -> None:
         assert Settings(_env_file=None, loop_close_tolerance_m=30.0).loop_close_tolerance_m == 30.0
+
+
+class TestSizeFloors:
+    def test_any_shape_the_runner_walks_counts(self) -> None:
+        """Product decision: the TZ floors of 300 m and 2,000 m2 were removed."""
+        settings = Settings(_env_file=None)
+
+        assert settings.min_loop_perimeter_m == 1.0
+        assert settings.min_area_m2 == 1.0
+
+    def test_the_floors_can_be_restored_from_the_environment(self) -> None:
+        settings = Settings(_env_file=None, min_loop_perimeter_m=300.0, min_area_m2=2000.0)
+
+        assert settings.min_loop_perimeter_m == 300.0
+        assert settings.min_area_m2 == 2000.0

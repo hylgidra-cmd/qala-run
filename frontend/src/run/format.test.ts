@@ -54,6 +54,12 @@ describe('describeReason', () => {
     expect(describeReason('LOOP_NOT_CLOSED')).toMatch(/back to the start/i);
   });
 
+  it('does not quote a threshold the server may not use', () => {
+    // The size floors are configurable, so the text must not name numbers.
+    expect(describeReason('TOO_SHORT')).not.toMatch(/300/);
+    expect(describeReason('AREA_TOO_SMALL')).not.toMatch(/2,?000/);
+  });
+
   it('falls back to the raw code for an unknown reason', () => {
     expect(describeReason('SOMETHING_NEW')).toBe('SOMETHING_NEW');
   });

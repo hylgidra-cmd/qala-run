@@ -91,14 +91,19 @@ GET  /api/v1/territories?bbox=...    -> GeoJSON for the map
 
 The browser sends coordinates, timestamps and accuracy. Speed, distance, area,
 activity and ownership are all recomputed on the server. A run is accepted if
-the perimeter clears 300 m and the area clears 2,000 m2 inside the Nukus pilot
-bbox, on a walking or running pace that passes the anti-cheat checks.
+it stays inside the Nukus pilot bbox, at a walking or running pace, and passes
+the anti-cheat checks.
 
-**The runner decides when the loop is closed.** There is no minimum or maximum
-gap between the last fix and the start: the server joins them, reports the
-distance as `closing_gap_m`, and adds a `LOOP_CLOSED_BY_SERVER` warning when
-the gap is wide. Setting `LOOP_CLOSE_TOLERANCE_M` restores the old
-`LOOP_NOT_CLOSED` rejection without a code change.
+**The runner decides the loop.** Three corners, a curve or a small yard all
+count: whatever ground the walk encloses is awarded. There is no minimum or
+maximum gap between the last fix and the start either - the server joins them,
+reports the distance as `closing_gap_m`, and adds a `LOOP_CLOSED_BY_SERVER`
+warning when the gap is wide.
+
+This overrides TZ section 19, which specified a 300 m perimeter and a 2,000 m2
+area floor. The floors are still settings, so `MIN_LOOP_PERIMETER_M`,
+`MIN_AREA_M2` and `LOOP_CLOSE_TOLERANCE_M` restore the old behaviour without a
+code change.
 
 `X-Demo-User` identifies a browser and stands in for authentication. It is a
 demo mechanism and must be replaced before production.

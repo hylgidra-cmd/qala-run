@@ -3,9 +3,9 @@
 /** Rejection reasons are a stable server enum (TZ section 19). */
 export const REASON_TEXT: Record<string, string> = {
   LOOP_NOT_CLOSED: 'The loop never came back to the start. Finish where you began.',
-  TOO_SHORT: 'The loop is shorter than 300 m.',
-  AREA_TOO_SMALL: 'The enclosed area is under 2,000 m².',
-  BAD_SHAPE: 'The track could not be turned into a clean shape.',
+  TOO_SHORT: 'The loop is shorter than the minimum this server allows.',
+  AREA_TOO_SMALL: 'The enclosed area is under the minimum this server allows.',
+  BAD_SHAPE: 'The track encloses no ground, so there is nothing to award.',
   ACTIVITY_NOT_ALLOWED: 'Only walking and running count. That pace was too fast.',
   TELEPORT_DETECTED: 'The track jumps further than a person can move.',
   LOW_GPS_QUALITY: 'The GPS signal was too poor or too sparse to trust.',

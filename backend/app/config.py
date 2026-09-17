@@ -26,9 +26,14 @@ class Settings(BaseSettings):
     pilot_east: float = 59.64
     pilot_north: float = 42.48
 
-    # --- Run acceptance thresholds (TZ section 19) ---
-    min_loop_perimeter_m: float = 300.0
-    min_area_m2: float = 2000.0
+    # --- Run acceptance thresholds ---
+    # Product decision (2026-09-17), overriding TZ section 19, which specified
+    # MIN_LOOP_PERIMETER = 300 m and MIN_AREA = 2,000 m2: any shape a person
+    # actually walks counts. Three corners, a curve or a small yard all award
+    # the ground they enclose, so the floor is 1 and there is no ceiling.
+    # Raising these env vars restores TOO_SHORT and AREA_TOO_SMALL unchanged.
+    min_loop_perimeter_m: float = 1.0
+    min_area_m2: float = 1.0
 
     # Product decision (2026-09-17): the runner decides when the loop is done.
     # None means the server sets no minimum or maximum on the closing gap and
