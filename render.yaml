@@ -1,9 +1,50 @@
 # Render blueprint for the QalaRun web demo.
 #
-# Scope: the frontend only. The FastAPI backend needs PostgreSQL with PostGIS
-# and Redis, which is a separate deployment decision; nothing in the frontend
-# calls /api/v1 yet, so the static site works on its own.
+# Deploys the whole stack: PostGIS, Redis, the FastAPI backend and the static
+# frontend. Migrations run before every deploy through preDeployCommand.
+#
+# The database needs the PostGIS extension, which migration 0001 creates.
+databases:
+  - name: qalarun-db
+    databaseName: qrun
+    user: qrun
+    plan: basic-256mb
+    postgresMajorVersion: "16"
+
 services:
+  - type: keyvalue
+    name: qalarun-redis
+    plan: free
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
+
+  - type: web
+    name: qalarun-api
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health/live
+    preDeployCommand: alembic upgrade head
+    autoDeployTrigger: commit
+    envVars:
+      - key: ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: qalarun-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: qalarun-redis
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      # The static site is a different origin, so it has to be allowed here.
+      - key: CORS_ORIGINS
+        value: https://qalarun-web.onrender.com,https://hylgidra-cmd.github.io
+
   - type: web
     name: qalarun-web
     runtime: static
@@ -14,6 +55,9 @@ services:
     envVars:
       - key: VITE_MAP_STYLE_URL
         value: https://tiles.openfreemap.org/styles/positron
+      # Absolute, because there is no dev-server proxy in a static build.
+      - key: VITE_API_URL
+        value: https://qalarun-api.onrender.com/api/v1
     routes:
       # Single-page app: unknown paths must still load index.html.
       - type: rewrite

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { describeReason, formatArea, formatDuration, formatSpeed } from './format';
+import {
+  describeReason,
+  formatArea,
+  formatDistance,
+  formatDuration,
+  formatSpeed,
+} from './format';
 
 describe('formatArea', () => {
   it('shows square metres below a hectare', () => {
@@ -54,5 +60,19 @@ describe('describeReason', () => {
 
   it('renders nothing when a run was accepted', () => {
     expect(describeReason(null)).toBe('');
+  });
+});
+
+describe('formatDistance', () => {
+  it('shows metres below a kilometre', () => {
+    expect(formatDistance(64)).toBe('64 m');
+  });
+
+  it('switches to kilometres', () => {
+    expect(formatDistance(1420)).toBe('1.42 km');
+  });
+
+  it('handles a missing value', () => {
+    expect(formatDistance(null)).toBe('—');
   });
 });

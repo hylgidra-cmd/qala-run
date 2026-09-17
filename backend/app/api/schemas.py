@@ -50,6 +50,9 @@ class RunResult(BaseModel):
     status: str
     reason: str | None = None
     mode: str
+    closing_gap_m: float | None = Field(
+        default=None, description="Distance between the first and last fix"
+    )
     raw_area_m2: float | None = None
     excluded_area_m2: float | None = None
     awarded_area_m2: float | None = None

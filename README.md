@@ -90,12 +90,36 @@ GET  /api/v1/territories?bbox=...    -> GeoJSON for the map
 ```
 
 The browser sends coordinates, timestamps and accuracy. Speed, distance, area,
-activity and ownership are all recomputed on the server, and a run is only
-accepted if the loop closes within the tolerance, the perimeter clears 300 m
-and the area clears 2,000 m2 inside the Nukus pilot bbox.
+activity and ownership are all recomputed on the server. A run is accepted if
+the perimeter clears 300 m and the area clears 2,000 m2 inside the Nukus pilot
+bbox, on a walking or running pace that passes the anti-cheat checks.
+
+**The runner decides when the loop is closed.** There is no minimum or maximum
+gap between the last fix and the start: the server joins them, reports the
+distance as `closing_gap_m`, and adds a `LOOP_CLOSED_BY_SERVER` warning when
+the gap is wide. Setting `LOOP_CLOSE_TOLERANCE_M` restores the old
+`LOOP_NOT_CLOSED` rejection without a code change.
 
 `X-Demo-User` identifies a browser and stands in for authentication. It is a
 demo mechanism and must be replaced before production.
+
+## Exclusion zones
+
+Buildings, schools, hospitals, military and industrial land, water and
+access-restricted areas are subtracted from every captured territory. Import
+them for the pilot bbox from Overpass:
+
+```bash
+docker compose exec api python -m scripts.import_exclusions --dry-run
+docker compose exec api python -m scripts.import_exclusions
+```
+
+The import upserts on `(source, osm_type, osm_id)`, so running it again never
+creates duplicates. Only closed ways and properly assembled relations become
+polygons; an open barrier is never turned into an area.
+
+OSM coverage in Nukus is incomplete, so this is never a full picture of
+private property, and the app cannot physically stop anyone entering it.
 
 ## Testing a real run on a phone
 

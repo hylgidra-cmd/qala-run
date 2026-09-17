@@ -2,13 +2,22 @@
 
 ## What is deployed
 
-`render.yaml` and the GitHub Pages workflow deploy **only the frontend**. The
-API, PostGIS and Redis stay local.
+There are two deployment targets, and they are not equivalent.
 
-That means the deployed site is map-only: it shows the basemap, the geolocate
-control and the QR card, and the run panel says plainly that no API is
-reachable. Capturing territory needs the backend, so a real run has to be
-walked against a local API through an HTTPS tunnel (see README).
+**Render (`render.yaml`) deploys the whole stack**: a PostGIS database, a Redis
+key-value store, the FastAPI backend as a Docker service and the frontend as a
+static site. `preDeployCommand` runs `alembic upgrade head` before each deploy.
+The static site is built with an absolute `VITE_API_URL`, and the API allows
+that origin through `CORS_ORIGINS`.
+
+**GitHub Pages deploys the frontend only.** It has no backend, so the run panel
+says plainly that no API is reachable and the page is map-only.
+
+After the first Render deploy, load the exclusion zones once:
+
+```bash
+render exec qalarun-api -- python -m scripts.import_exclusions
+```
 
 ## Why a deployment is needed at all
 

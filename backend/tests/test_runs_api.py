@@ -10,6 +10,7 @@ import uuid
 import httpx
 import pytest
 from asyncpg.exceptions import PostgresConnectionError
+from sqlalchemy import text
 from sqlalchemy.exc import InterfaceError, OperationalError
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
@@ -120,6 +121,7 @@ async def client():
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=app), base_url="http://test"
         ) as http_client:
+            http_client.connection = connection  # type: ignore[attr-defined]
             yield http_client
     finally:
         app.dependency_overrides.clear()
@@ -128,6 +130,12 @@ async def client():
         await engine.dispose()
         await get_redis().aclose()
         get_redis.cache_clear()
+
+
+@pytest.fixture
+def connection(client):
+    """The very connection the API is using, inside the same transaction."""
+    return client.connection
 
 
 @pytest.fixture
@@ -173,7 +181,14 @@ class TestRunLifecycle:
         assert body["territory_id"]
         assert body["activity"]["type"] == "walk"
         # A 120 m square is 14400 m2; PostGIS measures it on the geography type.
-        assert body["awarded_area_m2"] == pytest.approx(14400.0, rel=0.05)
+        assert body["raw_area_m2"] == pytest.approx(14400.0, rel=0.05)
+        # Whatever OSM holds inside the square is removed, so the award is the
+        # raw area minus the exclusions and never more than the raw area.
+        assert body["awarded_area_m2"] <= body["raw_area_m2"]
+        assert body["awarded_area_m2"] == pytest.approx(
+            body["raw_area_m2"] - body["excluded_area_m2"], rel=1e-6
+        )
+        assert body["closing_gap_m"] == pytest.approx(0.0, abs=1.0)
 
     async def test_the_captured_territory_is_served_to_the_map(self, client, headers) -> None:
         await run_track(client, headers, square_points(side_m=120.0))
@@ -194,6 +209,32 @@ class TestRunLifecycle:
         assert len(mine) == 1
         assert mine[0]["geometry"]["type"] == "MultiPolygon"
         assert mine[0]["properties"]["mode"] == "solo"
+
+    async def test_an_exclusion_zone_is_subtracted_from_the_award(
+        self, client, headers, connection
+    ) -> None:
+        """A building inside the loop is not awarded (TZ section 17, step 13)."""
+        # A 40 m square in the middle of the 120 m loop, as its own OSM object.
+        inner = square_points(side_m=40.0, lat=NUKUS_LAT + 0.00036, lon=NUKUS_LON + 0.00048)
+        ring = ", ".join(f"{point['lon']!r} {point['lat']!r}" for point in inner)
+        first = f"{inner[0]['lon']!r} {inner[0]['lat']!r}"
+        await connection.execute(
+            text(
+                """
+                INSERT INTO exclusion_zones (kind, source, osm_type, osm_id, geom)
+                VALUES ('building', 'test', 'way', :osm_id,
+                        ST_Multi(ST_GeomFromText(:wkt, 4326)))
+                """
+            ),
+            {"osm_id": -12345, "wkt": f"POLYGON(({ring}, {first}))"},
+        )
+
+        _, finished = await run_track(client, headers, square_points(side_m=120.0))
+        body = finished.json()
+
+        assert body["status"] == "accepted"
+        # The 40 m square is 1600 m2 and sits wholly inside the loop.
+        assert body["excluded_area_m2"] >= 1500.0
 
     async def test_a_second_run_cannot_start_while_one_is_active(self, client, headers) -> None:
         first = await client.post("/api/v1/runs/start", headers=headers)
@@ -254,10 +295,28 @@ class TestRunLifecycle:
 
 
 class TestRejections:
-    async def test_an_open_track_is_not_a_loop(self, client, headers) -> None:
+    async def test_a_straight_line_encloses_nothing(self, client, headers) -> None:
+        """The runner decides when to finish, so an open track is not rejected
+        for being open - it is rejected because it encloses no ground."""
         _, finished = await run_track(client, headers, straight_points(length_m=400.0))
+        body = finished.json()
 
-        assert finished.json()["reason"] == "LOOP_NOT_CLOSED"
+        assert body["status"] == "rejected"
+        assert body["reason"] in {"BAD_SHAPE", "AREA_TOO_SMALL", "NO_AWARDABLE_AREA"}
+        assert body["closing_gap_m"] == pytest.approx(400.0, rel=0.05)
+
+    async def test_a_wide_gap_is_reported_but_still_accepted(self, client, headers) -> None:
+        """Product decision: the runner closes the loop, not a server threshold."""
+        points = square_points(side_m=150.0)
+        # Stop walking 60 m before the start, well over the 30 m warning.
+        del points[-40:]
+
+        _, finished = await run_track(client, headers, points)
+        body = finished.json()
+
+        assert body["status"] == "accepted"
+        assert body["closing_gap_m"] > 30.0
+        assert "LOOP_CLOSED_BY_SERVER" in body["warnings"]
 
     async def test_a_short_loop_is_too_short(self, client, headers) -> None:
         _, finished = await run_track(client, headers, square_points(side_m=30.0))

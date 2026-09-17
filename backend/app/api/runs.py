@@ -20,7 +20,7 @@ from app.api.schemas import (
     RunStarted,
 )
 from app.config import get_settings
-from app.geo.loop import close_ring, is_closed_loop, is_inside_bbox, perimeter_m
+from app.geo.loop import close_ring, closing_gap_m, is_inside_bbox, perimeter_m
 from app.geo.reasons import RejectionReason
 from app.signal.activity import get_classifier
 from app.signal.features import extract_features
@@ -48,6 +48,7 @@ async def _reject(
     reason: RejectionReason,
     activity: ActivityOut | None = None,
     warnings: list[str] | None = None,
+    gap_m: float | None = None,
 ) -> RunResult:
     await connection.execute(
         text(
@@ -76,6 +77,7 @@ async def _reject(
         status="rejected",
         reason=reason.value,
         mode=mode,
+        closing_gap_m=gap_m,
         activity=activity,
         warnings=warnings or [],
     )
@@ -283,16 +285,27 @@ async def finish_run(
             connection, run_id, mode, RejectionReason.OUTSIDE_REGION, activity, warnings
         )
 
-    # --- 9: the loop has to come back to the start ---
-    if not is_closed_loop(coordinates, settings.loop_close_tolerance_m):
+    # --- 9: closing the loop ---
+    # The runner decides when the loop is done, so there is no minimum or
+    # maximum gap by default; the server joins the last fix back to the first
+    # and reports how far apart they were.
+    gap_m = closing_gap_m(coordinates)
+
+    if (
+        settings.loop_close_tolerance_m is not None
+        and gap_m > settings.loop_close_tolerance_m
+    ):
         return await _reject(
-            connection, run_id, mode, RejectionReason.LOOP_NOT_CLOSED, activity, warnings
+            connection, run_id, mode, RejectionReason.LOOP_NOT_CLOSED, activity, warnings, gap_m
         )
+
+    if gap_m > settings.loop_close_warning_m:
+        warnings.append("LOOP_CLOSED_BY_SERVER")
 
     # --- 12a: perimeter, checked separately from area (TZ section 19) ---
     if perimeter_m(coordinates) < settings.min_loop_perimeter_m:
         return await _reject(
-            connection, run_id, mode, RejectionReason.TOO_SHORT, activity, warnings
+            connection, run_id, mode, RejectionReason.TOO_SHORT, activity, warnings, gap_m
         )
 
     # Solo and clan take separate locks so they never block each other.
@@ -338,7 +351,7 @@ async def finish_run(
 
     if measured is None or measured.usable_wkt is None:
         return await _reject(
-            connection, run_id, mode, RejectionReason.BAD_SHAPE, activity, warnings
+            connection, run_id, mode, RejectionReason.BAD_SHAPE, activity, warnings, gap_m
         )
 
     raw_area = float(measured.raw_area_m2 or 0.0)
@@ -347,12 +360,12 @@ async def finish_run(
     # --- 12b: minimum area, separate from the perimeter check ---
     if raw_area < settings.min_area_m2:
         return await _reject(
-            connection, run_id, mode, RejectionReason.AREA_TOO_SMALL, activity, warnings
+            connection, run_id, mode, RejectionReason.AREA_TOO_SMALL, activity, warnings, gap_m
         )
 
     if usable_area <= 0:
         return await _reject(
-            connection, run_id, mode, RejectionReason.NO_AWARDABLE_AREA, activity, warnings
+            connection, run_id, mode, RejectionReason.NO_AWARDABLE_AREA, activity, warnings, gap_m
         )
 
     # --- 14: take the overlap from whoever holds it now ---
@@ -453,6 +466,7 @@ async def finish_run(
         status="accepted",
         reason=None,
         mode=mode,
+        closing_gap_m=gap_m,
         raw_area_m2=raw_area,
         excluded_area_m2=raw_area - usable_area,
         awarded_area_m2=usable_area,

@@ -1,4 +1,4 @@
-import { describeReason, formatArea, formatSpeed } from './format';
+import { describeReason, formatArea, formatDistance, formatSpeed } from './format';
 import type { RunTracker } from './useRunTracker';
 
 interface RunPanelProps {
@@ -43,6 +43,16 @@ export function RunPanel({ tracker, apiReachable }: RunPanelProps) {
               <p className="run-meta">
                 {result.activity?.type} · {formatSpeed(result.activity?.avg_speed_ms ?? null)}
               </p>
+              {result.excluded_area_m2 ? (
+                <p className="run-meta">
+                  {formatArea(result.excluded_area_m2)} removed for buildings and closed areas
+                </p>
+              ) : null}
+              {result.warnings.includes('LOOP_CLOSED_BY_SERVER') ? (
+                <p className="run-meta">
+                  Closed a {formatDistance(result.closing_gap_m)} gap back to the start
+                </p>
+              ) : null}
               {result.captured_from.length > 0 ? (
                 <p className="run-meta">
                   Taken from {result.captured_from.map((owner) => owner.username).join(', ')}

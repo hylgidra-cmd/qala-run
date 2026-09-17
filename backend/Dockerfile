@@ -15,5 +15,7 @@ RUN if [ "$INSTALL_DEV" = "true" ]; then pip install --no-cache-dir ".[dev,geo]"
 
 COPY alembic.ini ./
 COPY alembic ./alembic
+COPY scripts ./scripts
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Managed hosts assign the port through $PORT; compose overrides the command.
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

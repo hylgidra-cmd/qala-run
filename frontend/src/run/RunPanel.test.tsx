@@ -49,6 +49,7 @@ describe('RunPanel', () => {
       status: 'accepted' as const,
       reason: null,
       mode: 'solo',
+      closing_gap_m: 2,
       raw_area_m2: 14400,
       excluded_area_m2: 0,
       awarded_area_m2: 14400,
@@ -70,6 +71,7 @@ describe('RunPanel', () => {
       status: 'rejected' as const,
       reason: 'LOOP_NOT_CLOSED',
       mode: 'solo',
+      closing_gap_m: 400,
       raw_area_m2: null,
       excluded_area_m2: null,
       awarded_area_m2: null,
@@ -97,5 +99,47 @@ describe('RunPanel', () => {
     render(<RunPanel tracker={tracker({ error })} apiReachable />);
 
     expect(screen.getByRole('button', { name: 'Release it' })).toBeVisible();
+  });
+
+  it('says how much ground the exclusion zones took', () => {
+    const result = {
+      run_id: 'r1',
+      status: 'accepted' as const,
+      reason: null,
+      mode: 'solo',
+      closing_gap_m: 1,
+      raw_area_m2: 14400,
+      excluded_area_m2: 1600,
+      awarded_area_m2: 12800,
+      territory_id: 't1',
+      activity: { type: 'walk', confidence: 0.85, avg_speed_ms: 1.4 },
+      captured_from: [],
+      warnings: [],
+    };
+
+    render(<RunPanel tracker={tracker({ phase: 'done', result })} apiReachable />);
+
+    expect(screen.getByText(/1,600 m² removed/)).toBeVisible();
+  });
+
+  it('reports a gap the server had to close', () => {
+    const result = {
+      run_id: 'r1',
+      status: 'accepted' as const,
+      reason: null,
+      mode: 'solo',
+      closing_gap_m: 64,
+      raw_area_m2: 20000,
+      excluded_area_m2: 0,
+      awarded_area_m2: 20000,
+      territory_id: 't1',
+      activity: { type: 'walk', confidence: 0.85, avg_speed_ms: 1.4 },
+      captured_from: [],
+      warnings: ['LOOP_CLOSED_BY_SERVER'],
+    };
+
+    render(<RunPanel tracker={tracker({ phase: 'done', result })} apiReachable />);
+
+    expect(screen.getByText(/Closed a 64 m gap/)).toBeVisible();
   });
 });

@@ -34,6 +34,8 @@ export interface RunResult {
   status: 'accepted' | 'rejected';
   reason: string | null;
   mode: string;
+  /** Distance between the first and last fix; the runner decides when to stop. */
+  closing_gap_m: number | null;
   raw_area_m2: number | null;
   excluded_area_m2: number | null;
   awarded_area_m2: number | null;

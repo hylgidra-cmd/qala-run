@@ -53,3 +53,15 @@ export function formatSpeed(metresPerSecond: number | null): string {
 
   return `${(metresPerSecond * 3.6).toFixed(1)} km/h`;
 }
+
+export function formatDistance(metres: number | null): string {
+  if (metres === null || !Number.isFinite(metres)) {
+    return '—';
+  }
+
+  if (metres >= 1000) {
+    return `${(metres / 1000).toFixed(2)} km`;
+  }
+
+  return `${Math.round(metres)} m`;
+}
