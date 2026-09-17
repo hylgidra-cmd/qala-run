@@ -1,0 +1,28 @@
+# Render blueprint for the QalaRun web demo.
+#
+# Scope: the frontend only. The FastAPI backend needs PostgreSQL with PostGIS
+# and Redis, which is a separate deployment decision; nothing in the frontend
+# calls /api/v1 yet, so the static site works on its own.
+services:
+  - type: web
+    name: qalarun-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    autoDeployTrigger: commit
+    envVars:
+      - key: VITE_MAP_STYLE_URL
+        value: https://tiles.openfreemap.org/styles/positron
+    routes:
+      # Single-page app: unknown paths must still load index.html.
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
