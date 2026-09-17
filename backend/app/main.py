@@ -4,6 +4,7 @@ from fastapi import FastAPI, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
+from app.api import runs, territories
 from app.config import get_settings
 from app.db import get_engine, get_redis
 
@@ -30,6 +31,10 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
 )
+
+
+app.include_router(runs.router)
+app.include_router(territories.router)
 
 
 @app.get("/health/live", tags=["health"])

@@ -1,0 +1,58 @@
+import { describe, expect, it } from 'vitest';
+import { describeReason, formatArea, formatDuration, formatSpeed } from './format';
+
+describe('formatArea', () => {
+  it('shows square metres below a hectare', () => {
+    expect(formatArea(2400)).toBe('2,400 m²');
+  });
+
+  it('switches to hectares at ten thousand', () => {
+    expect(formatArea(14400)).toBe('1.44 ha');
+  });
+
+  it('handles a missing value', () => {
+    expect(formatArea(null)).toBe('—');
+  });
+
+  it('handles a non-finite value', () => {
+    expect(formatArea(Number.NaN)).toBe('—');
+  });
+});
+
+describe('formatDuration', () => {
+  it('pads the seconds', () => {
+    expect(formatDuration(65)).toBe('1:05');
+  });
+
+  it('handles under a minute', () => {
+    expect(formatDuration(9)).toBe('0:09');
+  });
+
+  it('refuses to render negative time', () => {
+    expect(formatDuration(-5)).toBe('0:00');
+  });
+});
+
+describe('formatSpeed', () => {
+  it('converts metres per second to km/h', () => {
+    expect(formatSpeed(1.4)).toBe('5.0 km/h');
+  });
+
+  it('handles a missing value', () => {
+    expect(formatSpeed(null)).toBe('—');
+  });
+});
+
+describe('describeReason', () => {
+  it('explains a known rejection', () => {
+    expect(describeReason('LOOP_NOT_CLOSED')).toMatch(/back to the start/i);
+  });
+
+  it('falls back to the raw code for an unknown reason', () => {
+    expect(describeReason('SOMETHING_NEW')).toBe('SOMETHING_NEW');
+  });
+
+  it('renders nothing when a run was accepted', () => {
+    expect(describeReason(null)).toBe('');
+  });
+});

@@ -10,7 +10,9 @@ Foundation for Sprint 1:
 
 - FastAPI API with liveness and dependency health checks;
 - PostgreSQL/PostGIS and Redis via Docker Compose;
-- Alembic with the initial PostGIS migration (`region_boundaries`, `exclusion_zones`);
+- Alembic migrations: PostGIS plus `runs`, `track_points` and solo `territories`;
+- server-authoritative run pipeline: Kalman speed, rule-based activity,
+  anti-cheat checks, closed-loop detection and territory capture;
 - React + TypeScript + MapLibre frontend;
 - Nukus pilot bounds and OpenFreeMap Positron basemap;
 - Claude Code instructions and implementation prompts.
@@ -76,6 +78,40 @@ npm run dev
 ```
 
 Open <http://localhost:5173>.
+
+## Run flow
+
+```text
+POST /api/v1/runs/start              -> run_id
+POST /api/v1/runs/{id}/points        -> batches of GPS fixes
+POST /api/v1/runs/{id}/finish        -> accepted | rejected + reason
+POST /api/v1/runs/{id}/abandon       -> release a run left active
+GET  /api/v1/territories?bbox=...    -> GeoJSON for the map
+```
+
+The browser sends coordinates, timestamps and accuracy. Speed, distance, area,
+activity and ownership are all recomputed on the server, and a run is only
+accepted if the loop closes within the tolerance, the perimeter clears 300 m
+and the area clears 2,000 m2 inside the Nukus pilot bbox.
+
+`X-Demo-User` identifies a browser and stands in for authentication. It is a
+demo mechanism and must be replaced before production.
+
+## Testing a real run on a phone
+
+The Geolocation API needs a secure context and a laptop has no GPS, so a real
+loop has to be walked with a phone over HTTPS:
+
+```bash
+docker compose up -d db redis api
+docker compose exec api alembic upgrade head
+cd frontend && npm run dev
+cloudflared tunnel --url http://localhost:5173
+```
+
+Open the printed `https://*.trycloudflare.com` address on the phone, or scan
+the QR card the page shows. The dev server proxies `/api` to the backend, so
+the phone reaches the API through the same address.
 
 ## Development rules
 

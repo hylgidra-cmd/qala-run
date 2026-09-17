@@ -1,10 +1,42 @@
-import { useState } from 'react';
-import Map, { GeolocateControl, NavigationControl } from 'react-map-gl/maplibre';
+import { useMemo, useState } from 'react';
+import Map, { GeolocateControl, Layer, NavigationControl, Source } from 'react-map-gl/maplibre';
+import type { TrackPoint } from '../run/api';
+import { TerritoryLayer } from './TerritoryLayer';
 import { OUT_OF_BOUNDS_NOTICE, geolocationNotice, isInsidePilotBounds } from './geolocation';
 import { DEV_MAP_STYLE, NUKUS_CENTER, PILOT_BOUNDS } from './style';
 
-export function MapView() {
+interface MapViewProps {
+  trackPoints?: TrackPoint[];
+  territoryRefreshKey?: string;
+  onApiReachable?: (reachable: boolean) => void;
+}
+
+export function MapView({
+  trackPoints = [],
+  territoryRefreshKey = '',
+  onApiReachable,
+}: MapViewProps) {
   const [notice, setNotice] = useState<string | null>(null);
+
+  const track = useMemo<GeoJSON.FeatureCollection>(
+    () => ({
+      type: 'FeatureCollection',
+      features:
+        trackPoints.length > 1
+          ? [
+              {
+                type: 'Feature',
+                properties: {},
+                geometry: {
+                  type: 'LineString',
+                  coordinates: trackPoints.map((point) => [point.lon, point.lat]),
+                },
+              },
+            ]
+          : [],
+    }),
+    [trackPoints],
+  );
 
   return (
     <Map
@@ -28,6 +60,16 @@ export function MapView() {
         onError={(error) => setNotice(geolocationNotice(error.code))}
         onOutOfMaxBounds={() => setNotice(OUT_OF_BOUNDS_NOTICE)}
       />
+
+      <TerritoryLayer refreshKey={territoryRefreshKey} onApiReachable={onApiReachable} />
+
+      <Source id="live-track" type="geojson" data={track}>
+        <Layer
+          id="live-track-line"
+          type="line"
+          paint={{ 'line-color': '#ff8a3d', 'line-width': 4, 'line-opacity': 0.9 }}
+        />
+      </Source>
 
       {notice ? (
         <div className="map-notice" role="status">

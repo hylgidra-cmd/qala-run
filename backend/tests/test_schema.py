@@ -14,7 +14,8 @@ from sqlalchemy.pool import NullPool
 
 from app.config import get_settings
 
-INITIAL_REVISION = "0001_initial_postgis"
+# Bump this with every migration: it is the guard against a stale database.
+HEAD_REVISION = "0002_run_and_territory"
 
 # A small square inside the Nukus pilot bbox (59.58,42.43,59.64,42.48).
 SQUARE_WKT = "POLYGON((59.600 42.450, 59.601 42.450, 59.601 42.451, 59.600 42.451, 59.600 42.450))"
@@ -31,8 +32,10 @@ UNIQUE_CONSTRAINTS_SQL = text(
     """
 )
 
-# Tables that belong to later prompts and must not exist yet.
-FUTURE_TABLES = {"users", "clans", "clan_members", "runs", "territories", "chat_messages"}
+# Tables that still belong to later prompts. `runs` and `territories` moved
+# out of this list with migration 0002; `users` stays because demo_users is
+# a stand-in, not the real authenticated user table.
+FUTURE_TABLES = {"users", "clans", "clan_members", "chat_messages"}
 
 
 @pytest.fixture
@@ -66,13 +69,13 @@ async def test_postgis_extension_is_enabled(connection) -> None:
     assert name == "postgis"
 
 
-async def test_migration_is_at_initial_revision(connection) -> None:
+async def test_migration_is_at_head_revision(connection) -> None:
     version = await connection.scalar(text("SELECT version_num FROM alembic_version"))
 
-    assert version == INITIAL_REVISION
+    assert version == HEAD_REVISION
 
 
-@pytest.mark.parametrize("table", ["region_boundaries", "exclusion_zones"])
+@pytest.mark.parametrize("table", ["region_boundaries", "exclusion_zones", "territories"])
 async def test_geom_is_multipolygon_in_srid_4326(connection, table: str) -> None:
     result = await connection.execute(
         text(
@@ -90,7 +93,12 @@ async def test_geom_is_multipolygon_in_srid_4326(connection, table: str) -> None
 
 @pytest.mark.parametrize(
     ("table", "index"),
-    [("region_boundaries", "idx_region_geom"), ("exclusion_zones", "idx_exclusion_geom")],
+    [
+        ("region_boundaries", "idx_region_geom"),
+        ("exclusion_zones", "idx_exclusion_geom"),
+        ("territories", "idx_territories_geom"),
+        ("track_points", "idx_track_points_geom"),
+    ],
 )
 async def test_geom_index_is_gist(connection, table: str, index: str) -> None:
     definition = await connection.scalar(
@@ -165,3 +173,34 @@ async def test_later_sprint_tables_do_not_exist_yet(connection) -> None:
     )
 
     assert names & FUTURE_TABLES == set()
+
+
+async def test_only_one_run_can_be_active_per_user(connection) -> None:
+    """Anti-cheat rule 12 is enforced by a partial unique index, not by code."""
+    definition = await connection.scalar(
+        text("SELECT indexdef FROM pg_indexes WHERE indexname = 'idx_runs_one_active'")
+    )
+
+    assert definition is not None
+    assert "UNIQUE" in definition
+    assert "status = 'active'" in definition
+
+
+async def test_territory_mode_is_constrained_to_solo_and_clan(connection) -> None:
+    """CLAUDE.md rule 8: the two modes stay separate."""
+    transaction = await connection.begin()
+
+    try:
+        with pytest.raises(IntegrityError):
+            await connection.execute(
+                text(
+                    """
+                    INSERT INTO territories (mode, owner_user_id, area_m2, geom)
+                    VALUES ('guild', gen_random_uuid(), 1.0,
+                            ST_Multi(ST_GeomFromText(:wkt, 4326)))
+                    """
+                ),
+                {"wkt": SQUARE_WKT},
+            )
+    finally:
+        await transaction.rollback()

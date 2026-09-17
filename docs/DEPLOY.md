@@ -2,9 +2,13 @@
 
 ## What is deployed
 
-`render.yaml` deploys **only the frontend** as a Render static site. The API,
-PostGIS and Redis stay local for now. That is enough for the current demo:
-the map, the geolocate control and the phone QR card need no backend.
+`render.yaml` and the GitHub Pages workflow deploy **only the frontend**. The
+API, PostGIS and Redis stay local.
+
+That means the deployed site is map-only: it shows the basemap, the geolocate
+control and the QR card, and the run panel says plainly that no API is
+reachable. Capturing territory needs the backend, so a real run has to be
+walked against a local API through an HTTPS tunnel (see README).
 
 ## Why a deployment is needed at all
 
