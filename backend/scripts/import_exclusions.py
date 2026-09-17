@@ -12,6 +12,7 @@ import argparse
 import asyncio
 import json
 import sys
+import time
 import urllib.error
 import urllib.request
 
@@ -21,7 +22,14 @@ from app.config import get_settings
 from app.db import get_engine
 from app.geo.osm import overpass_query, parse_elements
 
-OVERPASS_URL = "https://overpass-api.de/api/interpreter"
+# The public instances rate-limit and time out under load, so the import
+# tries each one in turn rather than failing on the first 504.
+OVERPASS_URLS = (
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://overpass.osm.jp/api/interpreter",
+)
+RETRY_DELAY_S = 10
 
 # Overpass asks every client to identify itself with a contact address.
 USER_AGENT = "QalaRun/0.1 (+https://github.com/hylgidra-cmd/qala-run)"
@@ -43,27 +51,63 @@ UPSERT = text(
 
 
 def fetch(query: str, timeout_s: int) -> dict:
-    request = urllib.request.Request(
-        OVERPASS_URL,
-        data=query.encode("utf-8"),
-        headers={"User-Agent": USER_AGENT, "Content-Type": "text/plain; charset=utf-8"},
-    )
+    """Ask each mirror in turn; raise the last error if all of them refuse."""
+    last_error: Exception | None = None
 
-    with urllib.request.urlopen(request, timeout=timeout_s) as response:
-        return json.loads(response.read())
+    for index, url in enumerate(OVERPASS_URLS):
+        request = urllib.request.Request(
+            url,
+            data=query.encode("utf-8"),
+            headers={"User-Agent": USER_AGENT, "Content-Type": "text/plain; charset=utf-8"},
+        )
+
+        try:
+            with urllib.request.urlopen(request, timeout=timeout_s) as response:
+                return json.loads(response.read())
+        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+            last_error = exc
+            print(f"  {url} failed: {exc}", flush=True)
+            if index + 1 < len(OVERPASS_URLS):
+                time.sleep(RETRY_DELAY_S)
+
+    raise last_error if last_error else RuntimeError("no Overpass mirror configured")
+
+
+# Row-at-a-time costs one network round trip per polygon, which is minutes of
+# waiting against a remote database. Batches keep it to seconds.
+BATCH_SIZE = 500
 
 
 async def store(rows: list[dict]) -> int:
-    """Write in one transaction; a geometry PostGIS cannot fix is skipped."""
+    """Write in one transaction; a geometry PostGIS cannot fix is skipped.
+
+    Each batch goes in one round trip. If a batch fails, only that batch is
+    retried row by row, so one bad way costs a little time instead of the run.
+    """
     written = 0
 
     async with get_engine().begin() as connection:
-        for row in rows:
+        for start in range(0, len(rows), BATCH_SIZE):
+            batch = rows[start : start + BATCH_SIZE]
+
             try:
-                await connection.execute(UPSERT, row)
-                written += 1
-            except Exception as exc:  # noqa: BLE001 - one bad way must not stop the import
-                print(f"  skipped {row['osm_type']}/{row['osm_id']}: {type(exc).__name__}")
+                await connection.execute(UPSERT, batch)
+                written += len(batch)
+                continue
+            except Exception:  # noqa: BLE001 - fall back to finding the bad row
+                pass
+
+            for row in batch:
+                savepoint = await connection.begin_nested()
+                try:
+                    await connection.execute(UPSERT, row)
+                    await savepoint.commit()
+                    written += 1
+                except Exception as exc:  # noqa: BLE001 - skip only the bad way
+                    await savepoint.rollback()
+                    print(f"  skipped {row['osm_type']}/{row['osm_id']}: {type(exc).__name__}")
+
+            print(f"  ... {written}/{len(rows)}", flush=True)
 
         await connection.execute(text("ANALYZE exclusion_zones"))
 
@@ -81,10 +125,10 @@ async def main() -> int:
     settings = get_settings()
     query = overpass_query(settings.pilot_bbox, timeout_s=arguments.timeout)
 
-    print(f"Querying Overpass for bbox {settings.pilot_bbox} ...")
+    print(f"Querying Overpass for bbox {settings.pilot_bbox} ...", flush=True)
     try:
         payload = fetch(query, timeout_s=arguments.timeout + 30)
-    except (urllib.error.URLError, TimeoutError) as exc:
+    except Exception as exc:  # noqa: BLE001 - every mirror refused
         print(f"Overpass request failed: {exc}", file=sys.stderr)
         return 1
 
@@ -95,7 +139,7 @@ async def main() -> int:
     for row in rows:
         by_kind[row["kind"]] = by_kind.get(row["kind"], 0) + 1
 
-    print(f"Elements returned: {len(elements)}")
+    print(f"Elements returned: {len(elements)}", flush=True)
     print(f"Usable polygons:   {len(rows)}")
     for kind, count in sorted(by_kind.items()):
         print(f"  {kind:<11} {count}")

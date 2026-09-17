@@ -13,11 +13,35 @@ that origin through `CORS_ORIGINS`.
 **GitHub Pages deploys the frontend only.** It has no backend, so the run panel
 says plainly that no API is reachable and the page is map-only.
 
-After the first Render deploy, load the exclusion zones once:
+### What is deployed today
+
+| Service | Address |
+|---|---|
+| `qalarun-web` (static site) | https://qalarun-web.onrender.com |
+| `qalarun-api` (Docker) | https://qalarun-api.onrender.com |
+| `qalarun-db` (Postgres 16 + PostGIS) | internal only |
+| `qalarun-redis` (Key Value) | internal only |
+
+All four are in Frankfurt, the closest region to Uzbekistan, and all are on the
+free tier. They were created through the Render API rather than by applying the
+blueprint; `render.yaml` describes the same four resources, so applying it later
+adopts them instead of creating duplicates.
+
+### Seeding a Render database
+
+A free instance has no shell, and pre-deploy commands need a paid plan, so
+migrations and the OSM import are run from a local container against the
+database's **external** connection string:
 
 ```bash
-render exec qalarun-api -- python -m scripts.import_exclusions
+docker compose exec -e DATABASE_URL="<external-url>?ssl=require" api   alembic upgrade head
+docker compose exec -e DATABASE_URL="<external-url>?ssl=require" api   python -m scripts.import_exclusions
 ```
+
+`?ssl=require` is required: SQLAlchemy maps it to asyncpg's `sslmode`, and
+Render refuses a plain connection. External access is closed by default, so add
+the machine's address to the database's IP allow list first and **remove it
+again afterwards**.
 
 ## Why a deployment is needed at all
 
