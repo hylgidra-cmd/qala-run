@@ -57,6 +57,12 @@ async def index() -> dict[str, object]:
     }
 
 
+@app.get("/api/v1", tags=["meta"])
+async def api_index() -> dict[str, object]:
+    """`/api/v1` is a prefix, not an endpoint. Say so instead of a bare 404."""
+    return await index()
+
+
 @app.get("/health/live", tags=["health"])
 async def liveness() -> dict[str, str]:
     return {"status": "ok", "version": settings.app_version}
