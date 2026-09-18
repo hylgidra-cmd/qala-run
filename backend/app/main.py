@@ -39,6 +39,24 @@ app.include_router(runs.router)
 app.include_router(territories.router)
 
 
+@app.get("/", tags=["meta"])
+async def index() -> dict[str, object]:
+    """The API has no home page; say where things are instead of a bare 404."""
+    return {
+        "name": settings.app_name,
+        "version": settings.app_version,
+        "docs": "/docs",
+        "health": "/health",
+        "endpoints": [
+            "POST /api/v1/runs/start",
+            "POST /api/v1/runs/{run_id}/points",
+            "POST /api/v1/runs/{run_id}/finish",
+            "POST /api/v1/runs/{run_id}/abandon",
+            "GET /api/v1/territories?bbox=west,south,east,north&mode=solo",
+        ],
+    }
+
+
 @app.get("/health/live", tags=["health"])
 async def liveness() -> dict[str, str]:
     return {"status": "ok", "version": settings.app_version}
