@@ -87,3 +87,16 @@ class TestProfile:
 
         assert body["stats"] == {"runs_accepted": 0, "solo_area_m2": 0.0, "clan_area_m2": 0.0}
         assert body["clan"] is None
+
+    async def test_a_new_player_gets_a_color(self, client) -> None:
+        body = (await client.get("/api/v1/me", headers=device("pr7"))).json()
+        assert "color_hex" in body
+        assert body["color_hex"].startswith("#")
+        assert len(body["color_hex"]) == 7
+
+    async def test_a_player_can_change_their_color(self, client) -> None:
+        headers = device("pr8")
+        updated = (
+            await client.patch("/api/v1/me", headers=headers, json={"color_hex": "#ff3b30"})
+        ).json()
+        assert updated["color_hex"] == "#ff3b30"

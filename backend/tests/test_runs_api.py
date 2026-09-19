@@ -85,7 +85,7 @@ class TestRunLifecycle:
             text(
                 """
                 INSERT INTO exclusion_zones (kind, source, osm_type, osm_id, geom)
-                VALUES ('building', 'test', 'way', :osm_id,
+                VALUES ('water', 'test', 'way', :osm_id,
                         ST_Multi(ST_GeomFromText(:wkt, 4326)))
                 """
             ),
@@ -98,6 +98,31 @@ class TestRunLifecycle:
         assert body["status"] == "accepted"
         # The 40 m square is 1600 m2 and sits wholly inside the loop.
         assert body["excluded_area_m2"] >= 1500.0
+
+    async def test_buildings_are_included_in_the_award(
+        self, client, headers, connection
+    ) -> None:
+        """Buildings inside the loop are kept and awarded."""
+        inner = square_points(side_m=40.0, lat=NUKUS_LAT + 0.00036, lon=NUKUS_LON + 0.00048)
+        ring = ", ".join(f"{point['lon']!r} {point['lat']!r}" for point in inner)
+        first = f"{inner[0]['lon']!r} {inner[0]['lat']!r}"
+        await connection.execute(
+            text(
+                """
+                INSERT INTO exclusion_zones (kind, source, osm_type, osm_id, geom)
+                VALUES ('building', 'test', 'way', :osm_id,
+                        ST_Multi(ST_GeomFromText(:wkt, 4326)))
+                """
+            ),
+            {"osm_id": -99999, "wkt": f"POLYGON(({ring}, {first}))"},
+        )
+
+        _, finished = await run_track(client, headers, square_points(side_m=120.0))
+        body = finished.json()
+
+        assert body["status"] == "accepted"
+        # Buildings must NOT be subtracted from the award
+        assert body["excluded_area_m2"] is None or body["excluded_area_m2"] == 0.0
 
     async def test_a_second_run_cannot_start_while_one_is_active(self, client, headers) -> None:
         first = await client.post("/api/v1/runs/start", headers=headers)

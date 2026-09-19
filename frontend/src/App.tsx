@@ -3,6 +3,7 @@ import { AdminView } from './admin/AdminView';
 import { t } from './i18n/qq';
 import { MapView } from './map/MapView';
 import { ProfilePanel } from './profile/ProfilePanel';
+import { RegisterModal } from './profile/RegisterModal';
 import { initials } from './profile/identity';
 import { useProfile } from './profile/useProfile';
 import { RunPanel } from './run/RunPanel';
@@ -14,10 +15,17 @@ export function App() {
   const [mode, setMode] = useState<TerritoryMode>('solo');
   const [panelOpen, setPanelOpen] = useState(false);
   const [clanPrompt, setClanPrompt] = useState(false);
+  const [registerDismissed, setRegisterDismissed] = useState(false);
   const [isAdmin, setIsAdmin] = useState(() => window.location.hash === '#admin');
   const tracker = useRunTracker(mode);
   const [apiReachable, setApiReachable] = useState(true);
   const handleApiReachable = useCallback((reachable: boolean) => setApiReachable(reachable), []);
+
+  const showRegister =
+    !registerDismissed &&
+    profile.me != null &&
+    !localStorage.getItem('dontstop.registered') &&
+    (profile.me.display_name.startsWith('Oyınshı ') || profile.me.display_name.startsWith('Runner '));
 
   const inClan = profile.me?.clan != null;
 
@@ -138,6 +146,13 @@ export function App() {
         ) : null}
 
         <PhoneQr />
+
+        {showRegister && profile.me ? (
+          <RegisterModal
+            profile={profile}
+            onComplete={() => setRegisterDismissed(true)}
+          />
+        ) : null}
 
         {panelOpen ? (
           <ProfilePanel

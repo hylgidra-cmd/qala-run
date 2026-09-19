@@ -363,7 +363,8 @@ async def finish_run(
                                  v.geom,
                                  (SELECT ST_Union(e.geom)
                                     FROM exclusion_zones e
-                                   WHERE ST_Intersects(e.geom, v.geom))
+                                   WHERE ST_Intersects(e.geom, v.geom)
+                                     AND e.kind != 'building')
                              )), 3)),
                              v.geom
                            ) AS geom

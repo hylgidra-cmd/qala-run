@@ -15,7 +15,7 @@ from sqlalchemy.pool import NullPool
 from app.config import get_settings
 
 # Bump this with every migration: it is the guard against a stale database.
-HEAD_REVISION = "0003_player_id_and_clans"
+HEAD_REVISION = "0005_player_color"
 
 # A small square inside the Nukus pilot bbox (59.58,42.43,59.64,42.48).
 SQUARE_WKT = "POLYGON((59.600 42.450, 59.601 42.450, 59.601 42.451, 59.600 42.451, 59.600 42.450))"

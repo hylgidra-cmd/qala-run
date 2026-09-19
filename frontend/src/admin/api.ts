@@ -12,6 +12,7 @@ export interface LiveRunner {
   points_count: number;
   location: { lat: number; lon: number } | null;
   track: [number, number][]; // [lon, lat][]
+  color: string;
 }
 
 export interface AdminStats {

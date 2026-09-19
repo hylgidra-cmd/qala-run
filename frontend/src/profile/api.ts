@@ -40,6 +40,7 @@ export interface Me {
   user_id: string;
   player_id: string;
   display_name: string;
+  color_hex: string;
   joined_at: string;
   stats: {
     runs_accepted: number;
@@ -53,11 +54,15 @@ export function fetchMe() {
   return request<Me>('/me');
 }
 
-export function renameMe(displayName: string) {
+export function updateMe(input: { display_name?: string; color_hex?: string }) {
   return request<Me>('/me', {
     method: 'PATCH',
-    body: JSON.stringify({ display_name: displayName }),
+    body: JSON.stringify(input),
   });
+}
+
+export function renameMe(displayName: string) {
+  return updateMe({ display_name: displayName });
 }
 
 export function fetchClan(clanId: string) {

@@ -29,6 +29,7 @@ function me(clan: Me['clan'] = null): Me {
     user_id: 'u1',
     player_id: '84920155',
     display_name: 'Aydos',
+    color_hex: '#00ff88',
     joined_at: '2026-09-19T10:00:00+00:00',
     stats: { runs_accepted: 0, solo_area_m2: 0, clan_area_m2: 0 },
     clan,

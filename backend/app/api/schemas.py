@@ -134,10 +134,12 @@ class MeOut(BaseModel):
     user_id: str
     player_id: str
     display_name: str
+    color_hex: str = "#00ff88"
     joined_at: str
     stats: PlayerStats
     clan: ClanBrief | None = None
 
 
 class DisplayNameIn(BaseModel):
-    display_name: str = Field(min_length=2, max_length=24)
+    display_name: str | None = Field(default=None, min_length=2, max_length=24)
+    color_hex: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")

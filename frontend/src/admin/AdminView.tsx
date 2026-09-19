@@ -48,6 +48,7 @@ export function AdminView({ onBack }: AdminViewProps) {
             userId: runner.user_id,
             name: runner.display_name,
             status: runner.status,
+            color: runner.color || '#ff3b30',
           },
           geometry: {
             type: 'LineString',
@@ -114,7 +115,19 @@ export function AdminView({ onBack }: AdminViewProps) {
                   onClick={() => flyToRunner(r)}
                 >
                   <div className="runner-card-top">
-                    <strong className="runner-name">{r.display_name}</strong>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span
+                        style={{
+                          width: '12px',
+                          height: '12px',
+                          borderRadius: '50%',
+                          backgroundColor: r.color || '#00ff88',
+                          display: 'inline-block',
+                          boxShadow: `0 0 6px ${r.color || '#00ff88'}`,
+                        }}
+                      />
+                      <strong className="runner-name">{r.display_name}</strong>
+                    </div>
                     <span className={`runner-status-badge ${r.status === 'running' ? 'active' : r.is_online ? 'online' : 'offline'}`}>
                       {r.status === 'running' ? 'Juwırmaqta 🏃' : r.is_online ? 'Onlayn 🟢' : 'Offlayn ⚪'}
                     </span>
@@ -169,7 +182,7 @@ export function AdminView({ onBack }: AdminViewProps) {
                 id="admin-tracks-layer"
                 type="line"
                 paint={{
-                  'line-color': '#ff3b30',
+                  'line-color': ['coalesce', ['get', 'color'], '#ff3b30'] as never,
                   'line-width': 5,
                   'line-opacity': 0.9,
                 }}
@@ -179,6 +192,7 @@ export function AdminView({ onBack }: AdminViewProps) {
             {/* Runner current locations */}
             {runners.map((r) => {
               if (!r.location) return null;
+              const runnerColor = r.color || '#00ff88';
               return (
                 <Marker
                   key={`marker-${r.user_id}`}
@@ -187,9 +201,15 @@ export function AdminView({ onBack }: AdminViewProps) {
                   anchor="bottom"
                   onClick={() => setSelectedUserId(r.user_id)}
                 >
-                  <div className={`admin-marker ${r.status === 'running' ? 'running' : ''}`}>
+                  <div
+                    className={`admin-marker ${r.status === 'running' ? 'running' : ''}`}
+                    style={{
+                      borderColor: runnerColor,
+                      boxShadow: `0 0 12px ${runnerColor}88`,
+                    }}
+                  >
                     <span className="marker-pin">📍</span>
-                    <span className="marker-label">{r.player_id}</span>
+                    <span className="marker-label" style={{ color: runnerColor }}>{r.player_id}</span>
                   </div>
                 </Marker>
               );

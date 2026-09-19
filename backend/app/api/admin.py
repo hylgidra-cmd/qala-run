@@ -32,6 +32,7 @@ class LiveRunner(BaseModel):
     points_count: int = 0
     location: RunnerLocation | None = None
     track: list[list[float]] = []  # [[lon, lat], ...]
+    color: str = "#00ff88"
 
 
 class AdminStats(BaseModel):
@@ -87,6 +88,7 @@ async def get_live_runners(
                 SELECT u.id,
                        u.player_id,
                        u.display_name,
+                       u.color_hex AS color,
                        u.last_seen_at,
                        u.last_lat,
                        u.last_lon,
@@ -142,6 +144,7 @@ async def get_live_runners(
                 user_id=user_id,
                 player_id=row.player_id,
                 display_name=row.display_name,
+                color=getattr(row, "color", None) or "#00ff88",
                 last_seen_at=row.last_seen_at.isoformat() if row.last_seen_at else "",
                 is_online=bool(row.is_online),
                 status="running" if active_run_id else "idle",

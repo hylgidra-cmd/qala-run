@@ -11,6 +11,7 @@ import {
   leaveClan as leaveClanRequest,
   removeMember as removeMemberRequest,
   renameMe,
+  updateMe,
 } from './api';
 
 /**
@@ -52,6 +53,7 @@ export interface Profile {
   available: boolean;
   reload: () => Promise<void>;
   rename: (displayName: string) => Promise<void>;
+  updateProfile: (input: { displayName?: string; colorHex?: string }) => Promise<void>;
   create: (input: { name: string; tag: string; color_hex: string }) => Promise<void>;
   join: (inviteCode: string) => Promise<void>;
   leave: () => Promise<void>;
@@ -85,6 +87,17 @@ export function useProfile(): Profile {
   const rename = useCallback(async (displayName: string) => {
     setMe(await renameMe(displayName));
   }, []);
+
+  const updateProfile = useCallback(
+    async (input: { displayName?: string; colorHex?: string }) => {
+      const updated = await updateMe({
+        display_name: input.displayName,
+        color_hex: input.colorHex,
+      });
+      setMe(updated);
+    },
+    [],
+  );
 
   const create = useCallback(
     async (input: { name: string; tag: string; color_hex: string }) => {
@@ -121,5 +134,5 @@ export function useProfile(): Profile {
     [clan],
   );
 
-  return { me, clan, available, reload, rename, create, join, leave, remove };
+  return { me, clan, available, reload, rename, updateProfile, create, join, leave, remove };
 }

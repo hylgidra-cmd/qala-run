@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { t } from '../i18n/qq';
 import { formatArea } from '../run/format';
 import { ClanSection } from './ClanSection';
@@ -14,25 +14,16 @@ interface ProfilePanelProps {
 
 export function ProfilePanel({ profile, onClose, clanPrompt = false }: ProfilePanelProps) {
   const { me } = profile;
-  const [name, setName] = useState(me?.display_name ?? 'Madiyar');
+  const [name, setName] = useState(me?.display_name ?? '');
   const [saving, setSaving] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const autoRenamed = useRef(false);
 
-  // Auto-set name to Madiyar if it is a default runner/oyınshı name
   useEffect(() => {
     if (me?.display_name) {
       setName(me.display_name);
-      if (
-        !autoRenamed.current &&
-        (me.display_name.startsWith('Runner ') || me.display_name.startsWith('Oyınshı '))
-      ) {
-        autoRenamed.current = true;
-        void profile.rename('Madiyar');
-      }
     }
-  }, [me?.display_name, profile]);
+  }, [me?.display_name]);
 
   if (!profile.available || !me) {
     return (
@@ -99,13 +90,13 @@ export function ProfilePanel({ profile, onClose, clanPrompt = false }: ProfilePa
         <div className="profile-identity">
           <span
             className="profile-avatar"
-            style={{ background: `hsl(${avatarHue(me.player_id)} 70% 45%)` }}
+            style={{ background: me.color_hex || `hsl(${avatarHue(me.player_id)} 70% 45%)` }}
             aria-hidden="true"
           >
-            {initials(me.display_name || 'Madiyar')}
+            {initials(me.display_name || 'Oyınshı')}
           </span>
           <div>
-            <h2 className="profile-name">{me.display_name || 'Madiyar'}</h2>
+            <h2 className="profile-name">{me.display_name || 'Oyınshı'}</h2>
             <p className="profile-id">
               <span className="profile-id-label">{t.profile.playerId}</span>
               <strong>{me.player_id}</strong>
@@ -116,21 +107,36 @@ export function ProfilePanel({ profile, onClose, clanPrompt = false }: ProfilePa
           </div>
         </div>
 
-        <label className="field">
-          <span>{t.profile.name}</span>
-          <div className="field-row">
-            <input
-              value={name}
-              maxLength={24}
-              onChange={(event) => setName(event.target.value)}
-              aria-invalid={nameError !== null}
-            />
-            <button type="button" onClick={() => void save()} disabled={saving}>
-              {saving ? t.profile.saving : t.profile.save}
-            </button>
-          </div>
-          {nameError ? <p className="field-error">{nameError}</p> : null}
-        </label>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+          <label className="field" style={{ flex: 1 }}>
+            <span>{t.profile.name}</span>
+            <div className="field-row">
+              <input
+                value={name}
+                maxLength={24}
+                onChange={(event) => setName(event.target.value)}
+                aria-invalid={nameError !== null}
+              />
+              <button type="button" onClick={() => void save()} disabled={saving}>
+                {saving ? t.profile.saving : t.profile.save}
+              </button>
+            </div>
+            {nameError ? <p className="field-error">{nameError}</p> : null}
+          </label>
+
+          <label className="field" style={{ width: '70px' }}>
+            <span>Reń</span>
+            <div className="field-row">
+              <input
+                type="color"
+                value={me.color_hex || '#00ff88'}
+                onChange={(e) => void profile.updateProfile({ colorHex: e.target.value })}
+                title="Oyın reńin ózgertiw"
+                style={{ height: '38px', padding: '2px', cursor: 'pointer', width: '100%' }}
+              />
+            </div>
+          </label>
+        </div>
 
         <div className="profile-stats-grid">
           <div className="profile-stat-box">

@@ -54,7 +54,7 @@ async def list_territories(
                    t.owner_user_id AS owner_id,
                    u.display_name AS owner_name,
                    NULL AS owner_tag,
-                   NULL AS color,
+                   u.color_hex AS color,
                    t.area_m2,
                    t.created_at,
                    ST_AsGeoJSON(t.geom) AS geometry

@@ -1368,3 +1368,221 @@ a:focus-visible {
   }
 }
 
+/* Register Modal (QR Onboarding) ------------------------------------------ */
+
+.register-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(3, 10, 7, 0.88);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.register-modal-card {
+  width: 100%;
+  max-width: 440px;
+  background: #0e1e18;
+  border: 1px solid rgba(0, 255, 136, 0.3);
+  border-radius: 20px;
+  padding: 28px 24px;
+  color: #effff5;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+  animation: popIn 0.25s ease-out;
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.register-modal-header {
+  text-align: center;
+}
+
+.register-icon-badge {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  font-size: 30px;
+  margin: 0 auto 12px;
+  border: 2px solid #00ff88;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #07130f;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.register-modal-header h2 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  margin: 0 0 6px;
+  letter-spacing: -0.5px;
+}
+
+.register-subtitle {
+  font-size: 0.88rem;
+  color: #9bb2a6;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.register-id-box {
+  background: #07130f;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin: 20px 0 16px;
+}
+
+.register-id-label {
+  font-size: 0.72rem;
+  color: #7d8f84;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: block;
+}
+
+.register-id-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.register-id-val {
+  font-family: monospace;
+  font-size: 1.35rem;
+  color: #00ff88;
+  letter-spacing: 2px;
+}
+
+.register-id-copy {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #effff5;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.register-id-copy:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.register-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.register-form label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #dcebe3;
+}
+
+.register-input {
+  width: 100%;
+  padding: 12px 14px;
+  background: #07130f;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 1rem;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.register-input:focus {
+  border-color: #00ff88;
+}
+
+.register-color-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.color-pill {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+}
+
+.color-pill:hover {
+  transform: scale(1.1);
+}
+
+.color-pill.selected {
+  transform: scale(1.18);
+  border-color: #ffffff;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+}
+
+.custom-color-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px dashed rgba(255, 255, 255, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  background: #07130f;
+}
+
+.register-submit-btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  color: #07130f;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: filter 0.2s, transform 0.1s;
+}
+
+.register-submit-btn:hover {
+  filter: brightness(1.1);
+}
+
+.register-submit-btn:active {
+  transform: scale(0.98);
+}
+
+.register-error {
+  color: #ff6b6b;
+  font-size: 0.84rem;
+  margin: 0;
+}
+
+
