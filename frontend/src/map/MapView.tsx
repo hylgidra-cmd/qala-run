@@ -1,8 +1,6 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import Map, { GeolocateControl, Layer, NavigationControl, Source } from 'react-map-gl/maplibre';
 import type { TrackPoint } from '../run/api';
-import { ExclusionLayer } from './ExclusionLayer';
-import { ExclusionLegend } from './ExclusionLegend';
 import { TerritoryLayer } from './TerritoryLayer';
 import { OUT_OF_BOUNDS_NOTICE, geolocationNotice, isInsidePilotBounds } from './geolocation';
 import { DEV_MAP_STYLE, NUKUS_CENTER, PILOT_BOUNDS } from './style';
@@ -22,12 +20,6 @@ export function MapView({
   onApiReachable,
 }: MapViewProps) {
   const [notice, setNotice] = useState<string | null>(null);
-  const [showExclusions, setShowExclusions] = useState(true);
-  const [zones, setZones] = useState({ count: 0, truncated: false });
-  const handleZonesLoaded = useCallback(
-    (count: number, truncated: boolean) => setZones({ count, truncated }),
-    [],
-  );
 
   const track = useMemo<GeoJSON.FeatureCollection>(
     () => ({
@@ -72,8 +64,6 @@ export function MapView({
         onOutOfMaxBounds={() => setNotice(OUT_OF_BOUNDS_NOTICE)}
       />
 
-      <ExclusionLayer visible={showExclusions} onLoaded={handleZonesLoaded} />
-
       <TerritoryLayer
         mode={mode}
         refreshKey={territoryRefreshKey}
@@ -87,13 +77,6 @@ export function MapView({
           paint={{ 'line-color': '#ff8a3d', 'line-width': 4, 'line-opacity': 0.9 }}
         />
       </Source>
-
-      <ExclusionLegend
-        visible={showExclusions}
-        onToggle={() => setShowExclusions((shown) => !shown)}
-        count={zones.count}
-        truncated={zones.truncated}
-      />
 
       {notice ? (
         <div className="map-notice" role="status">
