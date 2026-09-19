@@ -152,3 +152,20 @@ export function fetchTerritories(
 
   return request<GeoJSON.FeatureCollection>(`/territories?${query.toString()}`);
 }
+
+/** The zone layer adds one foreign member: the view was capped (TZ section 11). */
+export interface ExclusionCollection extends GeoJSON.FeatureCollection {
+  truncated?: boolean;
+}
+
+export function fetchExclusions(
+  bbox: [number, number, number, number],
+  kinds: string[] = [],
+): Promise<ExclusionCollection> {
+  const query = new URLSearchParams({ bbox: bbox.join(',') });
+  if (kinds.length > 0) {
+    query.set('kind', kinds.join(','));
+  }
+
+  return request<ExclusionCollection>(`/zones/exclusions?${query.toString()}`);
+}

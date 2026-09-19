@@ -29,3 +29,19 @@ def test_api_prefix_also_points_at_the_docs() -> None:
 
     assert response.status_code == 200
     assert response.json()["docs"] == "/docs"
+
+
+def test_the_index_lists_the_map_layers() -> None:
+    with TestClient(app) as client:
+        body = client.get("/").json()
+
+    assert any("/api/v1/zones/exclusions" in entry for entry in body["endpoints"])
+
+
+def test_large_responses_are_compressed() -> None:
+    """Map layers run to hundreds of kilobytes; phones pay for every one."""
+    with TestClient(app) as client:
+        response = client.get("/docs", headers={"Accept-Encoding": "gzip"})
+
+    assert len(response.content) > 1000
+    assert response.headers.get("content-encoding") == "gzip"

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ApiError, deviceKey, finishRun, startRun, toTrackPoint } from './api';
+import { ApiError, deviceKey, fetchExclusions, finishRun, startRun, toTrackPoint } from './api';
 
 function position(overrides: Partial<GeolocationCoordinates> = {}): GeolocationPosition {
   return {
@@ -138,5 +138,55 @@ describe('request handling', () => {
 
     expect(result.status).toBe('accepted');
     expect(result.awarded_area_m2).toBe(14400);
+  });
+});
+
+describe('fetchExclusions', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  function stubEmptyCollection() {
+    // A Response body can only be read once, so each call gets a fresh one.
+    const fetchMock = vi.fn().mockImplementation(
+      async () =>
+        new Response(
+          JSON.stringify({ type: 'FeatureCollection', truncated: false, features: [] }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    return fetchMock;
+  }
+
+  it('sends the bbox as west,south,east,north', async () => {
+    const fetchMock = stubEmptyCollection();
+
+    await fetchExclusions([59.58, 42.43, 59.64, 42.48]);
+
+    expect(fetchMock.mock.calls[0][0]).toContain('/zones/exclusions?bbox=59.58%2C42.43%2C59.64%2C42.48');
+  });
+
+  it('asks for every kind unless kinds are given', async () => {
+    const fetchMock = stubEmptyCollection();
+
+    await fetchExclusions([59.58, 42.43, 59.64, 42.48]);
+    expect(fetchMock.mock.calls[0][0]).not.toContain('kind=');
+
+    await fetchExclusions([59.58, 42.43, 59.64, 42.48], ['water', 'building']);
+    expect(fetchMock.mock.calls[1][0]).toContain('kind=water%2Cbuilding');
+  });
+
+  it('reads back the truncation flag the server sets', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ type: 'FeatureCollection', truncated: true, features: [] }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ),
+    );
+
+    expect((await fetchExclusions([59.58, 42.43, 59.64, 42.48])).truncated).toBe(true);
   });
 });

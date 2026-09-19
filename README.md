@@ -101,6 +101,7 @@ POST /api/v1/runs/{id}/points        -> batches of GPS fixes
 POST /api/v1/runs/{id}/finish        -> accepted | rejected + reason
 POST /api/v1/runs/{id}/abandon       -> release a run left active
 GET  /api/v1/territories?bbox=...    -> GeoJSON for the map
+GET  /api/v1/zones/exclusions?bbox=. -> GeoJSON of the ground no run wins
 ```
 
 The browser sends coordinates, timestamps and accuracy. Speed, distance, area,
@@ -139,6 +140,25 @@ polygons; an open barrier is never turned into an area.
 
 OSM coverage in Nukus is incomplete, so this is never a full picture of
 private property, and the app cannot physically stop anyone entering it.
+
+### On the map
+
+The map draws the zones under the territory layers, coloured by kind, with a
+legend that also hides them (TZ sections 9 and 12). Seeing them before a run is
+the point: the ground inside a loop is still subtracted at the finish, so a
+route around a block wins less than its outline suggests.
+
+```bash
+curl "http://localhost:8000/api/v1/zones/exclusions?bbox=59.600,42.445,59.620,42.460"
+```
+
+A view wider than a couple of thousand zones is capped rather than sent whole:
+geometry is simplified and sub-pixel zones dropped in proportion to the bbox,
+the largest 3,000 survive, and the response carries `"truncated": true` so the
+legend can say to zoom in. Responses over 1 KB are gzipped, which takes the
+busiest view from about 560 KB to 120 KB on the wire. TZ section 11 puts the
+MVT endpoint at 20,000 visible polygons; the pilot bbox holds about 17,000, so
+GeoJSON still carries it.
 
 ## Testing a real run on a phone
 

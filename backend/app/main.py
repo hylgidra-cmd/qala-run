@@ -2,9 +2,10 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Response, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from sqlalchemy import text
 
-from app.api import runs, territories
+from app.api import runs, territories, zones
 from app.config import get_settings
 from app.db import get_engine, get_redis
 
@@ -24,6 +25,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# The map layers are the only large responses, and they compress about ten to
+# one. Small ones are left alone so a health check stays cheap.
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
@@ -37,6 +42,7 @@ app.add_middleware(
 
 app.include_router(runs.router)
 app.include_router(territories.router)
+app.include_router(zones.router)
 
 
 @app.get("/", tags=["meta"])
@@ -53,6 +59,7 @@ async def index() -> dict[str, object]:
             "POST /api/v1/runs/{run_id}/finish",
             "POST /api/v1/runs/{run_id}/abandon",
             "GET /api/v1/territories?bbox=west,south,east,north&mode=solo",
+            "GET /api/v1/zones/exclusions?bbox=west,south,east,north",
         ],
     }
 

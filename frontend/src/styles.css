@@ -423,3 +423,92 @@ a:focus-visible {
     display: none;
   }
 }
+
+.legend {
+  position: absolute;
+  z-index: 4;
+  bottom: 28px;
+  left: 22px;
+  width: 196px;
+  padding: 14px 16px;
+  color: #effff5;
+  background: rgba(7, 19, 15, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 18px 50px rgba(3, 10, 7, 0.28);
+  backdrop-filter: blur(18px);
+}
+
+.legend-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.legend-head .eyebrow {
+  margin: 0;
+}
+
+.legend-head button {
+  padding: 0;
+  color: #9bb2a6;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.legend-list {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0 0;
+  padding: 0;
+  color: #dcebe3;
+  font-size: 0.78rem;
+  list-style: none;
+}
+
+.legend-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-swatch {
+  width: 12px;
+  height: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+}
+
+.legend-note {
+  margin: 12px 0 0;
+  color: #9bb2a6;
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+@media (max-width: 640px) {
+  /* A phone screen cannot spare a full-height column, so the swatches pair up. */
+  .legend {
+    top: 118px;
+    bottom: auto;
+    left: 14px;
+    width: 214px;
+    padding: 11px 13px;
+  }
+
+  .legend-list {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 10px;
+    font-size: 0.68rem;
+  }
+
+  .legend-note {
+    margin-top: 10px;
+  }
+}
