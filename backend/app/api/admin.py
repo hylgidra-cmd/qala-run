@@ -158,3 +158,44 @@ async def get_live_runners(
 
     return results
 
+
+class CleanupResult(BaseModel):
+    expired_territories_deleted: int
+    abandoned_runs_closed: int
+
+
+@router.post("/cleanup", response_model=CleanupResult)
+async def run_cleanup(
+    connection: Annotated[AsyncConnection, Depends(get_connection)],
+) -> CleanupResult:
+    """Purge expired territories (TTL) and close stale active runs.
+
+    TZ section 23.2:
+    - Solo territories expire after 7 days.
+    - Clan territories expire after 14 days.
+
+    Call this from a Render cron job (or any HTTP scheduler) once per day:
+      POST https://qalarun-api.onrender.com/api/v1/admin/cleanup
+    """
+    # Delete territories whose TTL has elapsed
+    expired = await connection.execute(
+        text("DELETE FROM territories WHERE expires_at IS NOT NULL AND expires_at < now()")
+    )
+
+    # Close active runs that haven't received a point in > 2 hours (stale GPS)
+    abandoned = await connection.execute(
+        text(
+            """
+            UPDATE runs
+               SET status = 'abandoned',
+                   finished_at = now()
+             WHERE status = 'active'
+               AND started_at < now() - interval '2 hours'
+            """
+        )
+    )
+
+    return CleanupResult(
+        expired_territories_deleted=expired.rowcount,
+        abandoned_runs_closed=abandoned.rowcount,
+    )

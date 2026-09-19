@@ -459,9 +459,13 @@ async def finish_run(
     territory_id = await connection.scalar(
         text(
             """
-            INSERT INTO territories (mode, owner_user_id, owner_clan_id, run_id, area_m2, geom)
+            INSERT INTO territories (mode, owner_user_id, owner_clan_id, run_id, area_m2, geom,
+                                     expires_at)
             VALUES (:mode, :user_id, :owner_clan_id, :run_id, :area,
-                    ST_SetSRID(ST_GeomFromText(:wkt), 4326))
+                    ST_SetSRID(ST_GeomFromText(:wkt), 4326),
+                    now() + (CASE WHEN :mode = 'solo'
+                                  THEN INTERVAL '7 days'
+                                  ELSE INTERVAL '14 days' END))
             RETURNING id
             """
         ),
