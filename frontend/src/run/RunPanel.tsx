@@ -14,8 +14,23 @@ interface RunPanelProps {
   apiReachable: boolean;
 }
 
+function formatDuration(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
 export function RunPanel({ tracker, apiReachable }: RunPanelProps) {
-  const { phase, points, result, error } = tracker;
+  const {
+    phase,
+    points,
+    result,
+    error,
+    durationSeconds,
+    distanceM,
+    speedKmh,
+    screenLocked,
+  } = tracker;
 
   if (!apiReachable) {
     return (
@@ -38,67 +53,105 @@ export function RunPanel({ tracker, apiReachable }: RunPanelProps) {
         </div>
       ) : null}
 
+      {/* Victory / Capture or Rejection Card */}
       {result ? (
-        <div className={`run-result ${result.status}`} role="status">
+        <div className={`run-result-card ${result.status}`} role="status">
           {result.status === 'accepted' ? (
-            <>
-              <p className="eyebrow">{t.run.captured}</p>
-              <h2>{formatArea(result.awarded_area_m2)}</h2>
-              <p className="run-meta">
-                {describeActivity(result.activity?.type)} ·{' '}
-                {formatSpeed(result.activity?.avg_speed_ms ?? null)}
-              </p>
-              {result.excluded_area_m2 ? (
-                <p className="run-meta">
-                  {t.run.excluded(formatArea(result.excluded_area_m2))}
-                </p>
-              ) : null}
-              {result.warnings.includes('LOOP_CLOSED_BY_SERVER') ? (
-                <p className="run-meta">
-                  {t.run.closedGap(formatDistance(result.closing_gap_m))}
-                </p>
-              ) : null}
-              {result.captured_from.length > 0 ? (
-                <p className="run-meta">
-                  {t.run.takenFrom(result.captured_from.map((owner) => owner.username).join(', '))}
-                </p>
-              ) : null}
-            </>
+            <div className="victory-content">
+              <span className="victory-badge">
+                <span aria-hidden="true">🎉</span> {t.run.captured}
+              </span>
+              <h2 className="victory-area">{formatArea(result.awarded_area_m2)}</h2>
+              <div className="victory-details">
+                <span><span aria-hidden="true">⚡ </span><span>{describeActivity(result.activity?.type)} ({formatSpeed(result.activity?.avg_speed_ms ?? null)})</span></span>
+                {result.excluded_area_m2 ? (
+                  <span><span aria-hidden="true">🚫 </span><span>{t.run.excluded(formatArea(result.excluded_area_m2))}</span></span>
+                ) : null}
+                {result.warnings.includes('LOOP_CLOSED_BY_SERVER') ? (
+                  <span><span aria-hidden="true">🔄 </span><span>{t.run.closedGap(formatDistance(result.closing_gap_m))}</span></span>
+                ) : null}
+                {result.captured_from.length > 0 ? (
+                  <span><span aria-hidden="true">⚔️ </span><span>{t.run.takenFrom(result.captured_from.map((o) => o.username).join(', '))}</span></span>
+                ) : null}
+              </div>
+            </div>
           ) : (
-            <>
-              <p className="eyebrow">{t.run.rejected}</p>
-              <p>{describeReason(result.reason)}</p>
-            </>
+            <div className="rejection-content">
+              <span className="rejection-badge">
+                <span aria-hidden="true">⚠️</span> {t.run.rejected}
+              </span>
+              <p className="rejection-reason">{describeReason(result.reason)}</p>
+            </div>
           )}
-          <button type="button" onClick={tracker.reset}>
+          <button type="button" className="result-close-btn" onClick={tracker.reset}>
             {t.run.close}
           </button>
         </div>
       ) : null}
 
-      {phase === 'tracking' || phase === 'finishing' ? (
-        <p className="run-note">{t.run.tracking(points.length)}</p>
+      {/* Active Run Live HUD Bar */}
+      {(phase === 'tracking' || phase === 'finishing') && !result ? (
+        <div className="run-hud">
+          <div className="hud-metrics">
+            <div className="hud-metric-box">
+              <span className="metric-label">⏱️ VAQIT</span>
+              <span className="metric-val">{formatDuration(durationSeconds)}</span>
+            </div>
+            <div className="hud-metric-box">
+              <span className="metric-label">📏 ARALIQ</span>
+              <span className="metric-val">
+                {distanceM >= 1000 ? `${(distanceM / 1000).toFixed(2)} km` : `${Math.round(distanceM)} m`}
+              </span>
+            </div>
+            <div className="hud-metric-box">
+              <span className="metric-label">⚡ TEZLIK</span>
+              <span className="metric-val">{speedKmh} km/h</span>
+            </div>
+          </div>
+
+          <p className="run-note">{t.run.tracking(points.length)}</p>
+
+          <div className="hud-status-row">
+            <span className="hud-points-badge">📍 {points.length} noqat</span>
+            {screenLocked ? (
+              <span className="hud-wakelock-badge">⚡ Ekran oʻshpeydi</span>
+            ) : null}
+          </div>
+
+          <div className="hud-actions">
+            <button
+              className="run-button stop"
+              type="button"
+              onClick={() => void tracker.finish()}
+              disabled={phase === 'finishing'}
+            >
+              {phase === 'finishing' ? t.run.checking : t.run.finish}
+            </button>
+            <button
+              className="run-abandon-btn"
+              type="button"
+              onClick={tracker.reset}
+              title="Biykarlaw"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
       ) : null}
 
-      {phase === 'idle' || phase === 'done' ? (
-        <button
-          className="run-button"
-          type="button"
-          onClick={() => void tracker.start()}
-          disabled={phase === 'done' && result === null}
-        >
-          {t.run.start}
-        </button>
-      ) : (
-        <button
-          className="run-button stop"
-          type="button"
-          onClick={() => void tracker.finish()}
-          disabled={phase !== 'tracking'}
-        >
-          {phase === 'finishing' ? t.run.checking : t.run.finish}
-        </button>
-      )}
+      {/* Idle Launch Button */}
+      {(phase === 'idle' || phase === 'done') && !result ? (
+        <div className="run-launch-box">
+          <button
+            className="run-button start"
+            type="button"
+            onClick={() => void tracker.start()}
+            disabled={phase === 'done'}
+          >
+            <span aria-hidden="true">⚡</span> {t.run.start}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

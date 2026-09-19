@@ -19,12 +19,30 @@ export type TerritoryMode = 'solo' | 'clan';
 /** The points endpoint allows 2 requests per second; 4 s stays well inside it. */
 const FLUSH_INTERVAL_MS = 4000;
 
+function distanceBetween(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371000;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 export interface RunTracker {
   phase: RunPhase;
   runId: string | null;
   points: TrackPoint[];
   result: RunResult | null;
   error: string | null;
+  durationSeconds: number;
+  distanceM: number;
+  speedKmh: number;
+  screenLocked: boolean;
   start: () => Promise<void>;
   finish: () => Promise<void>;
   reset: () => void;
@@ -37,11 +55,17 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
   const [points, setPoints] = useState<TrackPoint[]>([]);
   const [result, setResult] = useState<RunResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [durationSeconds, setDurationSeconds] = useState(0);
+  const [distanceM, setDistanceM] = useState(0);
+  const [speedKmh, setSpeedKmh] = useState(0);
+  const [screenLocked, setScreenLocked] = useState(false);
 
   const watchId = useRef<number | null>(null);
   const pending = useRef<TrackPoint[]>([]);
   const flushTimer = useRef<number | null>(null);
+  const durationTimer = useRef<number | null>(null);
   const activeRunId = useRef<string | null>(null);
+  const wakeLockRef = useRef<any>(null);
 
   const stopWatching = useCallback(() => {
     if (watchId.current !== null) {
@@ -52,6 +76,21 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
     if (flushTimer.current !== null) {
       window.clearInterval(flushTimer.current);
       flushTimer.current = null;
+    }
+
+    if (durationTimer.current !== null) {
+      window.clearInterval(durationTimer.current);
+      durationTimer.current = null;
+    }
+
+    if (wakeLockRef.current) {
+      try {
+        void wakeLockRef.current.release();
+      } catch {
+        // ignore
+      }
+      wakeLockRef.current = null;
+      setScreenLocked(false);
     }
   }, []);
 
@@ -79,6 +118,9 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
     setError(null);
     setResult(null);
     setPoints([]);
+    setDistanceM(0);
+    setSpeedKmh(0);
+    setDurationSeconds(0);
     pending.current = [];
 
     if (!('geolocation' in navigator)) {
@@ -104,11 +146,37 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
       return;
     }
 
+    // Acquire screen WakeLock so phone screen does not turn off
+    if ('wakeLock' in navigator) {
+      try {
+        wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
+        setScreenLocked(true);
+        wakeLockRef.current.addEventListener('release', () => setScreenLocked(false));
+      } catch {
+        // WakeLock request can fail on low battery or unpermitted contexts
+      }
+    }
+
+    // Start live duration counter
+    durationTimer.current = window.setInterval(() => {
+      setDurationSeconds((sec) => sec + 1);
+    }, 1000);
+
     watchId.current = navigator.geolocation.watchPosition(
       (position) => {
         const point = toTrackPoint(position);
         pending.current.push(point);
-        setPoints((previous) => [...previous, point]);
+        setPoints((previous) => {
+          if (previous.length > 0) {
+            const prev = previous[previous.length - 1];
+            const d = distanceBetween(prev.lat, prev.lon, point.lat, point.lon);
+            setDistanceM((cur) => cur + d);
+          }
+          if (point.speed !== null && point.speed > 0) {
+            setSpeedKmh(Math.round(point.speed * 3.6 * 10) / 10);
+          }
+          return [...previous, point];
+        });
       },
       (positionError) => setError(positionError.message),
       { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 },
@@ -151,6 +219,9 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
     setPoints([]);
     setResult(null);
     setError(null);
+    setDurationSeconds(0);
+    setDistanceM(0);
+    setSpeedKmh(0);
   }, [stopWatching]);
 
   /** Release a run left active by a closed tab, then allow a new one. */
@@ -168,5 +239,19 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
     }
   }, [error]);
 
-  return { phase, runId, points, result, error, start, finish, reset, recover };
+  return {
+    phase,
+    runId,
+    points,
+    result,
+    error,
+    durationSeconds,
+    distanceM,
+    speedKmh,
+    screenLocked,
+    start,
+    finish,
+    reset,
+    recover,
+  };
 }

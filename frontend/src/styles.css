@@ -273,6 +273,203 @@ a:focus-visible {
   box-shadow: 0 14px 32px rgba(120, 30, 22, 0.32);
 }
 
+/* Live Game HUD Bar */
+.run-hud {
+  width: 100%;
+  background: rgba(11, 25, 18, 0.95);
+  border: 1px solid rgba(0, 255, 136, 0.3);
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 255, 136, 0.1);
+  backdrop-filter: blur(16px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hud-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.hud-metric-box {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 8px 4px;
+  text-align: center;
+}
+
+.hud-metric-box .metric-label {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #8da498;
+  letter-spacing: 0.05em;
+}
+
+.hud-metric-box .metric-val {
+  display: block;
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: #00ff88;
+  font-family: monospace;
+  margin-top: 2px;
+}
+
+.hud-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.76rem;
+  color: #a2b7ac;
+  padding: 0 4px;
+}
+
+.hud-points-badge {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.hud-wakelock-badge {
+  background: rgba(0, 255, 136, 0.15);
+  color: #00ff88;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 255, 136, 0.3);
+  font-weight: 700;
+}
+
+.hud-actions {
+  display: grid;
+  grid-template-columns: 1fr 50px;
+  gap: 10px;
+}
+
+.hud-actions .run-button.stop {
+  min-width: 0;
+  width: 100%;
+}
+
+.run-abandon-btn {
+  background: rgba(255, 75, 75, 0.15);
+  border: 1px solid rgba(255, 75, 75, 0.3);
+  color: #ff6b6b;
+  border-radius: 999px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: grid;
+  place-items: center;
+}
+
+.run-abandon-btn:hover {
+  background: rgba(255, 75, 75, 0.3);
+}
+
+.run-launch-box {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.run-button.start {
+  min-width: 240px;
+  font-size: 1.05rem;
+  letter-spacing: 0.02em;
+  background: #00ff88;
+  box-shadow: 0 10px 30px rgba(0, 255, 136, 0.35);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.run-button.start:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 36px rgba(0, 255, 136, 0.5);
+}
+
+/* Victory / Capture Card */
+.run-result-card {
+  width: 100%;
+  background: #0f1e17;
+  border: 1px solid rgba(0, 255, 136, 0.4);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 25px rgba(0, 255, 136, 0.15);
+  text-align: center;
+  animation: resultPop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.run-result-card.rejected {
+  border-color: rgba(255, 75, 75, 0.4);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 25px rgba(255, 75, 75, 0.15);
+}
+
+@keyframes resultPop {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.victory-badge {
+  display: inline-block;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #00ff88;
+  background: rgba(0, 255, 136, 0.15);
+  padding: 4px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 255, 136, 0.3);
+}
+
+.victory-area {
+  margin: 10px 0;
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+
+.victory-details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 12px 0 16px;
+  font-size: 0.82rem;
+  color: #b8cec3;
+}
+
+.rejection-badge {
+  display: inline-block;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #ff6b6b;
+  background: rgba(255, 75, 75, 0.15);
+  padding: 4px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 75, 75, 0.3);
+}
+
+.rejection-reason {
+  margin: 14px 0 16px;
+  font-size: 0.95rem;
+  color: #ffdddd;
+  line-height: 1.4;
+}
+
+.result-close-btn {
+  width: 100%;
+  padding: 12px;
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: #07130f;
+  background: #00ff88;
+  border: 0;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
 .run-note,
 .run-error,
 .run-result {
