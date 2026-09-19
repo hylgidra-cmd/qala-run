@@ -24,6 +24,8 @@ async def get_connection():
         yield connection
 
 
+# The player id and the name derived from it are database defaults, so a row
+# created anywhere gets both (migration 0003).
 async def get_demo_user(
     connection: Annotated[AsyncConnection, Depends(get_connection)],
     x_demo_user: Annotated[str | None, Header()] = None,
@@ -37,13 +39,13 @@ async def get_demo_user(
     user_id = await connection.scalar(
         text(
             """
-            INSERT INTO demo_users (device_key, display_name)
-            VALUES (:device_key, :display_name)
+            INSERT INTO demo_users (device_key)
+            VALUES (:device_key)
             ON CONFLICT (device_key) DO UPDATE SET device_key = EXCLUDED.device_key
             RETURNING id
             """
         ),
-        {"device_key": x_demo_user, "display_name": f"Runner {x_demo_user[:6]}"},
+        {"device_key": x_demo_user},
     )
 
     return str(user_id)

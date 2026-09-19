@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
+from app.api.clans import clan_of
 from app.api.deps import enforce_rate_limit, get_connection, get_demo_user
 from app.api.schemas import (
     ActivityOut,
@@ -29,8 +30,9 @@ from app.signal.validate import check_activity, check_track_quality, drop_bad_po
 
 router = APIRouter(prefix="/api/v1", tags=["runs"])
 
-# Only solo exists today; clan territory is a separate sprint (CLAUDE.md rule 8).
-SUPPORTED_MODES = frozenset({"solo"})
+# Solo and clan are two separate layers over the same ground: a run belongs to
+# exactly one of them and never touches the other (CLAUDE.md rule 8).
+SUPPORTED_MODES = frozenset({"solo", "clan"})
 
 
 def ring_wkt(coordinates: list[tuple[float, float]]) -> str:
@@ -91,6 +93,12 @@ async def start_run(
 ) -> RunStarted:
     if mode not in SUPPORTED_MODES:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Unsupported mode: {mode}")
+
+    # The mode is fixed when the run starts and cannot change mid-run
+    # (TZ section 23.2), so clan membership is checked here as well as at the
+    # finish.
+    if mode == "clan" and await clan_of(connection, user_id) is None:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Join a clan before running for one")
 
     await enforce_rate_limit(f"runs-start:{user_id}", limit=10, window_s=3600)
 
@@ -222,6 +230,13 @@ async def finish_run(
 
     mode = run.mode
     warnings: list[str] = []
+
+    # A member who left mid-run has no clan to award the ground to.
+    clan = await clan_of(connection, user_id) if mode == "clan" else None
+    if mode == "clan" and clan is None:
+        return await _reject(connection, run_id, mode, RejectionReason.NOT_IN_CLAN)
+
+    owner_clan_id = clan.id if clan is not None else None
 
     # --- 2, 3: order, de-duplicate and drop unusable fixes ---
     rows = (
@@ -369,25 +384,36 @@ async def finish_run(
         )
 
     # --- 14: take the overlap from whoever holds it now ---
-    captured = (
-        await connection.execute(
-            text(
-                """
-                SELECT t.owner_user_id,
-                       u.display_name,
-                       ST_Area(ST_Intersection(
-                           t.geom, ST_SetSRID(ST_GeomFromText(:wkt), 4326)
-                       )::geography) AS area_lost_m2
-                  FROM territories t
-                  JOIN demo_users u ON u.id = t.owner_user_id
-                 WHERE t.mode = :mode
-                   AND t.owner_user_id <> :user_id
-                   AND ST_Intersects(t.geom, ST_SetSRID(ST_GeomFromText(:wkt), 4326))
-                """
-            ),
-            {"wkt": measured.usable_wkt, "mode": mode, "user_id": user_id},
-        )
-    ).all()
+    if mode == "clan":
+        captured_sql = """
+            SELECT t.owner_clan_id AS owner_id,
+                   c.name AS owner_name,
+                   ST_Area(ST_Intersection(
+                       t.geom, ST_SetSRID(ST_GeomFromText(:wkt), 4326)
+                   )::geography) AS area_lost_m2
+              FROM territories t
+              JOIN clans c ON c.id = t.owner_clan_id
+             WHERE t.mode = 'clan'
+               AND t.owner_clan_id <> :owner_clan_id
+               AND ST_Intersects(t.geom, ST_SetSRID(ST_GeomFromText(:wkt), 4326))
+        """
+        captured_params = {"wkt": measured.usable_wkt, "owner_clan_id": owner_clan_id}
+    else:
+        captured_sql = """
+            SELECT t.owner_user_id AS owner_id,
+                   u.display_name AS owner_name,
+                   ST_Area(ST_Intersection(
+                       t.geom, ST_SetSRID(ST_GeomFromText(:wkt), 4326)
+                   )::geography) AS area_lost_m2
+              FROM territories t
+              JOIN demo_users u ON u.id = t.owner_user_id
+             WHERE t.mode = 'solo'
+               AND t.owner_user_id <> :user_id
+               AND ST_Intersects(t.geom, ST_SetSRID(ST_GeomFromText(:wkt), 4326))
+        """
+        captured_params = {"wkt": measured.usable_wkt, "user_id": user_id}
+
+    captured = (await connection.execute(text(captured_sql), captured_params)).all()
 
     # Trimming every overlapping territory, including the runner's own older
     # ones, is what stops the same ground being counted twice.
@@ -417,8 +443,8 @@ async def finish_run(
     territory_id = await connection.scalar(
         text(
             """
-            INSERT INTO territories (mode, owner_user_id, run_id, area_m2, geom)
-            VALUES (:mode, :user_id, :run_id, :area,
+            INSERT INTO territories (mode, owner_user_id, owner_clan_id, run_id, area_m2, geom)
+            VALUES (:mode, :user_id, :owner_clan_id, :run_id, :area,
                     ST_SetSRID(ST_GeomFromText(:wkt), 4326))
             RETURNING id
             """
@@ -426,6 +452,7 @@ async def finish_run(
         {
             "mode": mode,
             "user_id": user_id,
+            "owner_clan_id": owner_clan_id,
             "run_id": run_id,
             "area": usable_area,
             "wkt": measured.usable_wkt,
@@ -474,8 +501,8 @@ async def finish_run(
         activity=activity,
         captured_from=[
             CapturedFrom(
-                user_id=str(row.owner_user_id),
-                username=row.display_name,
+                user_id=str(row.owner_id),
+                username=row.owner_name,
                 area_lost_m2=float(row.area_lost_m2 or 0.0),
             )
             for row in captured

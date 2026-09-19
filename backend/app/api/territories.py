@@ -28,25 +28,47 @@ async def list_territories(
 
     west, south, east, north = parse_bbox(bbox)
 
+    # Solo ground belongs to a player, clan ground to the clan, so the two
+    # modes answer with different owners (TZ section 23.2).
+    if mode == "clan":
+        sql = """
+            SELECT t.id,
+                   t.mode,
+                   t.owner_clan_id AS owner_id,
+                   c.name AS owner_name,
+                   c.tag AS owner_tag,
+                   c.color_hex AS color,
+                   t.area_m2,
+                   t.created_at,
+                   ST_AsGeoJSON(t.geom) AS geometry
+              FROM territories t
+              JOIN clans c ON c.id = t.owner_clan_id
+             WHERE t.mode = 'clan'
+               AND t.geom && ST_MakeEnvelope(:west, :south, :east, :north, 4326)
+             ORDER BY t.created_at
+        """
+    else:
+        sql = """
+            SELECT t.id,
+                   t.mode,
+                   t.owner_user_id AS owner_id,
+                   u.display_name AS owner_name,
+                   NULL AS owner_tag,
+                   NULL AS color,
+                   t.area_m2,
+                   t.created_at,
+                   ST_AsGeoJSON(t.geom) AS geometry
+              FROM territories t
+              JOIN demo_users u ON u.id = t.owner_user_id
+             WHERE t.mode = 'solo'
+               AND t.geom && ST_MakeEnvelope(:west, :south, :east, :north, 4326)
+             ORDER BY t.created_at
+        """
+
     rows = (
         await connection.execute(
-            text(
-                """
-                SELECT t.id,
-                       t.mode,
-                       t.owner_user_id,
-                       u.display_name,
-                       t.area_m2,
-                       t.created_at,
-                       ST_AsGeoJSON(t.geom) AS geometry
-                  FROM territories t
-                  JOIN demo_users u ON u.id = t.owner_user_id
-                 WHERE t.mode = :mode
-                   AND t.geom && ST_MakeEnvelope(:west, :south, :east, :north, 4326)
-                 ORDER BY t.created_at
-                """
-            ),
-            {"mode": mode, "west": west, "south": south, "east": east, "north": north},
+            text(sql),
+            {"west": west, "south": south, "east": east, "north": north},
         )
     ).all()
 
@@ -59,8 +81,10 @@ async def list_territories(
                 "geometry": json.loads(row.geometry),
                 "properties": {
                     "mode": row.mode,
-                    "owner_id": str(row.owner_user_id),
-                    "owner_name": row.display_name,
+                    "owner_id": str(row.owner_id),
+                    "owner_name": row.owner_name,
+                    "owner_tag": row.owner_tag,
+                    "color": row.color,
                     "area_m2": float(row.area_m2),
                     "created_at": row.created_at.isoformat(),
                 },

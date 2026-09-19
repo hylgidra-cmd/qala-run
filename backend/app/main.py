@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from sqlalchemy import text
 
-from app.api import runs, territories, zones
+from app.api import clans, players, runs, territories, zones
 from app.config import get_settings
 from app.db import get_engine, get_redis
 
@@ -43,6 +43,8 @@ app.add_middleware(
 app.include_router(runs.router)
 app.include_router(territories.router)
 app.include_router(zones.router)
+app.include_router(players.router)
+app.include_router(clans.router)
 
 
 @app.get("/", tags=["meta"])
@@ -60,6 +62,10 @@ async def index() -> dict[str, object]:
             "POST /api/v1/runs/{run_id}/abandon",
             "GET /api/v1/territories?bbox=west,south,east,north&mode=solo",
             "GET /api/v1/zones/exclusions?bbox=west,south,east,north",
+            "GET /api/v1/me",
+            "POST /api/v1/clans",
+            "POST /api/v1/clans/join",
+            "GET /api/v1/clans/leaderboard",
         ],
     }
 

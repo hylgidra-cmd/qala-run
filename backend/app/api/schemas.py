@@ -40,6 +40,12 @@ class ActivityOut(BaseModel):
 
 
 class CapturedFrom(BaseModel):
+    """Who lost ground to this run.
+
+    Clan ground belongs to the clan, so in clan mode these two fields carry the
+    clan's id and its name; in solo mode they carry the player's.
+    """
+
     user_id: str
     username: str
     area_lost_m2: float
@@ -60,3 +66,78 @@ class RunResult(BaseModel):
     activity: ActivityOut | None = None
     captured_from: list[CapturedFrom] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
+
+
+class ClanBrief(BaseModel):
+    """What a player sees about their own clan from anywhere in the app."""
+
+    id: str
+    name: str
+    tag: str
+    color_hex: str
+    role: str
+    member_count: int
+
+
+class ClanMemberOut(BaseModel):
+    """A clan roster line. Never carries a coordinate (TZ section 26)."""
+
+    user_id: str
+    player_id: str
+    display_name: str
+    role: str
+    joined_at: str
+
+
+class ClanOut(BaseModel):
+    id: str
+    name: str
+    tag: str
+    color_hex: str
+    created_at: str
+    member_count: int
+    area_m2: float
+    members: list[ClanMemberOut] = Field(default_factory=list)
+    # Only ever filled in for a member of the clan.
+    invite_code: str | None = None
+
+
+class ClanCreate(BaseModel):
+    name: str = Field(min_length=3, max_length=48)
+    tag: str = Field(pattern=r"^[A-Za-z0-9]{2,5}$")
+    color_hex: str = Field(pattern=r"^#[0-9a-fA-F]{6}$")
+
+
+class ClanJoin(BaseModel):
+    invite_code: str = Field(pattern=r"^[A-Za-z0-9]{6}$")
+
+
+class ClanStanding(BaseModel):
+    id: str
+    name: str
+    tag: str
+    color_hex: str
+    member_count: int
+    area_m2: float
+
+
+class PlayerStats(BaseModel):
+    runs_accepted: int
+    solo_area_m2: float
+    clan_area_m2: float
+
+
+class MeOut(BaseModel):
+    """The player's own profile. Their id is theirs to read out; nobody
+    else's device key is ever exposed."""
+
+    user_id: str
+    player_id: str
+    display_name: str
+    joined_at: str
+    stats: PlayerStats
+    clan: ClanBrief | None = None
+
+
+class DisplayNameIn(BaseModel):
+    display_name: str = Field(min_length=2, max_length=24)

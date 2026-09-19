@@ -15,7 +15,7 @@ from sqlalchemy.pool import NullPool
 from app.config import get_settings
 
 # Bump this with every migration: it is the guard against a stale database.
-HEAD_REVISION = "0002_run_and_territory"
+HEAD_REVISION = "0003_player_id_and_clans"
 
 # A small square inside the Nukus pilot bbox (59.58,42.43,59.64,42.48).
 SQUARE_WKT = "POLYGON((59.600 42.450, 59.601 42.450, 59.601 42.451, 59.600 42.451, 59.600 42.450))"
@@ -33,9 +33,9 @@ UNIQUE_CONSTRAINTS_SQL = text(
 )
 
 # Tables that still belong to later prompts. `runs` and `territories` moved
-# out of this list with migration 0002; `users` stays because demo_users is
-# a stand-in, not the real authenticated user table.
-FUTURE_TABLES = {"users", "clans", "clan_members", "chat_messages"}
+# out of this list with migration 0002 and the clan tables with 0003; `users`
+# stays because demo_users is a stand-in, not the real authenticated user table.
+FUTURE_TABLES = {"users", "chat_messages"}
 
 
 @pytest.fixture
@@ -197,6 +197,122 @@ async def test_territory_mode_is_constrained_to_solo_and_clan(connection) -> Non
                     """
                     INSERT INTO territories (mode, owner_user_id, area_m2, geom)
                     VALUES ('guild', gen_random_uuid(), 1.0,
+                            ST_Multi(ST_GeomFromText(:wkt, 4326)))
+                    """
+                ),
+                {"wkt": SQUARE_WKT},
+            )
+    finally:
+        await transaction.rollback()
+
+
+async def test_every_player_gets_an_eight_digit_id(connection) -> None:
+    """The id is what a player reads out to a friend, like PUBG or Free Fire."""
+    transaction = await connection.begin()
+
+    try:
+        first = await connection.scalar(
+            text(
+                "INSERT INTO demo_users (device_key) VALUES ('schema-probe-1') "
+                "RETURNING player_id"
+            )
+        )
+        second = await connection.scalar(
+            text(
+                "INSERT INTO demo_users (device_key) VALUES ('schema-probe-2') "
+                "RETURNING player_id"
+            )
+        )
+
+        assert len(first) == 8 and first.isdigit() and not first.startswith("0")
+        assert first != second
+    finally:
+        await transaction.rollback()
+
+
+async def test_a_player_id_cannot_be_reused(connection) -> None:
+    transaction = await connection.begin()
+
+    try:
+        taken = await connection.scalar(
+            text(
+                "INSERT INTO demo_users (device_key) VALUES ('schema-probe-3') "
+                "RETURNING player_id"
+            )
+        )
+
+        with pytest.raises(IntegrityError):
+            await connection.execute(
+                text(
+                    "INSERT INTO demo_users (device_key, player_id) "
+                    "VALUES ('schema-probe-4', :player_id)"
+                ),
+                {"player_id": taken},
+            )
+    finally:
+        await transaction.rollback()
+
+
+async def test_a_new_player_is_named_after_their_id(connection) -> None:
+    transaction = await connection.begin()
+
+    try:
+        row = (
+            await connection.execute(
+                text(
+                    "INSERT INTO demo_users (device_key) VALUES ('schema-probe-5') "
+                    "RETURNING player_id, display_name"
+                )
+            )
+        ).one()
+
+        assert row.display_name.endswith(row.player_id)
+    finally:
+        await transaction.rollback()
+
+
+async def test_a_clan_stops_at_ten_members(connection) -> None:
+    """TZ section 23.2 puts the limit in the database, not in an endpoint."""
+    transaction = await connection.begin()
+
+    try:
+        clan_id = await connection.scalar(
+            text(
+                "INSERT INTO clans (name, tag, color_hex) "
+                "VALUES ('Schema probe', 'SPRB', '#c7ff4a') RETURNING id"
+            )
+        )
+
+        for seat in range(11):
+            user_id = await connection.scalar(
+                text("INSERT INTO demo_users (device_key) VALUES (:key) RETURNING id"),
+                {"key": f"schema-clan-{seat}"},
+            )
+            insert = text(
+                "INSERT INTO clan_members (user_id, clan_id) VALUES (:user_id, :clan_id)"
+            )
+            params = {"user_id": user_id, "clan_id": clan_id}
+
+            if seat < 10:
+                await connection.execute(insert, params)
+            else:
+                with pytest.raises(IntegrityError):
+                    await connection.execute(insert, params)
+    finally:
+        await transaction.rollback()
+
+
+async def test_clan_ground_cannot_be_stored_without_a_clan(connection) -> None:
+    """CLAUDE.md rule 8: a clan territory belongs to a clan, a solo one does not."""
+    transaction = await connection.begin()
+
+    try:
+        with pytest.raises(IntegrityError):
+            await connection.execute(
+                text(
+                    """
+                    INSERT INTO territories (mode, owner_user_id, owner_clan_id, area_m2, geom)
+                    VALUES ('clan', gen_random_uuid(), NULL, 1.0,
                             ST_Multi(ST_GeomFromText(:wkt, 4326)))
                     """
                 ),
