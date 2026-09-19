@@ -8,7 +8,7 @@ describe('isPhoneReachable', () => {
   });
 
   it('accepts a deployed host', () => {
-    expect(isPhoneReachable('https://qalarun-web.onrender.com/')).toBe(true);
+    expect(isPhoneReachable('https://dontstop-web.onrender.com/')).toBe(true);
   });
 
   it('accepts a tunnel host', () => {
@@ -22,20 +22,20 @@ describe('isPhoneReachable', () => {
 
 describe('phoneShareUrl', () => {
   it('keeps origin and path', () => {
-    expect(phoneShareUrl('https://qalarun-web.onrender.com/run')).toBe(
-      'https://qalarun-web.onrender.com/run',
+    expect(phoneShareUrl('https://dontstop-web.onrender.com/run')).toBe(
+      'https://dontstop-web.onrender.com/run',
     );
   });
 
   it('drops dev-only query parameters', () => {
-    expect(phoneShareUrl('https://qalarun-web.onrender.com/?dev=1')).toBe(
-      'https://qalarun-web.onrender.com/',
+    expect(phoneShareUrl('https://dontstop-web.onrender.com/?dev=1')).toBe(
+      'https://dontstop-web.onrender.com/',
     );
   });
 
   it('drops the hash', () => {
-    expect(phoneShareUrl('https://qalarun-web.onrender.com/#map')).toBe(
-      'https://qalarun-web.onrender.com/',
+    expect(phoneShareUrl('https://dontstop-web.onrender.com/#map')).toBe(
+      'https://dontstop-web.onrender.com/',
     );
   });
 });

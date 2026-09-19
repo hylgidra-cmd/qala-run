@@ -1,8 +1,8 @@
-# QalaRun
+# Don't Stop
 
 **Run. Capture. Defend.**
 
-QalaRun is a territory-running web demo for Nukus. A valid closed walking or running route can create a territory after server-side geometry, exclusion-zone, region, and anti-cheat checks.
+Don't Stop is a territory-running web demo for Nukus. A valid closed walking or running route can create a territory after server-side geometry, exclusion-zone, region, and anti-cheat checks.
 
 ## Current milestone
 
@@ -27,7 +27,7 @@ Foundation for Sprint 1:
 On Windows, keep this project in the WSL filesystem, for example:
 
 ```bash
-~/projects/qalarun
+~/projects/dont-stop
 ```
 
 If you downloaded the starter as a ZIP, initialize version control once:
@@ -35,7 +35,7 @@ If you downloaded the starter as a ZIP, initialize version control once:
 ```bash
 git init -b main
 git add .
-git commit -m "chore: initialize QalaRun foundation"
+git commit -m "chore: initialize Don't Stop foundation"
 ```
 
 ## Start infrastructure and API
@@ -58,6 +58,20 @@ docker compose exec api alembic current
 docker compose exec api alembic upgrade head
 docker compose exec api alembic downgrade base
 ```
+
+### Renaming an existing local database
+
+`.env.example` moved from `qrun` to `dontstop` in the 2026-09-19 rename. A
+checkout that already has data does not need to be rebuilt — rename the
+database and role in place, which keeps the imported exclusion polygons:
+
+```bash
+docker compose exec db psql -U qrun -d postgres   -c 'ALTER DATABASE qrun RENAME TO dontstop;'   -c 'ALTER ROLE qrun RENAME TO dontstop;'
+```
+
+Then update `POSTGRES_DB`, `POSTGRES_USER` and `DATABASE_URL` in `.env` and
+restart with `docker compose up -d db api`. Dropping the `pgdata` volume
+instead works too, but the OSM import has to be run again.
 
 ## Backend tests
 

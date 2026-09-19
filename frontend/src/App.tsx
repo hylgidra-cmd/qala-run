@@ -12,9 +12,9 @@ export function App() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <a className="brand" href="/" aria-label="QalaRun home">
-          <span className="brand-mark" aria-hidden="true">Q</span>
-          <span>QalaRun</span>
+        <a className="brand" href="/" aria-label="Don&apos;t Stop home">
+          <span className="brand-mark" aria-hidden="true">DS</span>
+          <span>Don&apos;t Stop</span>
         </a>
 
         <div className="mode-switch" aria-label="Territory mode">

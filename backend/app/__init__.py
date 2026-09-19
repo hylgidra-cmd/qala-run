@@ -1,1 +1,1 @@
-"""QalaRun API package."""
+"""Don't Stop API package."""

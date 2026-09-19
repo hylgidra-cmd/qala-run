@@ -5,7 +5,7 @@ Use one prompt at a time. Do not paste all prompts into one session.
 ## Prompt 0 — inspect only
 
 ```text
-You are working on the QalaRun project.
+You are working on the Don't Stop project.
 
 First read CLAUDE.md, README.md, docs/PROJECT_DECISIONS.md and docs/TZ-noutbuk-dev-setup-v2.1.md if it exists. Then inspect the repository and Git status.
 
@@ -22,7 +22,7 @@ Never reveal secrets or print .env contents.
 ## Prompt 1 — verify foundation
 
 ```text
-Continue QalaRun Sprint 1 only.
+Continue Don't Stop Sprint 1 only.
 
 Verify the existing Docker Compose, FastAPI health endpoints, React/Vite shell and MapLibre map. Fix only issues that prevent the foundation from installing, starting, linting, testing or building.
 
@@ -40,7 +40,7 @@ At the end use the completion format from CLAUDE.md.
 ## Prompt 2 — database and first migration
 
 ```text
-Implement only the QalaRun database foundation.
+Implement only the Don't Stop database foundation.
 
 Add Alembic and an initial migration that enables PostGIS and creates the minimal region_boundaries and exclusion_zones tables from the TZ, including SRID 4326, uniqueness constraints and GiST indexes.
 
@@ -54,7 +54,7 @@ Requirements:
 ## Prompt 3 — boundary and exclusion read APIs
 
 ```text
-Implement only read-only GeoJSON APIs for QalaRun:
+Implement only read-only GeoJSON APIs for Don't Stop:
 - GET /api/v1/regions
 - GET /api/v1/zones/exclusions?bbox=west,south,east,north
 
@@ -66,7 +66,7 @@ Do not implement OSM import or frontend layers in this prompt.
 ## Prompt 4 — frontend layers
 
 ```text
-Implement the QalaRun BoundaryLayer and ExclusionLayer using the existing MapLibre map and the read APIs.
+Implement the Don't Stop BoundaryLayer and ExclusionLayer using the existing MapLibre map and the read APIs.
 
 Requirements:
 - request the initial bbox on map load;
@@ -80,7 +80,7 @@ Requirements:
 ## Prompt 5 — stop and review
 
 ```text
-Review the completed QalaRun Sprint 1 without changing files.
+Review the completed Don't Stop Sprint 1 without changing files.
 
 Compare implementation against CLAUDE.md and the Sprint 1 acceptance criteria in the TZ. Produce a pass/fail table, list security/privacy issues, and propose only the next smallest Sprint 2 task. Do not begin Sprint 2.
 ```

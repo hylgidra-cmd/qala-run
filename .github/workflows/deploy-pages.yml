@@ -42,8 +42,9 @@ jobs:
       - name: Build
         working-directory: frontend
         env:
-          # GitHub Pages serves a project site under /<repo>/.
-          VITE_BASE: /qala-run/
+          # GitHub Pages serves a project site under /<repo>/. Taken from the
+          # repository itself so a rename cannot leave the asset paths stale.
+          VITE_BASE: /${{ github.event.repository.name }}/
           VITE_MAP_STYLE_URL: https://tiles.openfreemap.org/styles/positron
         run: npm run build
 

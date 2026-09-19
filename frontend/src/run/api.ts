@@ -6,7 +6,9 @@
  */
 export const API_BASE = import.meta.env.VITE_API_URL ?? '/api/v1';
 
-const DEVICE_KEY_STORAGE = 'qalarun.device';
+const DEVICE_KEY_STORAGE = 'dontstop.device';
+/** Pre-rename key. Read once so an existing browser keeps the territories it owns. */
+const LEGACY_DEVICE_KEY_STORAGE = 'qalarun.device';
 
 export interface TrackPoint {
   lat: number;
@@ -61,6 +63,12 @@ export function deviceKey(): string {
     const stored = localStorage.getItem(DEVICE_KEY_STORAGE);
     if (stored) {
       return stored;
+    }
+
+    const legacy = localStorage.getItem(LEGACY_DEVICE_KEY_STORAGE);
+    if (legacy) {
+      localStorage.setItem(DEVICE_KEY_STORAGE, legacy);
+      return legacy;
     }
 
     const created = crypto.randomUUID().replace(/-/g, '');

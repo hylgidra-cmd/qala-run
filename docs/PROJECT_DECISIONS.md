@@ -1,11 +1,18 @@
-# QalaRun project decisions
+# Don't Stop project decisions
 
 ## Branding
 
-- Product name: **QalaRun**
-- Repository slug: `qalarun`
+- Product name: **Don't Stop**
+- Logo mark: **DS**
+- Repository slug: `dont-stop`
+- Service and identifier prefix: `dontstop` (no hyphen, no apostrophe)
 - Working tagline: **Run. Capture. Defend.**
-- Previous working name: Qaraqalpaq Run
+- Previous working names: QalaRun (until 2026-09-19), Qaraqalpaq Run
+
+Renamed to **Don't Stop** on 2026-09-19. `docs/TZ-noutbuk-dev-setup-v2.1.md`
+deliberately keeps its original "Qaraqalpaq Run" wording: it is the signed
+specification and was not rewritten at the QalaRun rename either, so this file
+remains the single source of truth for the current name.
 
 The name should receive a final domain, app-store, and trademark check before public launch.
 

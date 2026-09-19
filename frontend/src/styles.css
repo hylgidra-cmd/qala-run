@@ -67,6 +67,9 @@ a:focus-visible {
   width: 36px;
   height: 36px;
   place-items: center;
+  /* Two letters, so the mark sets its own size instead of inheriting .brand's. */
+  font-size: 0.95rem;
+  letter-spacing: -0.04em;
   color: #07130f;
   background: #c7ff4a;
   border-radius: 11px 11px 11px 3px;

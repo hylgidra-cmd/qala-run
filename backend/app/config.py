@@ -12,10 +12,10 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    app_name: str = "QalaRun API"
+    app_name: str = "Don't Stop API"
     app_version: str = "0.1.0"
     environment: str = Field(default="development", alias="ENV")
-    database_url: str = "postgresql+asyncpg://qrun:change_me@localhost:5432/qrun"
+    database_url: str = "postgresql+asyncpg://dontstop:change_me@localhost:5432/dontstop"
     redis_url: str = "redis://localhost:6379/0"
     jwt_secret: str = "development-only-change-me"
     cors_origins: str = "http://localhost:5173"

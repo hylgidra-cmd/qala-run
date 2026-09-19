@@ -1,4 +1,4 @@
-# Claude Code terminal setup for QalaRun
+# Claude Code terminal setup for Don't Stop
 
 The recommended setup for this project is **Claude Code inside WSL2**, because Docker, PostGIS, osmium and the repository also run inside WSL2.
 
@@ -13,11 +13,11 @@ wsl
 Then inside Ubuntu/WSL:
 
 ```bash
-cd ~/projects/qalarun
+cd ~/projects/dont-stop
 code .
 ```
 
-If the project is currently under `C:\...`, copy it once into `~/projects/qalarun` before active development.
+If the project is currently under `C:\...`, copy it once into `~/projects/dont-stop` before active development.
 
 ## 2. Install the standalone Claude Code CLI
 
@@ -62,12 +62,12 @@ When started in the integrated terminal, it normally detects VS Code. From an ex
 
 The VS Code extension is optional for CLI use. To install the graphical panel, open Extensions with `Ctrl+Shift+X`, search for **Claude Code** by Anthropic, and install it.
 
-## 5. First QalaRun session
+## 5. First Don't Stop session
 
 Start Claude in the repository root:
 
 ```bash
-cd ~/projects/qalarun
+cd ~/projects/dont-stop
 claude
 ```
 
@@ -81,7 +81,7 @@ Do not give all prompts at once. One prompt must finish and pass its checks befo
 claude --resume
 ```
 
-Choose the QalaRun session from the list. Because this repository contains `CLAUDE.md`, new sessions automatically receive the project rules.
+Choose the Don't Stop session from the list. Because this repository contains `CLAUDE.md`, new sessions automatically receive the project rules.
 
 ## 7. Safe working mode
 

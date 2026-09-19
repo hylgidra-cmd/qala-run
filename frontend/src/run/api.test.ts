@@ -48,6 +48,20 @@ describe('deviceKey', () => {
   it('stays the same across calls', () => {
     expect(deviceKey()).toBe(deviceKey());
   });
+
+  it('adopts the pre-rename key so an existing browser keeps its territories', () => {
+    localStorage.setItem('qalarun.device', 'abcdef0123456789');
+
+    expect(deviceKey()).toBe('abcdef0123456789');
+    expect(localStorage.getItem('dontstop.device')).toBe('abcdef0123456789');
+  });
+
+  it('prefers the current key when both are present', () => {
+    localStorage.setItem('qalarun.device', 'oldoldoldoldold1');
+    localStorage.setItem('dontstop.device', 'newnewnewnewnew1');
+
+    expect(deviceKey()).toBe('newnewnewnewnew1');
+  });
 });
 
 describe('request handling', () => {

@@ -1,8 +1,8 @@
-# QalaRun instructions for Claude Code
+# Don't Stop instructions for Claude Code
 
 ## Product
 
-QalaRun is a Nukus web-demo game where walking/running around a valid closed route can capture territory. The final technical specification is `docs/TZ-noutbuk-dev-setup-v2.1.md` when present.
+Don't Stop is a Nukus web-demo game where walking/running around a valid closed route can capture territory. The final technical specification is `docs/TZ-noutbuk-dev-setup-v2.1.md` when present.
 
 ## Stack
 

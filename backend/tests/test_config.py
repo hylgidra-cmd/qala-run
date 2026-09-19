@@ -12,8 +12,8 @@ class TestDatabaseUrl:
     @pytest.mark.parametrize(
         "url",
         [
-            "postgres://user:pw@host:5432/qrun",
-            "postgresql://user:pw@host:5432/qrun",
+            "postgres://user:pw@host:5432/dontstop",
+            "postgresql://user:pw@host:5432/dontstop",
         ],
     )
     def test_a_managed_host_url_gets_the_async_driver(self, url: str) -> None:
@@ -21,12 +21,12 @@ class TestDatabaseUrl:
         assert make(url).database_url.startswith("postgresql+asyncpg://")
 
     def test_the_rest_of_the_url_is_untouched(self) -> None:
-        assert make("postgres://user:pw@host:5432/qrun").database_url.endswith(
-            "user:pw@host:5432/qrun"
+        assert make("postgres://user:pw@host:5432/dontstop").database_url.endswith(
+            "user:pw@host:5432/dontstop"
         )
 
     def test_an_explicit_driver_is_left_alone(self) -> None:
-        url = "postgresql+asyncpg://user:pw@host:5432/qrun"
+        url = "postgresql+asyncpg://user:pw@host:5432/dontstop"
 
         assert make(url).database_url == url
 

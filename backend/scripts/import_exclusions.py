@@ -32,7 +32,7 @@ OVERPASS_URLS = (
 RETRY_DELAY_S = 10
 
 # Overpass asks every client to identify itself with a contact address.
-USER_AGENT = "QalaRun/0.1 (+https://github.com/hylgidra-cmd/qala-run)"
+USER_AGENT = "DontStop/0.1 (+https://github.com/hylgidra-cmd/dont-stop)"
 
 UPSERT = text(
     """
