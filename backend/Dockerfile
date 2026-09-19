@@ -18,4 +18,4 @@ COPY alembic ./alembic
 COPY scripts ./scripts
 
 # Managed hosts assign the port through $PORT; compose overrides the command.
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
