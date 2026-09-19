@@ -18,7 +18,7 @@ interface TerritoryLayerProps {
 
 /** Solo ground is the game's own green; clan ground wears the clan's colour. */
 const SOLO_FILL = '#c7ff4a';
-const SOLO_LINE = '#7fb800';
+const SOLO_LINE = '#00ff88';
 
 export function TerritoryLayer({
   refreshKey = '',
@@ -98,7 +98,7 @@ export function TerritoryLayer({
         type="fill"
         paint={{
           'fill-color': ['coalesce', ['get', 'color'], SOLO_FILL] as never,
-          'fill-opacity': 0.3,
+          'fill-opacity': 0.15,
         }}
       />
       <Layer
@@ -106,7 +106,8 @@ export function TerritoryLayer({
         type="line"
         paint={{
           'line-color': ['coalesce', ['get', 'color'], SOLO_LINE] as never,
-          'line-width': 2,
+          'line-width': 3.5,
+          'line-opacity': 1.0,
         }}
       />
     </Source>

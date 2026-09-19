@@ -153,6 +153,21 @@ async def add_points(
         text("SELECT count(*) FROM track_points WHERE run_id = :run_id"), {"run_id": run_id}
     )
 
+    if payload.points:
+        latest = payload.points[-1]
+        await connection.execute(
+            text(
+                """
+                UPDATE demo_users
+                   SET last_lat = :lat,
+                       last_lon = :lon,
+                       last_seen_at = now()
+                 WHERE id = :user_id
+                """
+            ),
+            {"lat": latest.lat, "lon": latest.lon, "user_id": user_id},
+        )
+
     await connection.execute(
         text(
             """

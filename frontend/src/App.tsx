@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { AdminView } from './admin/AdminView';
 import { t } from './i18n/qq';
 import { MapView } from './map/MapView';
 import { ProfilePanel } from './profile/ProfilePanel';
@@ -13,6 +14,7 @@ export function App() {
   const [mode, setMode] = useState<TerritoryMode>('solo');
   const [panelOpen, setPanelOpen] = useState(false);
   const [clanPrompt, setClanPrompt] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(() => window.location.hash === '#admin');
   const tracker = useRunTracker(mode);
   const [apiReachable, setApiReachable] = useState(true);
   const handleApiReachable = useCallback((reachable: boolean) => setApiReachable(reachable), []);
@@ -44,6 +46,23 @@ export function App() {
     setPanelOpen(true);
   };
 
+  useEffect(() => {
+    const onHash = () => setIsAdmin(window.location.hash === '#admin');
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+
+  if (isAdmin) {
+    return (
+      <AdminView
+        onBack={() => {
+          window.location.hash = '';
+          setIsAdmin(false);
+        }}
+      />
+    );
+  }
+
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -71,17 +90,31 @@ export function App() {
           </button>
         </div>
 
-        <button
-          className="profile-button"
-          type="button"
-          aria-label={t.profile.open}
-          onClick={() => {
-            setClanPrompt(false);
-            setPanelOpen((open) => !open);
-          }}
-        >
-          {profile.me ? initials(profile.me.display_name) : '··'}
-        </button>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button
+            type="button"
+            className="admin-toggle-btn"
+            onClick={() => {
+              window.location.hash = '#admin';
+              setIsAdmin(true);
+            }}
+            title="Admin Baqlaw Orayı"
+          >
+            Admin 🛡️
+          </button>
+
+          <button
+            className="profile-button"
+            type="button"
+            aria-label={t.profile.open}
+            onClick={() => {
+              setClanPrompt(false);
+              setPanelOpen((open) => !open);
+            }}
+          >
+            {profile.me ? initials(profile.me.display_name) : '··'}
+          </button>
+        </div>
       </header>
 
       <section className="map-stage" aria-label={t.map.label}>

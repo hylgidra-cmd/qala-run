@@ -39,9 +39,9 @@ async def get_demo_user(
     user_id = await connection.scalar(
         text(
             """
-            INSERT INTO demo_users (device_key)
-            VALUES (:device_key)
-            ON CONFLICT (device_key) DO UPDATE SET device_key = EXCLUDED.device_key
+            INSERT INTO demo_users (device_key, last_seen_at)
+            VALUES (:device_key, now())
+            ON CONFLICT (device_key) DO UPDATE SET last_seen_at = now()
             RETURNING id
             """
         ),
