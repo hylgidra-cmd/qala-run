@@ -108,7 +108,9 @@ export function ClanSection({ profile, prompt = false }: ClanSectionProps) {
   return (
     <section className="clan-block" aria-label={t.clan.title}>
       <p className="eyebrow">{t.clan.title}</p>
-      <p className="sheet-note">{prompt ? t.mode.clanNeeded : t.clan.none}</p>
+      <div className="clan-none-banner">
+        {prompt ? t.mode.clanNeeded : t.clan.none}
+      </div>
 
       <label className="field">
         <span>{t.clan.codeField}</span>

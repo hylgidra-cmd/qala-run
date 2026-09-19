@@ -200,3 +200,4 @@ export function AdminView({ onBack }: AdminViewProps) {
     </div>
   );
 }
+

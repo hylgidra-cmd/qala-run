@@ -135,7 +135,7 @@ export const t = {
 
   clan: {
     title: 'Klan',
-    none: 'Siz áli klanǵa kirmegensiz.',
+    none: 'Klanǵa qosılmaǵansız',
     create: 'Klan dúziw',
     creating: 'Dúzilmekte…',
     join: 'Klanǵa qosılıw',

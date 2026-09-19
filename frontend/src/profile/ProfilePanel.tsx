@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { t } from '../i18n/qq';
 import { formatArea } from '../run/format';
 import { ClanSection } from './ClanSection';
@@ -14,26 +14,41 @@ interface ProfilePanelProps {
 
 export function ProfilePanel({ profile, onClose, clanPrompt = false }: ProfilePanelProps) {
   const { me } = profile;
-  const [name, setName] = useState(me?.display_name ?? '');
+  const [name, setName] = useState(me?.display_name ?? 'Madiyar');
   const [saving, setSaving] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const autoRenamed = useRef(false);
 
-  useEffect(() => setName(me?.display_name ?? ''), [me?.display_name]);
+  // Auto-set name to Madiyar if it is a default runner/oyınshı name
+  useEffect(() => {
+    if (me?.display_name) {
+      setName(me.display_name);
+      if (
+        !autoRenamed.current &&
+        (me.display_name.startsWith('Runner ') || me.display_name.startsWith('Oyınshı '))
+      ) {
+        autoRenamed.current = true;
+        void profile.rename('Madiyar');
+      }
+    }
+  }, [me?.display_name, profile]);
 
   if (!profile.available || !me) {
     return (
-      <aside className="sheet" aria-label={t.profile.title}>
-        <div className="sheet-head">
-          <p className="eyebrow">{t.profile.title}</p>
-          <button type="button" onClick={onClose} aria-label={t.profile.close}>
-            ×
-          </button>
+      <div className="profile-modal-backdrop" onClick={onClose}>
+        <div className="profile-modal-card" onClick={(e) => e.stopPropagation()} aria-label={t.profile.title}>
+          <div className="sheet-head">
+            <p className="eyebrow">{t.profile.title}</p>
+            <button type="button" onClick={onClose} aria-label={t.profile.close}>
+              ×
+            </button>
+          </div>
+          <p className="sheet-note">
+            {profile.available ? t.profile.loading : t.profile.unavailable}
+          </p>
         </div>
-        <p className="sheet-note">
-          {profile.available ? t.profile.loading : t.profile.unavailable}
-        </p>
-      </aside>
+      </div>
     );
   }
 
@@ -72,66 +87,70 @@ export function ProfilePanel({ profile, onClose, clanPrompt = false }: ProfilePa
   };
 
   return (
-    <aside className="sheet" aria-label={t.profile.title}>
-      <div className="sheet-head">
-        <p className="eyebrow">{t.profile.title}</p>
-        <button type="button" onClick={onClose} aria-label={t.profile.close}>
-          ×
-        </button>
-      </div>
-
-      <div className="profile-identity">
-        <span
-          className="profile-avatar"
-          style={{ background: `hsl(${avatarHue(me.player_id)} 70% 45%)` }}
-          aria-hidden="true"
-        >
-          {initials(me.display_name)}
-        </span>
-        <div>
-          <p className="profile-name">{me.display_name}</p>
-          <p className="profile-id">
-            <span className="profile-id-label">{t.profile.playerId}</span>
-            <strong>{me.player_id}</strong>
-            <button type="button" className="link-button" onClick={() => void copyId()}>
-              {copied ? t.profile.copied : t.profile.copy}
-            </button>
-          </p>
-        </div>
-      </div>
-
-      <label className="field">
-        <span>{t.profile.name}</span>
-        <div className="field-row">
-          <input
-            value={name}
-            maxLength={24}
-            onChange={(event) => setName(event.target.value)}
-            aria-invalid={nameError !== null}
-          />
-          <button type="button" onClick={() => void save()} disabled={saving}>
-            {saving ? t.profile.saving : t.profile.save}
+    <div className="profile-modal-backdrop" onClick={onClose}>
+      <div className="profile-modal-card" onClick={(e) => e.stopPropagation()} aria-label={t.profile.title}>
+        <div className="sheet-head">
+          <p className="eyebrow">{t.profile.title}</p>
+          <button type="button" onClick={onClose} aria-label={t.profile.close}>
+            ×
           </button>
         </div>
-      </label>
-      {nameError ? <p className="field-error">{nameError}</p> : null}
 
-      <ul className="stat-row">
-        <li>
-          <span>{t.profile.runs}</span>
-          <strong>{me.stats.runs_accepted}</strong>
-        </li>
-        <li>
-          <span>{t.profile.soloArea}</span>
-          <strong>{formatArea(me.stats.solo_area_m2)}</strong>
-        </li>
-        <li>
-          <span>{t.profile.clanArea}</span>
-          <strong>{formatArea(me.stats.clan_area_m2)}</strong>
-        </li>
-      </ul>
+        <div className="profile-identity">
+          <span
+            className="profile-avatar"
+            style={{ background: `hsl(${avatarHue(me.player_id)} 70% 45%)` }}
+            aria-hidden="true"
+          >
+            {initials(me.display_name || 'Madiyar')}
+          </span>
+          <div>
+            <h2 className="profile-name">{me.display_name || 'Madiyar'}</h2>
+            <p className="profile-id">
+              <span className="profile-id-label">{t.profile.playerId}</span>
+              <strong>{me.player_id}</strong>
+              <button type="button" className="link-button" onClick={() => void copyId()}>
+                {copied ? t.profile.copied : t.profile.copy}
+              </button>
+            </p>
+          </div>
+        </div>
 
-      <ClanSection profile={profile} prompt={clanPrompt} />
-    </aside>
+        <label className="field">
+          <span>{t.profile.name}</span>
+          <div className="field-row">
+            <input
+              value={name}
+              maxLength={24}
+              onChange={(event) => setName(event.target.value)}
+              aria-invalid={nameError !== null}
+            />
+            <button type="button" onClick={() => void save()} disabled={saving}>
+              {saving ? t.profile.saving : t.profile.save}
+            </button>
+          </div>
+          {nameError ? <p className="field-error">{nameError}</p> : null}
+        </label>
+
+        <div className="profile-stats-grid">
+          <div className="profile-stat-box">
+            <span className="stat-label">{t.profile.runs}</span>
+            <strong className="stat-val">{me.stats.runs_accepted}</strong>
+          </div>
+          <div className="profile-stat-box">
+            <span className="stat-label">{t.profile.soloArea}</span>
+            <strong className="stat-val">{formatArea(me.stats.solo_area_m2)}</strong>
+          </div>
+          <div className="profile-stat-box">
+            <span className="stat-label">{t.profile.clanArea}</span>
+            <strong className="stat-val">{formatArea(me.stats.clan_area_m2)}</strong>
+          </div>
+        </div>
+
+        <div className="clan-divider" aria-hidden="true" />
+
+        <ClanSection profile={profile} prompt={clanPrompt} />
+      </div>
+    </div>
   );
 }
