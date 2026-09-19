@@ -8,12 +8,15 @@ import { OUT_OF_BOUNDS_NOTICE, geolocationNotice, isInsidePilotBounds } from './
 import { DEV_MAP_STYLE, NUKUS_CENTER, PILOT_BOUNDS } from './style';
 
 interface MapViewProps {
+  /** Which of the two territory layers is on screen. */
+  mode?: string;
   trackPoints?: TrackPoint[];
   territoryRefreshKey?: string;
   onApiReachable?: (reachable: boolean) => void;
 }
 
 export function MapView({
+  mode = 'solo',
   trackPoints = [],
   territoryRefreshKey = '',
   onApiReachable,
@@ -71,7 +74,11 @@ export function MapView({
 
       <ExclusionLayer visible={showExclusions} onLoaded={handleZonesLoaded} />
 
-      <TerritoryLayer refreshKey={territoryRefreshKey} onApiReachable={onApiReachable} />
+      <TerritoryLayer
+        mode={mode}
+        refreshKey={territoryRefreshKey}
+        onApiReachable={onApiReachable}
+      />
 
       <Source id="live-track" type="geojson" data={track}>
         <Layer

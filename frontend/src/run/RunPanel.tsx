@@ -1,4 +1,11 @@
-import { describeReason, formatArea, formatDistance, formatSpeed } from './format';
+import { t } from '../i18n/qq';
+import {
+  describeActivity,
+  describeReason,
+  formatArea,
+  formatDistance,
+  formatSpeed,
+} from './format';
 import type { RunTracker } from './useRunTracker';
 
 interface RunPanelProps {
@@ -13,10 +20,7 @@ export function RunPanel({ tracker, apiReachable }: RunPanelProps) {
   if (!apiReachable) {
     return (
       <div className="run-dock">
-        <p className="run-note">
-          No API on this address, so a run cannot be recorded. Capturing territory needs the
-          backend from <code>docker compose</code>.
-        </p>
+        <p className="run-note">{t.run.noApi}</p>
       </div>
     );
   }
@@ -28,7 +32,7 @@ export function RunPanel({ tracker, apiReachable }: RunPanelProps) {
           <p>{error}</p>
           {/[0-9a-f-]{36}/i.test(error) ? (
             <button type="button" onClick={() => void tracker.recover()}>
-              Release it
+              {t.run.release}
             </button>
           ) : null}
         </div>
@@ -38,44 +42,42 @@ export function RunPanel({ tracker, apiReachable }: RunPanelProps) {
         <div className={`run-result ${result.status}`} role="status">
           {result.status === 'accepted' ? (
             <>
-              <p className="eyebrow">TERRITORY CAPTURED</p>
+              <p className="eyebrow">{t.run.captured}</p>
               <h2>{formatArea(result.awarded_area_m2)}</h2>
               <p className="run-meta">
-                {result.activity?.type} · {formatSpeed(result.activity?.avg_speed_ms ?? null)}
+                {describeActivity(result.activity?.type)} ·{' '}
+                {formatSpeed(result.activity?.avg_speed_ms ?? null)}
               </p>
               {result.excluded_area_m2 ? (
                 <p className="run-meta">
-                  {formatArea(result.excluded_area_m2)} removed for buildings and closed areas
+                  {t.run.excluded(formatArea(result.excluded_area_m2))}
                 </p>
               ) : null}
               {result.warnings.includes('LOOP_CLOSED_BY_SERVER') ? (
                 <p className="run-meta">
-                  Closed a {formatDistance(result.closing_gap_m)} gap back to the start
+                  {t.run.closedGap(formatDistance(result.closing_gap_m))}
                 </p>
               ) : null}
               {result.captured_from.length > 0 ? (
                 <p className="run-meta">
-                  Taken from {result.captured_from.map((owner) => owner.username).join(', ')}
+                  {t.run.takenFrom(result.captured_from.map((owner) => owner.username).join(', '))}
                 </p>
               ) : null}
             </>
           ) : (
             <>
-              <p className="eyebrow">RUN REJECTED</p>
+              <p className="eyebrow">{t.run.rejected}</p>
               <p>{describeReason(result.reason)}</p>
             </>
           )}
           <button type="button" onClick={tracker.reset}>
-            Close
+            {t.run.close}
           </button>
         </div>
       ) : null}
 
       {phase === 'tracking' || phase === 'finishing' ? (
-        <p className="run-note">
-          {points.length} point{points.length === 1 ? '' : 's'} recorded. Walk back to where you
-          started, then finish.
-        </p>
+        <p className="run-note">{t.run.tracking(points.length)}</p>
       ) : null}
 
       {phase === 'idle' || phase === 'done' ? (
@@ -85,7 +87,7 @@ export function RunPanel({ tracker, apiReachable }: RunPanelProps) {
           onClick={() => void tracker.start()}
           disabled={phase === 'done' && result === null}
         >
-          Start run
+          {t.run.start}
         </button>
       ) : (
         <button
@@ -94,7 +96,7 @@ export function RunPanel({ tracker, apiReachable }: RunPanelProps) {
           onClick={() => void tracker.finish()}
           disabled={phase !== 'tracking'}
         >
-          {phase === 'finishing' ? 'Checking…' : 'Finish run'}
+          {phase === 'finishing' ? t.run.checking : t.run.finish}
         </button>
       )}
     </div>

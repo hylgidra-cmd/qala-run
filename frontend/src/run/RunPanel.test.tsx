@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { t } from '../i18n/qq';
 import { RunPanel } from './RunPanel';
 import type { RunTracker } from './useRunTracker';
 
@@ -22,13 +23,13 @@ describe('RunPanel', () => {
   it('offers to start when idle', () => {
     render(<RunPanel tracker={tracker()} apiReachable />);
 
-    expect(screen.getByRole('button', { name: 'Start run' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: t.run.start })).toBeEnabled();
   });
 
   it('switches to finishing the run while tracking', () => {
     render(<RunPanel tracker={tracker({ phase: 'tracking', points: [] })} apiReachable />);
 
-    expect(screen.getByRole('button', { name: 'Finish run' })).toBeVisible();
+    expect(screen.getByRole('button', { name: t.run.finish })).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Start run' })).toBeNull();
   });
 
@@ -40,7 +41,7 @@ describe('RunPanel', () => {
 
     render(<RunPanel tracker={tracker({ phase: 'tracking', points })} apiReachable />);
 
-    expect(screen.getByText(/2 points recorded/)).toBeVisible();
+    expect(screen.getByText(t.run.tracking(2))).toBeVisible();
   });
 
   it('shows the awarded area the server decided', () => {
@@ -62,7 +63,7 @@ describe('RunPanel', () => {
     render(<RunPanel tracker={tracker({ phase: 'done', result })} apiReachable />);
 
     expect(screen.getByText('1.44 ha')).toBeVisible();
-    expect(screen.getByText(/TERRITORY CAPTURED/)).toBeVisible();
+    expect(screen.getByText(t.run.captured)).toBeVisible();
   });
 
   it('explains a rejection in words, not an enum', () => {
@@ -83,13 +84,13 @@ describe('RunPanel', () => {
 
     render(<RunPanel tracker={tracker({ phase: 'done', result })} apiReachable />);
 
-    expect(screen.getByText(/back to the start/i)).toBeVisible();
+    expect(screen.getByText(t.reasons.LOOP_NOT_CLOSED)).toBeVisible();
   });
 
   it('says why running is impossible without an API', () => {
     render(<RunPanel tracker={tracker()} apiReachable={false} />);
 
-    expect(screen.getByText(/needs the backend/i)).toBeVisible();
+    expect(screen.getByText(t.run.noApi)).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Start run' })).toBeNull();
   });
 
@@ -98,7 +99,7 @@ describe('RunPanel', () => {
 
     render(<RunPanel tracker={tracker({ error })} apiReachable />);
 
-    expect(screen.getByRole('button', { name: 'Release it' })).toBeVisible();
+    expect(screen.getByRole('button', { name: t.run.release })).toBeVisible();
   });
 
   it('says how much ground the exclusion zones took', () => {
@@ -119,7 +120,7 @@ describe('RunPanel', () => {
 
     render(<RunPanel tracker={tracker({ phase: 'done', result })} apiReachable />);
 
-    expect(screen.getByText(/1,600 m² removed/)).toBeVisible();
+    expect(screen.getByText(t.run.excluded('1,600 m²'))).toBeVisible();
   });
 
   it('reports a gap the server had to close', () => {
@@ -140,6 +141,6 @@ describe('RunPanel', () => {
 
     render(<RunPanel tracker={tracker({ phase: 'done', result })} apiReachable />);
 
-    expect(screen.getByText(/Closed a 64 m gap/)).toBeVisible();
+    expect(screen.getByText(t.run.closedGap('64 m'))).toBeVisible();
   });
 });

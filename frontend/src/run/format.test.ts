@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { t } from '../i18n/qq';
 import {
   describeReason,
   formatArea,
@@ -51,7 +52,7 @@ describe('formatSpeed', () => {
 
 describe('describeReason', () => {
   it('explains a known rejection', () => {
-    expect(describeReason('LOOP_NOT_CLOSED')).toMatch(/back to the start/i);
+    expect(describeReason('LOOP_NOT_CLOSED')).toBe(t.reasons.LOOP_NOT_CLOSED);
   });
 
   it('does not quote a threshold the server may not use', () => {

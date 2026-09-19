@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { t } from '../i18n/qq';
 import {
   ApiError,
   type RunResult,
@@ -11,6 +12,9 @@ import {
 } from './api';
 
 export type RunPhase = 'idle' | 'starting' | 'tracking' | 'finishing' | 'done';
+
+/** Solo and clan ground are separate layers; a run belongs to one of them. */
+export type TerritoryMode = 'solo' | 'clan';
 
 /** The points endpoint allows 2 requests per second; 4 s stays well inside it. */
 const FLUSH_INTERVAL_MS = 4000;
@@ -27,7 +31,7 @@ export interface RunTracker {
   recover: () => Promise<void>;
 }
 
-export function useRunTracker(): RunTracker {
+export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
   const [phase, setPhase] = useState<RunPhase>('idle');
   const [runId, setRunId] = useState<string | null>(null);
   const [points, setPoints] = useState<TrackPoint[]>([]);
@@ -65,7 +69,7 @@ export function useRunTracker(): RunTracker {
     } catch (cause) {
       // Keep the batch so a dropped connection does not lose the track.
       pending.current = [...batch, ...pending.current];
-      setError(cause instanceof Error ? cause.message : 'Could not upload points');
+      setError(cause instanceof Error ? cause.message : t.run.couldNotUpload);
     }
   }, []);
 
@@ -78,14 +82,14 @@ export function useRunTracker(): RunTracker {
     pending.current = [];
 
     if (!('geolocation' in navigator)) {
-      setError('This browser has no Geolocation API.');
+      setError(t.run.noGeolocation);
       return;
     }
 
     setPhase('starting');
 
     try {
-      const started = await startRun();
+      const started = await startRun(mode);
       activeRunId.current = started.run_id;
       setRunId(started.run_id);
     } catch (cause) {
@@ -95,7 +99,7 @@ export function useRunTracker(): RunTracker {
           ? `${cause.message}`
           : cause instanceof Error
             ? cause.message
-            : 'Could not start the run',
+            : t.run.couldNotStart,
       );
       return;
     }
@@ -115,7 +119,7 @@ export function useRunTracker(): RunTracker {
     }, FLUSH_INTERVAL_MS);
 
     setPhase('tracking');
-  }, [flush]);
+  }, [flush, mode]);
 
   const finish = useCallback(async () => {
     const id = activeRunId.current;
@@ -132,7 +136,7 @@ export function useRunTracker(): RunTracker {
       setPhase('done');
     } catch (cause) {
       setPhase('tracking');
-      setError(cause instanceof Error ? cause.message : 'Could not finish the run');
+      setError(cause instanceof Error ? cause.message : t.run.couldNotFinish);
       return;
     }
 
@@ -160,7 +164,7 @@ export function useRunTracker(): RunTracker {
       await abandonRun(match[1]);
       setError(null);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not release the run');
+      setError(cause instanceof Error ? cause.message : t.run.couldNotRelease);
     }
   }, [error]);
 

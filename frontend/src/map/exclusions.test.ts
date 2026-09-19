@@ -1,16 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import {
-  EXCLUSION_COLORS,
-  EXCLUSION_KINDS,
-  EXCLUSION_LABELS,
-  exclusionColorExpression,
-} from './exclusions';
+import { t } from '../i18n/qq';
+import { EXCLUSION_COLORS, EXCLUSION_KINDS, exclusionColorExpression } from './exclusions';
 
 describe('exclusion styling', () => {
-  it('gives every kind the TZ allows a colour and a label', () => {
+  it('gives every kind the TZ allows a colour and a Karakalpak label', () => {
     for (const kind of EXCLUSION_KINDS) {
       expect(EXCLUSION_COLORS[kind]).toMatch(/^#[0-9a-f]{6}$/);
-      expect(EXCLUSION_LABELS[kind]).toBeTruthy();
+      expect(t.legend.kinds[kind]).toBeTruthy();
     }
   });
 

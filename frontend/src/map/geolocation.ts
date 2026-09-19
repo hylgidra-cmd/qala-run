@@ -1,3 +1,4 @@
+import { t } from '../i18n/qq';
 import { PILOT_BOUNDS } from './style';
 
 /** Codes from the W3C GeolocationPositionError interface. */
@@ -5,8 +6,7 @@ export const PERMISSION_DENIED = 1;
 export const POSITION_UNAVAILABLE = 2;
 export const TIMEOUT = 3;
 
-export const OUT_OF_BOUNDS_NOTICE =
-  'You are outside the Nukus pilot area, so the map cannot follow you yet.';
+export const OUT_OF_BOUNDS_NOTICE = t.geo.outOfBounds;
 
 /**
  * A browser geolocation failure is silent on the map itself: the control just
@@ -15,13 +15,13 @@ export const OUT_OF_BOUNDS_NOTICE =
 export function geolocationNotice(code: number): string {
   switch (code) {
     case PERMISSION_DENIED:
-      return 'Location is blocked for this site. Allow it in the browser address-bar settings and press the locate button again.';
+      return t.geo.denied;
     case POSITION_UNAVAILABLE:
-      return 'No position fix. A laptop without GPS falls back to Wi-Fi positioning, which can fail indoors or on a phone hotspot.';
+      return t.geo.unavailable;
     case TIMEOUT:
-      return 'The location request timed out. Press the locate button again.';
+      return t.geo.timeout;
     default:
-      return 'Location is unavailable right now.';
+      return t.geo.unknown;
   }
 }
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
+import { t } from '../i18n/qq';
 import { isPhoneReachable, phoneShareUrl } from './qr';
 
 interface PhoneQrProps {
@@ -49,16 +50,16 @@ export function PhoneQr({ href }: PhoneQrProps) {
   if (!open) {
     return (
       <button className="qr-reopen" type="button" onClick={() => setOpen(true)}>
-        Phone link
+        {t.qr.reopen}
       </button>
     );
   }
 
   return (
-    <aside className="qr-card" aria-label="Open this demo on a phone">
+    <aside className="qr-card" aria-label={t.qr.label}>
       <div className="qr-head">
-        <p className="eyebrow">OPEN ON YOUR PHONE</p>
-        <button type="button" onClick={() => setOpen(false)} aria-label="Hide phone link">
+        <p className="eyebrow">{t.qr.title}</p>
+        <button type="button" onClick={() => setOpen(false)} aria-label={t.qr.hide}>
           ×
         </button>
       </div>
@@ -69,19 +70,13 @@ export function PhoneQr({ href }: PhoneQrProps) {
             <div className="qr-image" role="img" aria-label={`QR code for ${shareUrl}`}
               dangerouslySetInnerHTML={{ __html: svg }} />
           ) : (
-            <p className="qr-hint">Preparing the code…</p>
+            <p className="qr-hint">{t.qr.preparing}</p>
           )}
           <p className="qr-url">{shareUrl}</p>
-          <p className="qr-hint">
-            Scan it, then press the locate button on the map. A phone has real GPS; this laptop
-            does not.
-          </p>
+          <p className="qr-hint">{t.qr.hint}</p>
         </>
       ) : (
-        <p className="qr-hint">
-          This page is served on <strong>localhost</strong>, which a phone cannot open. Use the
-          deployed address or an HTTPS tunnel, then this card shows a scannable code.
-        </p>
+        <p className="qr-hint">{t.qr.localhost}</p>
       )}
     </aside>
   );

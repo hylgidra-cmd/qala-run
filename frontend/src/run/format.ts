@@ -1,18 +1,8 @@
 /** Presentation helpers for run results. No decisions are made here. */
+import { t } from '../i18n/qq';
 
 /** Rejection reasons are a stable server enum (TZ section 19). */
-export const REASON_TEXT: Record<string, string> = {
-  LOOP_NOT_CLOSED: 'The loop never came back to the start. Finish where you began.',
-  TOO_SHORT: 'The loop is shorter than the minimum this server allows.',
-  AREA_TOO_SMALL: 'The enclosed area is under the minimum this server allows.',
-  BAD_SHAPE: 'The track encloses no ground, so there is nothing to award.',
-  ACTIVITY_NOT_ALLOWED: 'Only walking and running count. That pace was too fast.',
-  TELEPORT_DETECTED: 'The track jumps further than a person can move.',
-  LOW_GPS_QUALITY: 'The GPS signal was too poor or too sparse to trust.',
-  OUTSIDE_REGION: 'The loop is outside the Nukus pilot area.',
-  NO_AWARDABLE_AREA: 'Nothing was left after exclusion zones were removed.',
-  DUPLICATE_RUN: 'This run has already been submitted.',
-};
+export const REASON_TEXT = t.reasons;
 
 export function describeReason(reason: string | null): string {
   if (!reason) {
@@ -20,6 +10,15 @@ export function describeReason(reason: string | null): string {
   }
 
   return REASON_TEXT[reason] ?? reason;
+}
+
+/** The server's activity enum, in the player's language. */
+export function describeActivity(activity: string | undefined): string {
+  if (!activity) {
+    return '';
+  }
+
+  return t.activity[activity] ?? activity;
 }
 
 export function formatArea(squareMetres: number | null): string {

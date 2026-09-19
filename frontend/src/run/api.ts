@@ -93,7 +93,8 @@ export function toTrackPoint(position: GeolocationPosition): TrackPoint {
   };
 }
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+/** Shared by every client module: one place that carries the demo identity. */
+export async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers: {

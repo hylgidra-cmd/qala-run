@@ -11,9 +11,14 @@ const EMPTY: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: 
 interface TerritoryLayerProps {
   /** Changing this forces a refetch, e.g. after a run is accepted. */
   refreshKey?: string;
+  /** Solo and clan are two maps over the same ground, never mixed (rule 8). */
   mode?: string;
   onApiReachable?: (reachable: boolean) => void;
 }
+
+/** Solo ground is the game's own green; clan ground wears the clan's colour. */
+const SOLO_FILL = '#c7ff4a';
+const SOLO_LINE = '#7fb800';
 
 export function TerritoryLayer({
   refreshKey = '',
@@ -91,12 +96,18 @@ export function TerritoryLayer({
       <Layer
         id="territory-fill"
         type="fill"
-        paint={{ 'fill-color': '#c7ff4a', 'fill-opacity': 0.28 }}
+        paint={{
+          'fill-color': ['coalesce', ['get', 'color'], SOLO_FILL] as never,
+          'fill-opacity': 0.3,
+        }}
       />
       <Layer
         id="territory-outline"
         type="line"
-        paint={{ 'line-color': '#7fb800', 'line-width': 2 }}
+        paint={{
+          'line-color': ['coalesce', ['get', 'color'], SOLO_LINE] as never,
+          'line-width': 2,
+        }}
       />
     </Source>
   );

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { t } from '../i18n/qq';
 import {
   PERMISSION_DENIED,
   POSITION_UNAVAILABLE,
@@ -9,19 +10,19 @@ import {
 
 describe('geolocationNotice', () => {
   it('explains a blocked permission', () => {
-    expect(geolocationNotice(PERMISSION_DENIED)).toMatch(/blocked/i);
+    expect(geolocationNotice(PERMISSION_DENIED)).toBe(t.geo.denied);
   });
 
   it('explains a missing fix', () => {
-    expect(geolocationNotice(POSITION_UNAVAILABLE)).toMatch(/no position fix/i);
+    expect(geolocationNotice(POSITION_UNAVAILABLE)).toBe(t.geo.unavailable);
   });
 
   it('explains a timeout', () => {
-    expect(geolocationNotice(TIMEOUT)).toMatch(/timed out/i);
+    expect(geolocationNotice(TIMEOUT)).toBe(t.geo.timeout);
   });
 
   it('falls back for unknown codes', () => {
-    expect(geolocationNotice(99)).toMatch(/unavailable/i);
+    expect(geolocationNotice(99)).toBe(t.geo.unknown);
   });
 });
 

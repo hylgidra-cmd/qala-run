@@ -1,36 +1,37 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ExclusionLegend } from './ExclusionLegend';
-import { EXCLUSION_KINDS, EXCLUSION_LABELS } from './exclusions';
+import { t } from '../i18n/qq';
+import { EXCLUSION_KINDS } from './exclusions';
 
 describe('ExclusionLegend', () => {
   it('names every zone kind while the layer is shown', () => {
     render(<ExclusionLegend visible onToggle={() => {}} count={12} truncated={false} />);
 
     for (const kind of EXCLUSION_KINDS) {
-      expect(screen.getByText(EXCLUSION_LABELS[kind])).toBeInTheDocument();
+      expect(screen.getByText(t.legend.kinds[kind])).toBeInTheDocument();
     }
-    expect(screen.getByText(/12 zones in view/)).toBeInTheDocument();
+    expect(screen.getByText(t.legend.count(12))).toBeInTheDocument();
   });
 
   it('says to zoom in when the server capped the view', () => {
     render(<ExclusionLegend visible onToggle={() => {}} count={3000} truncated />);
 
-    expect(screen.getByText(/zoom in/i)).toBeInTheDocument();
+    expect(screen.getByText(t.legend.truncated)).toBeInTheDocument();
   });
 
   it('collapses to the toggle when the layer is hidden', () => {
     render(<ExclusionLegend visible={false} onToggle={() => {}} count={12} truncated={false} />);
 
-    expect(screen.queryByText(EXCLUSION_LABELS.water)).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Show' })).toBeInTheDocument();
+    expect(screen.queryByText(t.legend.kinds.water)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: t.legend.show })).toBeInTheDocument();
   });
 
   it('reports a toggle', () => {
     const onToggle = vi.fn();
     render(<ExclusionLegend visible onToggle={onToggle} count={0} truncated={false} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Hide' }));
+    fireEvent.click(screen.getByRole('button', { name: t.legend.hide }));
 
     expect(onToggle).toHaveBeenCalledOnce();
   });

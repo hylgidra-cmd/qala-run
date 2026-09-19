@@ -429,7 +429,7 @@ a:focus-visible {
   z-index: 4;
   bottom: 28px;
   left: 22px;
-  width: 196px;
+  width: 214px;
   padding: 14px 16px;
   color: #effff5;
   background: rgba(7, 19, 15, 0.9);
@@ -510,5 +510,335 @@ a:focus-visible {
 
   .legend-note {
     margin-top: 10px;
+  }
+}
+
+/* Profile and clan sheet -------------------------------------------------- */
+
+.sheet {
+  position: absolute;
+  z-index: 7;
+  top: 22px;
+  right: 22px;
+  width: min(360px, calc(100% - 44px));
+  max-height: calc(100% - 44px);
+  padding: 20px;
+  overflow-y: auto;
+  color: #effff5;
+  background: rgba(7, 19, 15, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  box-shadow: 0 18px 50px rgba(3, 10, 7, 0.4);
+  backdrop-filter: blur(18px);
+}
+
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sheet-head .eyebrow {
+  margin: 0;
+}
+
+.sheet-head button {
+  padding: 0;
+  color: #9bb2a6;
+  font-size: 1.3rem;
+  line-height: 1;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.sheet-note {
+  margin: 12px 0 0;
+  color: #9bb2a6;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.profile-identity {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.profile-avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  color: #07130f;
+  font-size: 1.1rem;
+  font-weight: 850;
+  letter-spacing: 0.02em;
+  border-radius: 16px;
+}
+
+.profile-name {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.profile-id {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 6px 0 0;
+  color: #dcebe3;
+  font-size: 0.84rem;
+}
+
+.profile-id strong {
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.14em;
+}
+
+.profile-id-label {
+  color: #9bb2a6;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.link-button {
+  padding: 0;
+  color: #c7ff4a;
+  font-size: 0.74rem;
+  font-weight: 700;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.field {
+  display: block;
+  margin-top: 16px;
+}
+
+.field > span {
+  display: block;
+  margin-bottom: 6px;
+  color: #9bb2a6;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.field input {
+  width: 100%;
+  padding: 10px 12px;
+  color: #effff5;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+}
+
+.field input[type='color'] {
+  height: 42px;
+  padding: 4px;
+}
+
+.field-row {
+  display: flex;
+  gap: 8px;
+}
+
+.field-row button {
+  flex: none;
+  padding: 10px 14px;
+  color: #07130f;
+  font-weight: 800;
+  background: #c7ff4a;
+  border: 0;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.field-row button:disabled {
+  color: #7d8f84;
+  background: rgba(255, 255, 255, 0.1);
+  cursor: not-allowed;
+}
+
+.field-error {
+  margin: 8px 0 0;
+  color: #ff9d9d;
+  font-size: 0.78rem;
+}
+
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stat-row li {
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 14px;
+}
+
+.stat-row span {
+  display: block;
+  color: #9bb2a6;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.stat-row strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.95rem;
+}
+
+.clan-block {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.clan-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.clan-tag {
+  display: grid;
+  flex: none;
+  place-items: center;
+  min-width: 52px;
+  height: 36px;
+  padding: 0 10px;
+  color: #07130f;
+  font-weight: 850;
+  letter-spacing: 0.06em;
+  border-radius: 10px;
+}
+
+.clan-name {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.clan-meta {
+  margin: 4px 0 0;
+  color: #9bb2a6;
+  font-size: 0.78rem;
+}
+
+.clan-code {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 14px 0 0;
+  color: #dcebe3;
+  font-size: 0.78rem;
+}
+
+.clan-code strong {
+  font-size: 1rem;
+  letter-spacing: 0.2em;
+}
+
+.clan-members {
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.clan-members li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 7px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  font-size: 0.82rem;
+}
+
+.clan-member-name {
+  flex: 1;
+}
+
+.clan-member-id {
+  color: #9bb2a6;
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.clan-member-role {
+  color: #c7ff4a;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.clan-divider {
+  height: 1px;
+  margin: 18px 0 2px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.clan-create-row {
+  display: grid;
+  grid-template-columns: 1fr 96px;
+  gap: 10px;
+}
+
+.primary-button,
+.danger-button {
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px;
+  font-weight: 800;
+  border: 0;
+  border-radius: 14px;
+  cursor: pointer;
+}
+
+.primary-button {
+  color: #07130f;
+  background: #c7ff4a;
+}
+
+.danger-button {
+  color: #ff9d9d;
+  background: rgba(255, 105, 105, 0.12);
+  border: 1px solid rgba(255, 105, 105, 0.35);
+}
+
+.primary-button:disabled {
+  color: #7d8f84;
+  background: rgba(255, 255, 255, 0.1);
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .sheet {
+    top: auto;
+    right: 14px;
+    bottom: 14px;
+    left: 14px;
+    width: auto;
+    max-height: calc(100% - 90px);
   }
 }

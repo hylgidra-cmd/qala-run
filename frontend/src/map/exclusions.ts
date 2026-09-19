@@ -30,17 +30,6 @@ export const EXCLUSION_COLORS: Record<ExclusionKind, string> = {
   other: '#6f7b86',
 };
 
-export const EXCLUSION_LABELS: Record<ExclusionKind, string> = {
-  building: 'Buildings',
-  private: 'Private land',
-  school: 'Schools',
-  hospital: 'Hospitals',
-  military: 'Military',
-  water: 'Water',
-  industrial: 'Industrial',
-  other: 'Other',
-};
-
 /**
  * A MapLibre `match` expression over the `kind` property. An unknown kind from
  * a newer import still gets drawn, in the `other` colour.

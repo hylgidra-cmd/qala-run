@@ -102,6 +102,13 @@ POST /api/v1/runs/{id}/finish        -> accepted | rejected + reason
 POST /api/v1/runs/{id}/abandon       -> release a run left active
 GET  /api/v1/territories?bbox=...    -> GeoJSON for the map
 GET  /api/v1/zones/exclusions?bbox=. -> GeoJSON of the ground no run wins
+GET  /api/v1/me                      -> profile, 8-digit player id, stats
+PATCH /api/v1/me                     -> change the display name
+POST /api/v1/clans                   -> found a clan, become its owner
+POST /api/v1/clans/join              -> join with an invite code
+GET  /api/v1/clans/{id}              -> roster; the code only for members
+POST /api/v1/clans/{id}/leave        -> leave; ground stays with the clan
+GET  /api/v1/clans/leaderboard       -> clans by captured area
 ```
 
 The browser sends coordinates, timestamps and accuracy. Speed, distance, area,
@@ -122,6 +129,24 @@ code change.
 
 `X-Demo-User` identifies a browser and stands in for authentication. It is a
 demo mechanism and must be replaced before production.
+
+## Players and clans
+
+The site is in Karakalpak; every string lives in `frontend/src/i18n/qq.ts`.
+
+Each browser is given a random 8-digit player id on its first request, the way
+PUBG and Free Fire do, and a name of `Oyınshı <id>` it can change. Both come
+from database defaults, so no endpoint can create a player without them.
+
+A clan holds ten members (a trigger enforces it), is joined with a six-letter
+invite code and owns its ground: when a member leaves, the territory stays.
+
+**Solo and clan are two maps over the same city.** The mode is chosen before a
+run starts and cannot change mid-run. A clan run only ever meets clan ground
+and a solo run only ever meets solo ground - the capture query, the conflict
+query and the map query all branch on mode, and the `territories` table refuses
+a row whose owner does not match its mode. Clan ground is drawn in the clan's
+own colour.
 
 ## Exclusion zones
 

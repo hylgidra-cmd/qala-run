@@ -1,4 +1,5 @@
-import { EXCLUSION_COLORS, EXCLUSION_KINDS, EXCLUSION_LABELS } from './exclusions';
+import { t } from '../i18n/qq';
+import { EXCLUSION_COLORS, EXCLUSION_KINDS } from './exclusions';
 
 interface ExclusionLegendProps {
   visible: boolean;
@@ -10,11 +11,11 @@ interface ExclusionLegendProps {
 /** Names the colours on the map, so the zone types can be told apart. */
 export function ExclusionLegend({ visible, onToggle, count, truncated }: ExclusionLegendProps) {
   return (
-    <aside className="legend" aria-label="Excluded ground">
+    <aside className="legend" aria-label={t.legend.title}>
       <div className="legend-head">
-        <p className="eyebrow">Excluded ground</p>
+        <p className="eyebrow">{t.legend.title}</p>
         <button type="button" onClick={onToggle} aria-pressed={visible}>
-          {visible ? 'Hide' : 'Show'}
+          {visible ? t.legend.hide : t.legend.show}
         </button>
       </div>
 
@@ -28,14 +29,12 @@ export function ExclusionLegend({ visible, onToggle, count, truncated }: Exclusi
                   style={{ background: EXCLUSION_COLORS[kind] }}
                   aria-hidden="true"
                 />
-                {EXCLUSION_LABELS[kind]}
+                {t.legend.kinds[kind]}
               </li>
             ))}
           </ul>
           <p className="legend-note">
-            {truncated
-              ? 'Too many zones to draw here — zoom in to see them all.'
-              : `${count} zone${count === 1 ? '' : 's'} in view. This ground is subtracted from a capture.`}
+            {truncated ? t.legend.truncated : t.legend.count(count)}
           </p>
         </>
       ) : null}

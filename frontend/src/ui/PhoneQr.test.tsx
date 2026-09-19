@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+import { t } from '../i18n/qq';
 import { PhoneQr } from './PhoneQr';
 
 describe('PhoneQr', () => {
@@ -13,7 +14,7 @@ describe('PhoneQr', () => {
   it('explains why localhost has no code instead of showing a dead one', () => {
     render(<PhoneQr href="http://localhost:5173/" />);
 
-    expect(screen.getByText(/cannot open/i)).toBeVisible();
+    expect(screen.getByText(t.qr.localhost)).toBeVisible();
     expect(screen.queryByRole('img')).toBeNull();
   });
 });
