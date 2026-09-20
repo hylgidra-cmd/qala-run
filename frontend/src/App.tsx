@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AdminView } from './admin/AdminView';
+import { AuthPage } from './auth/AuthPage';
+import { useAuth } from './auth/useAuth';
 import { t } from './i18n/qq';
 import { MapView } from './map/MapView';
 import { InvasionToast } from './notifications/InvasionToast';
@@ -13,6 +15,7 @@ import { type TerritoryMode, useRunTracker } from './run/useRunTracker';
 import { PhoneQr } from './ui/PhoneQr';
 
 export function App() {
+  const { isAuthenticated, logout } = useAuth();
   const profile = useProfile();
   const [mode, setMode] = useState<TerritoryMode>('solo');
   const [panelOpen, setPanelOpen] = useState(false);
@@ -23,6 +26,11 @@ export function App() {
   const [apiReachable, setApiReachable] = useState(true);
   const handleApiReachable = useCallback((reachable: boolean) => setApiReachable(reachable), []);
   const { notifications, dismiss: dismissNotifications } = useNotifications();
+
+  // Show auth screen if not logged in
+  if (!isAuthenticated) {
+    return <AuthPage onSuccess={() => window.location.reload()} />;
+  }
 
   const showRegister =
     !registerDismissed &&

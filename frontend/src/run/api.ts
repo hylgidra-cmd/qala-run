@@ -93,13 +93,22 @@ export function toTrackPoint(position: GeolocationPosition): TrackPoint {
   };
 }
 
-/** Shared by every client module: one place that carries the demo identity. */
+/** Returns the correct auth header: Bearer JWT if logged in, X-Demo-User otherwise. */
+function authHeaders(): Record<string, string> {
+  const token = localStorage.getItem('qalarun.token');
+  if (token) {
+    return { Authorization: `Bearer ${token}` };
+  }
+  return { 'X-Demo-User': deviceKey() };
+}
+
+/** Shared by every client module: one place that carries the identity. */
 export async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
-      'X-Demo-User': deviceKey(),
+      ...authHeaders(),
       ...(init.headers ?? {}),
     },
   });

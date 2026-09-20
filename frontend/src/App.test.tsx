@@ -16,6 +16,18 @@ vi.mock('./notifications/api', () => ({
   markNotificationsRead: vi.fn().mockResolvedValue(undefined),
 }));
 
+// Always authenticated in App tests so AuthPage doesn't block the map
+vi.mock('./auth/useAuth', () => ({
+  useAuth: () => ({
+    isAuthenticated: true,
+    logout: vi.fn(),
+    user: { user_id: 'u1', username: 'test', display_name: 'Test', color_hex: '#00ff88' },
+    token: 'fake-token',
+    login: vi.fn(),
+    register: vi.fn(),
+  }),
+}));
+
 const fetchMe = vi.fn();
 const fetchClan = vi.fn();
 
