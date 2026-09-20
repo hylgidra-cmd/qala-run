@@ -1,6 +1,4 @@
-/** Auth API — username+password register/login. */
-
-const API_BASE = import.meta.env.VITE_API_BASE ?? '';
+import { API_BASE } from '../run/api';
 
 export interface AuthUser {
   token: string;
@@ -15,7 +13,7 @@ export async function registerUser(
   password: string,
   display_name?: string,
 ): Promise<AuthUser> {
-  const res = await fetch(`${API_BASE}/api/v1/auth/register`, {
+  const res = await fetch(`${API_BASE}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password, display_name: display_name ?? username }),
@@ -30,7 +28,7 @@ export async function registerUser(
 }
 
 export async function loginUser(username: string, password: string): Promise<AuthUser> {
-  const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
+  const res = await fetch(`${API_BASE}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),
@@ -43,3 +41,4 @@ export async function loginUser(username: string, password: string): Promise<Aut
 
   return res.json() as Promise<AuthUser>;
 }
+

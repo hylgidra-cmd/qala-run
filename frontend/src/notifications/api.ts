@@ -12,7 +12,7 @@ export interface Notification {
 }
 
 export async function fetchNotifications(): Promise<Notification[]> {
-  const res = await fetch(`${API_BASE}/api/v1/me/notifications`, {
+  const res = await fetch(`${API_BASE}/me/notifications`, {
     headers: { 'X-Demo-User': deviceKey() },
   });
   if (!res.ok) return [];
@@ -20,8 +20,9 @@ export async function fetchNotifications(): Promise<Notification[]> {
 }
 
 export async function markNotificationsRead(): Promise<void> {
-  await fetch(`${API_BASE}/api/v1/me/notifications/read`, {
+  await fetch(`${API_BASE}/me/notifications/read`, {
     method: 'POST',
     headers: { 'X-Demo-User': deviceKey() },
   });
 }
+

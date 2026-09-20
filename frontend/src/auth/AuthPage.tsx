@@ -3,11 +3,12 @@ import { useAuth } from './useAuth';
 
 interface Props {
   onSuccess: () => void;
+  onClose?: () => void;
 }
 
 type Tab = 'login' | 'register';
 
-export function AuthPage({ onSuccess }: Props) {
+export function AuthPage({ onSuccess, onClose }: Props) {
   const { login, register } = useAuth();
   const [tab, setTab] = useState<Tab>('login');
 
@@ -37,8 +38,19 @@ export function AuthPage({ onSuccess }: Props) {
   };
 
   return (
-    <div className="auth-overlay">
-      <div className="auth-card">
+    <div className="auth-overlay" onClick={onClose}>
+      <div className="auth-card" onClick={(e) => e.stopPropagation()}>
+        {onClose && (
+          <button
+            type="button"
+            className="auth-close-btn"
+            onClick={onClose}
+            aria-label="Jabıw"
+          >
+            ×
+          </button>
+        )}
+
         {/* Logo */}
         <div className="auth-logo">
           <span className="auth-logo-mark">🏃</span>
@@ -156,3 +168,4 @@ export function AuthPage({ onSuccess }: Props) {
     </div>
   );
 }
+

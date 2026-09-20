@@ -1829,3 +1829,48 @@ a:focus-visible {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+
+.auth-close-btn {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  font-size: 1.4rem;
+  line-height: 1;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.auth-close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.auth-card {
+  position: relative;
+}
+
+.login-topbar-btn {
+  background: #c7ff4a;
+  color: #111;
+  border: none;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.1s, opacity 0.15s;
+  white-space: nowrap;
+}
+
+.login-topbar-btn:hover {
+  opacity: 0.9;
+  transform: scale(1.03);
+}

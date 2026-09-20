@@ -19,6 +19,7 @@ export function App() {
   const profile = useProfile();
   const [mode, setMode] = useState<TerritoryMode>('solo');
   const [panelOpen, setPanelOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   const [clanPrompt, setClanPrompt] = useState(false);
   const [registerDismissed, setRegisterDismissed] = useState(false);
   const [isAdmin, setIsAdmin] = useState(() => window.location.hash === '#admin');
@@ -26,11 +27,6 @@ export function App() {
   const [apiReachable, setApiReachable] = useState(true);
   const handleApiReachable = useCallback((reachable: boolean) => setApiReachable(reachable), []);
   const { notifications, dismiss: dismissNotifications } = useNotifications();
-
-  // Show auth screen if not logged in
-  if (!isAuthenticated) {
-    return <AuthPage onSuccess={() => window.location.reload()} />;
-  }
 
   const showRegister =
     !registerDismissed &&
@@ -122,17 +118,28 @@ export function App() {
             Admin 🛡️
           </button>
 
-          <button
-            className="profile-button"
-            type="button"
-            aria-label={t.profile.open}
-            onClick={() => {
-              setClanPrompt(false);
-              setPanelOpen((open) => !open);
-            }}
-          >
-            {profile.me ? initials(profile.me.display_name) : '··'}
-          </button>
+          {isAuthenticated ? (
+            <button
+              className="profile-button"
+              type="button"
+              aria-label={t.profile.open}
+              onClick={() => {
+                setClanPrompt(false);
+                setPanelOpen((open) => !open);
+              }}
+            >
+              {profile.me ? initials(profile.me.display_name) : '··'}
+            </button>
+          ) : (
+            <button
+              className="login-topbar-btn"
+              type="button"
+              onClick={() => setAuthModalOpen(true)}
+              title="Kirish / Ro'yxatdan o'tiw"
+            >
+              Kirish ⚡
+            </button>
+          )}
         </div>
       </header>
 
@@ -176,6 +183,16 @@ export function App() {
             }}
           />
         ) : null}
+
+        {authModalOpen && (
+          <AuthPage
+            onSuccess={() => {
+              setAuthModalOpen(false);
+              window.location.reload();
+            }}
+            onClose={() => setAuthModalOpen(false)}
+          />
+        )}
 
         <InvasionToast notifications={notifications} onDismiss={dismissNotifications} />
 
