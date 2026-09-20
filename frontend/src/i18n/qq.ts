@@ -133,7 +133,7 @@ export const t = {
     unavailable: 'Profil házirshe qoljetimsiz.',
   },
 
-  clan: {
+    clan: {
     title: 'Klan',
     none: 'Klanǵa qosılmaǵansız',
     create: 'Klan dúziw',
@@ -165,5 +165,11 @@ export const t = {
       invalid: 'Maǵlıwmatlar durıs emes. At 3–48 belgi, teg 2–5 belgi bolıwı kerek.',
       generic: 'Ámeldi orınlaw múmkin bolmadı.',
     },
+  },
+
+  notifications: {
+    territoryInvaded: (invader: string, area: number) =>
+      `⚔️ ${invader} seniń ${area} m² aymaqıńa kirdi!`,
+    dismiss: 'Jabıw',
   },
 } as const;

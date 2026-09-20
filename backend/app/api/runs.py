@@ -431,6 +431,11 @@ async def finish_run(
 
     captured = (await connection.execute(text(captured_sql), captured_params)).all()
 
+    # Fetch the invader's display name once (used in notifications below).
+    invader_name = await connection.scalar(
+        text("SELECT display_name FROM demo_users WHERE id = :uid"), {"uid": user_id}
+    ) or "Belgisiz"
+
     # Trimming every overlapping territory, including the runner's own older
     # ones, is what stops the same ground being counted twice.
     await connection.execute(
@@ -454,6 +459,30 @@ async def finish_run(
         text("UPDATE territories SET area_m2 = ST_Area(geom::geography) WHERE mode = :mode"),
         {"mode": mode},
     )
+
+    # --- 14b: notify every displaced owner about the invasion ---
+    # Only solo mode has per-user owner_id; clan mode notifies clan members (skipped for now).
+    if mode == "solo" and captured:
+        notif_params = [
+            {
+                "owner_id": str(row.owner_id),
+                "invader": invader_name,
+                "area": round(float(row.area_lost_m2)),
+            }
+            for row in captured
+            if str(row.owner_id) != user_id  # don't notify yourself
+        ]
+        if notif_params:
+            await connection.execute(
+                text(
+                    """
+                    INSERT INTO notifications (user_id, type, payload)
+                    VALUES (:owner_id, 'territory_invaded',
+                            jsonb_build_object('invader', :invader, 'area_m2', :area))
+                    """
+                ),
+                notif_params,
+            )
 
     # --- 15, 16: store the new territory and close the run ---
     territory_id = await connection.scalar(

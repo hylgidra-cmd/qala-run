@@ -1586,3 +1586,71 @@ a:focus-visible {
 }
 
 
+
+/* -- Invasion Toast ------------------------------------------- */
+.invasion-toast {
+  position: absolute;
+  top: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 900;
+  width: min(420px, calc(100vw - 32px));
+  pointer-events: auto;
+  animation: toast-in 0.3s ease;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(-12px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.invasion-toast__content {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: rgba(20, 10, 10, 0.92);
+  border: 1.5px solid #ff3b30;
+  border-radius: 14px;
+  padding: 12px 14px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 24px rgba(255, 59, 48, 0.35);
+}
+
+.invasion-toast__icon {
+  font-size: 1.4rem;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.invasion-toast__messages {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.invasion-toast__line {
+  margin: 0;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.invasion-toast__close {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.6);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0 2px;
+  flex-shrink: 0;
+  line-height: 1;
+  margin-top: 1px;
+  transition: color 0.15s;
+}
+
+.invasion-toast__close:hover {
+  color: #fff;
+}

@@ -106,8 +106,8 @@ export function TerritoryLayer({
         type="line"
         paint={{
           'line-color': ['coalesce', ['get', 'color'], SOLO_LINE] as never,
-          'line-width': 3.5,
-          'line-opacity': 1.0,
+          'line-width': 1.5,
+          'line-opacity': 0.7,
         }}
       />
     </Source>

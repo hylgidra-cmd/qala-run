@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { AdminView } from './admin/AdminView';
 import { t } from './i18n/qq';
 import { MapView } from './map/MapView';
+import { InvasionToast } from './notifications/InvasionToast';
+import { useNotifications } from './notifications/useNotifications';
 import { ProfilePanel } from './profile/ProfilePanel';
 import { RegisterModal } from './profile/RegisterModal';
 import { initials } from './profile/identity';
@@ -20,6 +22,7 @@ export function App() {
   const tracker = useRunTracker(mode);
   const [apiReachable, setApiReachable] = useState(true);
   const handleApiReachable = useCallback((reachable: boolean) => setApiReachable(reachable), []);
+  const { notifications, dismiss: dismissNotifications } = useNotifications();
 
   const showRegister =
     !registerDismissed &&
@@ -161,6 +164,8 @@ export function App() {
             onClose={() => setPanelOpen(false)}
           />
         ) : null}
+
+        <InvasionToast notifications={notifications} onDismiss={dismissNotifications} />
 
         <RunPanel tracker={tracker} apiReachable={apiReachable} />
       </section>

@@ -11,6 +11,11 @@ vi.mock('./map/MapView', () => ({
   MapView: ({ mode }: { mode?: string }) => <div data-testid="map" data-mode={mode} />,
 }));
 
+vi.mock('./notifications/api', () => ({
+  fetchNotifications: vi.fn().mockResolvedValue([]),
+  markNotificationsRead: vi.fn().mockResolvedValue(undefined),
+}));
+
 const fetchMe = vi.fn();
 const fetchClan = vi.fn();
 
