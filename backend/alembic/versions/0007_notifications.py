@@ -24,7 +24,8 @@ def upgrade() -> None:
     op.create_table(
         "notifications",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
-        sa.Column("user_id", sa.String(), sa.ForeignKey("demo_users.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("user_id", postgresql.UUID(as_uuid=False),
+                  sa.ForeignKey("demo_users.id", ondelete="CASCADE"), nullable=False),
         sa.Column("type", sa.String(50), nullable=False),  # 'territory_invaded'
         sa.Column("payload", postgresql.JSONB(), nullable=False, server_default="{}"),
         sa.Column("read_at", sa.DateTime(timezone=True), nullable=True),
@@ -38,3 +39,4 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_index("ix_notifications_user_unread", table_name="notifications")
     op.drop_table("notifications")
+
