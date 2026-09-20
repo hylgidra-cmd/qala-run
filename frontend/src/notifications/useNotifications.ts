@@ -37,3 +37,4 @@ export function useNotifications() {
 
   return { notifications, dismiss };
 }
+

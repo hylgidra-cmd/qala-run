@@ -37,3 +37,4 @@ def downgrade() -> None:
     op.drop_index("ix_demo_users_username", table_name="demo_users")
     op.drop_column("demo_users", "password_hash")
     op.drop_column("demo_users", "username")
+

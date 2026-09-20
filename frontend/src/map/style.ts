@@ -8,8 +8,8 @@ export const NUKUS_CENTER = {
 };
 
 export const PILOT_BOUNDS: [number, number, number, number] = [
-  59.58,
-  42.43,
-  59.64,
-  42.48,
+  59.45,
+  42.36,
+  59.75,
+  42.55,
 ];

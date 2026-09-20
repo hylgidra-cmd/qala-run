@@ -165,9 +165,9 @@ export function AdminView({ onBack }: AdminViewProps) {
           <Map
             ref={mapRef}
             mapStyle={DEV_MAP_STYLE}
-            initialViewState={{ ...NUKUS_CENTER, zoom: 14 }}
+            initialViewState={{ ...NUKUS_CENTER, zoom: 13 }}
             maxBounds={PILOT_BOUNDS}
-            minZoom={11}
+            minZoom={10}
             maxZoom={19}
             style={{ width: '100%', height: '100%' }}
           >

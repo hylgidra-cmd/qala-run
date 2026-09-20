@@ -74,3 +74,4 @@ async def test_authenticated_request_with_jwt(client: AsyncClient) -> None:
     assert me_res.status_code == 200
     me = me_res.json()
     assert me["display_name"] == "JWT Tester"
+

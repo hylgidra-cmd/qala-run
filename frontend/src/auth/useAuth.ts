@@ -63,3 +63,4 @@ export function getAuthHeaders(): HeadersInit {
   const key = localStorage.getItem('dontstop.deviceKey') ?? '';
   return { 'X-Demo-User': key };
 }
+

@@ -33,7 +33,7 @@ class TestDatabaseUrl:
 
 class TestPilotBbox:
     def test_bbox_is_west_south_east_north(self) -> None:
-        assert Settings(_env_file=None).pilot_bbox == (59.58, 42.43, 59.64, 42.48)
+        assert Settings(_env_file=None).pilot_bbox == (59.45, 42.36, 59.75, 42.55)
 
 
 class TestLoopClosure:

@@ -67,3 +67,4 @@ async def mark_read(
         ),
         {"user_id": user_id},
     )
+

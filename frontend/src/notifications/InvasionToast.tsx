@@ -40,3 +40,4 @@ export function InvasionToast({ notifications, onDismiss }: Props) {
     </div>
   );
 }
+

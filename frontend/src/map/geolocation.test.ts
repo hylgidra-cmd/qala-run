@@ -32,12 +32,12 @@ describe('isInsidePilotBounds', () => {
   });
 
   it('accepts the bbox corners', () => {
-    expect(isInsidePilotBounds(59.58, 42.43)).toBe(true);
-    expect(isInsidePilotBounds(59.64, 42.48)).toBe(true);
+    expect(isInsidePilotBounds(59.45, 42.36)).toBe(true);
+    expect(isInsidePilotBounds(59.75, 42.55)).toBe(true);
   });
 
   it('rejects a point west of the pilot area', () => {
-    expect(isInsidePilotBounds(59.5, 42.4531)).toBe(false);
+    expect(isInsidePilotBounds(59.3, 42.4531)).toBe(false);
   });
 
   it('rejects a point north of the pilot area', () => {

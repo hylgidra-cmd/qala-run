@@ -21,10 +21,10 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173"
 
     # --- Pilot region (docs/PROJECT_DECISIONS.md) ---
-    pilot_west: float = 59.58
-    pilot_south: float = 42.43
-    pilot_east: float = 59.64
-    pilot_north: float = 42.48
+    pilot_west: float = 59.45
+    pilot_south: float = 42.36
+    pilot_east: float = 59.75
+    pilot_north: float = 42.55
 
     # --- Run acceptance thresholds ---
     # Product decision (2026-09-17), overriding TZ section 19, which specified

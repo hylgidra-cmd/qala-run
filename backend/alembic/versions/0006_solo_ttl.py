@@ -49,3 +49,4 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_index("ix_territories_expires_at", table_name="territories")
     op.drop_column("territories", "expires_at")
+

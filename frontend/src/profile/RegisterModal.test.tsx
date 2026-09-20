@@ -74,3 +74,4 @@ describe('RegisterModal', () => {
     expect(profile.updateProfile).not.toHaveBeenCalled();
   });
 });
+

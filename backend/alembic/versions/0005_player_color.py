@@ -59,3 +59,4 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.execute("ALTER TABLE demo_users DROP COLUMN IF EXISTS color_hex")
     op.execute("DROP FUNCTION IF EXISTS next_player_color")
+
