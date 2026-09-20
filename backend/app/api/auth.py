@@ -61,11 +61,11 @@ def decode_token(token: str) -> str:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Noto'g'ri token")
 
 
-def _next_player_id(existing: set[int]) -> int:
+def _next_player_id(existing: set[str]) -> str:
     """8-digit ID, never starts with 0."""
     import random
     for _ in range(1000):
-        pid = random.randint(10_000_000, 99_999_999)
+        pid = str(random.randint(10_000_000, 99_999_999))
         if pid not in existing:
             return pid
     raise RuntimeError("player_id pool exhausted")
@@ -124,8 +124,9 @@ async def register(
 
     # Generate unique 8-digit player_id
     existing_ids = {
-        row[0]
+        str(row[0])
         for row in (await connection.execute(text("SELECT player_id FROM demo_users"))).all()
+        if row[0] is not None
     }
     player_id = _next_player_id(existing_ids)
 
@@ -199,3 +200,4 @@ async def login(
         display_name=row.display_name,
         color_hex=row.color_hex or "#00ff88",
     )
+

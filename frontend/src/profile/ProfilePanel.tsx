@@ -8,11 +8,12 @@ import type { Profile } from './useProfile';
 interface ProfilePanelProps {
   profile: Profile;
   onClose: () => void;
+  onLogout?: () => void;
   /** True when the panel was opened by pressing Clan without a clan. */
   clanPrompt?: boolean;
 }
 
-export function ProfilePanel({ profile, onClose, clanPrompt = false }: ProfilePanelProps) {
+export function ProfilePanel({ profile, onClose, onLogout, clanPrompt = false }: ProfilePanelProps) {
   const { me } = profile;
   const [name, setName] = useState(me?.display_name ?? '');
   const [saving, setSaving] = useState(false);
@@ -156,6 +157,19 @@ export function ProfilePanel({ profile, onClose, clanPrompt = false }: ProfilePa
         <div className="clan-divider" aria-hidden="true" />
 
         <ClanSection profile={profile} prompt={clanPrompt} />
+
+        {onLogout && (
+          <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+            <button
+              type="button"
+              onClick={onLogout}
+              className="danger-button"
+              style={{ width: '100%', padding: '10px', fontSize: '0.9rem', borderRadius: '10px' }}
+            >
+              🚪 {t.profile.logout}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

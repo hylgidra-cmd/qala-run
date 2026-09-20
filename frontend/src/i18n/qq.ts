@@ -131,6 +131,7 @@ export const t = {
     joined: 'Qosılǵan',
     loading: 'Júklenbekte…',
     unavailable: 'Profil házirshe qoljetimsiz.',
+    logout: 'Akkaunttan shıǵıw',
   },
 
     clan: {

@@ -170,6 +170,10 @@ export function App() {
             profile={profile}
             clanPrompt={clanPrompt}
             onClose={() => setPanelOpen(false)}
+            onLogout={() => {
+              logout();
+              setPanelOpen(false);
+            }}
           />
         ) : null}
 
