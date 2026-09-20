@@ -135,6 +135,8 @@ class MeOut(BaseModel):
     player_id: str
     display_name: str
     color_hex: str = "#00ff88"
+    city: str = "nukus"
+    avatar_data: str | None = None
     joined_at: str
     stats: PlayerStats
     clan: ClanBrief | None = None
@@ -143,3 +145,5 @@ class MeOut(BaseModel):
 class DisplayNameIn(BaseModel):
     display_name: str | None = Field(default=None, min_length=2, max_length=24)
     color_hex: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
+    city: str | None = Field(default=None, max_length=32)
+    avatar_data: str | None = None

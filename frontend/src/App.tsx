@@ -4,6 +4,7 @@ import { AuthPage } from './auth/AuthPage';
 import { useAuth } from './auth/useAuth';
 import { t } from './i18n/qq';
 import { MapView } from './map/MapView';
+import { CITIES_LIST, DEFAULT_CITY_ID, getCity } from './map/cities';
 import { InvasionToast } from './notifications/InvasionToast';
 import { useNotifications } from './notifications/useNotifications';
 import { ProfilePanel } from './profile/ProfilePanel';
@@ -12,11 +13,13 @@ import { initials } from './profile/identity';
 import { useProfile } from './profile/useProfile';
 import { RunPanel } from './run/RunPanel';
 import { type TerritoryMode, useRunTracker } from './run/useRunTracker';
+import { DefaultAvatar } from './ui/DefaultAvatar';
 import { PhoneQr } from './ui/PhoneQr';
 
 export function App() {
   const { isAuthenticated, logout } = useAuth();
   const profile = useProfile();
+  const [activeCity, setActiveCity] = useState(DEFAULT_CITY_ID);
   const [mode, setMode] = useState<TerritoryMode>('solo');
   const [panelOpen, setPanelOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -27,6 +30,13 @@ export function App() {
   const [apiReachable, setApiReachable] = useState(true);
   const handleApiReachable = useCallback((reachable: boolean) => setApiReachable(reachable), []);
   const { notifications, dismiss: dismissNotifications } = useNotifications();
+
+  // Sync active city from player's profile if set
+  useEffect(() => {
+    if (profile.me?.city) {
+      setActiveCity(profile.me.city);
+    }
+  }, [profile.me?.city]);
 
   const showRegister =
     !registerDismissed &&
@@ -78,13 +88,41 @@ export function App() {
     );
   }
 
+  const handleCityChange = (newCity: string) => {
+    setActiveCity(newCity);
+    if (profile.me) {
+      void profile.updateProfile({ city: newCity });
+    }
+  };
+
+  const currentCityObj = getCity(activeCity);
+
   return (
     <main className="app-shell">
       <header className="topbar">
-        <a className="brand" href="/" aria-label={t.brand.home}>
-          <span className="brand-mark" aria-hidden="true">DS</span>
-          <span>{t.brand.name}</span>
-        </a>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <a className="brand" href="/" aria-label={t.brand.home}>
+            <span className="brand-mark" aria-hidden="true">DS</span>
+            <span>{t.brand.name}</span>
+          </a>
+
+          {/* City switcher dropdown */}
+          <div className="city-switcher">
+            <select
+              value={activeCity}
+              onChange={(e) => handleCityChange(e.target.value)}
+              className="topbar-city-select"
+              aria-label={t.cities.label}
+              title="Qalanı saylań"
+            >
+              {CITIES_LIST.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.flag} {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
 
         <div className="mode-switch" aria-label={t.mode.label}>
           <button
@@ -127,8 +165,23 @@ export function App() {
                 setClanPrompt(false);
                 setPanelOpen((open) => !open);
               }}
+              style={{
+                background: profile.me?.avatar_data ? 'transparent' : (profile.me?.color_hex || '#00ff88'),
+                padding: profile.me?.avatar_data ? 0 : undefined,
+                overflow: 'hidden',
+              }}
             >
-              {profile.me ? initials(profile.me.display_name) : '··'}
+              {profile.me?.avatar_data ? (
+                <img
+                  src={profile.me.avatar_data}
+                  alt="Avatar"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                />
+              ) : profile.me ? (
+                initials(profile.me.display_name)
+              ) : (
+                '··'
+              )}
             </button>
           ) : (
             <button
@@ -145,6 +198,7 @@ export function App() {
 
       <section className="map-stage" aria-label={t.map.label}>
         <MapView
+          cityId={activeCity}
           mode={mode}
           trackPoints={tracker.points}
           territoryRefreshKey={tracker.result?.territory_id ?? ''}
@@ -153,7 +207,7 @@ export function App() {
 
         {tracker.phase === 'idle' && !tracker.result ? (
           <aside className="status-card">
-            <p className="eyebrow">{t.map.eyebrow}</p>
+            <p className="eyebrow">{currentCityObj.name.toUpperCase()} AYMAǴI</p>
             <h1>{t.map.headline}</h1>
             <p>{t.map.lead}</p>
             <div className="status-row">

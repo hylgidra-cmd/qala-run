@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react';
+import { type ChangeEvent, useEffect, useState } from 'react';
 import { t } from '../i18n/qq';
+import { CITIES_LIST, getCity } from '../map/cities';
 import { formatArea } from '../run/format';
+import { DefaultAvatar } from '../ui/DefaultAvatar';
 import { ClanSection } from './ClanSection';
 import { avatarHue, initials } from './identity';
 import type { Profile } from './useProfile';
@@ -44,6 +46,42 @@ export function ProfilePanel({ profile, onClose, onLogout, clanPrompt = false }:
     );
   }
 
+  const handleAvatarUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_DIM = 200;
+        let w = img.width;
+        let h = img.height;
+        if (w > h) {
+          if (w > MAX_DIM) {
+            h = Math.round((h * MAX_DIM) / w);
+            w = MAX_DIM;
+          }
+        } else {
+          if (h > MAX_DIM) {
+            w = Math.round((w * MAX_DIM) / h);
+            h = MAX_DIM;
+          }
+        }
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, w, h);
+        const data = canvas.toDataURL('image/jpeg', 0.85);
+        void profile.updateProfile({ avatarData: data });
+      };
+      img.src = result;
+    };
+    reader.readAsDataURL(file);
+  };
+
   const save = async () => {
     const trimmed = name.trim();
 
@@ -78,6 +116,8 @@ export function ProfilePanel({ profile, onClose, onLogout, clanPrompt = false }:
     }
   };
 
+  const currentCity = getCity(me.city);
+
   return (
     <div className="profile-modal-backdrop" onClick={onClose}>
       <div className="profile-modal-card" onClick={(e) => e.stopPropagation()} aria-label={t.profile.title}>
@@ -89,13 +129,27 @@ export function ProfilePanel({ profile, onClose, onLogout, clanPrompt = false }:
         </div>
 
         <div className="profile-identity">
-          <span
-            className="profile-avatar"
-            style={{ background: me.color_hex || `hsl(${avatarHue(me.player_id)} 70% 45%)` }}
-            aria-hidden="true"
-          >
-            {initials(me.display_name || 'Oyınshı')}
-          </span>
+          <label className="profile-avatar-wrapper" title="Avatardı ózgertiw">
+            {me.avatar_data ? (
+              <img
+                src={me.avatar_data}
+                alt="Avatar"
+                className="profile-avatar-img"
+                style={{ borderColor: me.color_hex || '#00ff88' }}
+              />
+            ) : (
+              <div className="profile-avatar-fallback" style={{ borderColor: me.color_hex || '#00ff88' }}>
+                <DefaultAvatar size={54} />
+              </div>
+            )}
+            <span className="profile-avatar-edit-badge">📷</span>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarUpload}
+              style={{ display: 'none' }}
+            />
+          </label>
           <div>
             <h2 className="profile-name">{me.display_name || 'Oyınshı'}</h2>
             <p className="profile-id">
@@ -137,6 +191,24 @@ export function ProfilePanel({ profile, onClose, onLogout, clanPrompt = false }:
               />
             </div>
           </label>
+        </div>
+
+        {/* City Selector */}
+        <div className="field" style={{ marginTop: '8px' }}>
+          <span>{t.cities.label}</span>
+          <div className="field-row">
+            <select
+              value={me.city || 'nukus'}
+              onChange={(e) => void profile.updateProfile({ city: e.target.value })}
+              className="city-select-input"
+            >
+              {CITIES_LIST.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.flag} {c.name} ({c.country})
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="profile-stats-grid">

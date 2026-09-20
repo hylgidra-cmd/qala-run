@@ -6,17 +6,27 @@ export interface AuthUser {
   player_id: string;
   display_name: string;
   color_hex: string;
+  city?: string;
+  avatar_data?: string | null;
 }
 
 export async function registerUser(
   username: string,
   password: string,
   display_name?: string,
+  city?: string,
+  avatar_data?: string | null,
 ): Promise<AuthUser> {
   const res = await fetch(`${API_BASE}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password, display_name: display_name ?? username }),
+    body: JSON.stringify({
+      username,
+      password,
+      display_name: display_name ?? username,
+      city: city ?? 'nukus',
+      avatar_data: avatar_data ?? null,
+    }),
   });
 
   if (!res.ok) {

@@ -1,11 +1,14 @@
-import { useMemo, useState } from 'react';
-import Map, { GeolocateControl, Layer, NavigationControl, Source } from 'react-map-gl/maplibre';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import Map, { GeolocateControl, Layer, type MapRef, NavigationControl, Source } from 'react-map-gl/maplibre';
 import type { TrackPoint } from '../run/api';
 import { TerritoryLayer } from './TerritoryLayer';
-import { OUT_OF_BOUNDS_NOTICE, geolocationNotice, isInsidePilotBounds } from './geolocation';
-import { DEV_MAP_STYLE, NUKUS_CENTER, PILOT_BOUNDS } from './style';
+import { getCity } from './cities';
+import { geolocationNotice, isInsideCityBounds, outOfCityNotice } from './geolocation';
+import { DEV_MAP_STYLE } from './style';
 
 interface MapViewProps {
+  /** Active city identifier (nukus, tashkent, almaty, istanbul). */
+  cityId?: string;
   /** Which of the two territory layers is on screen. */
   mode?: string;
   trackPoints?: TrackPoint[];
@@ -14,12 +17,24 @@ interface MapViewProps {
 }
 
 export function MapView({
+  cityId = 'nukus',
   mode = 'solo',
   trackPoints = [],
   territoryRefreshKey = '',
   onApiReachable,
 }: MapViewProps) {
   const [notice, setNotice] = useState<string | null>(null);
+  const mapRef = useRef<MapRef | null>(null);
+  const city = getCity(cityId);
+
+  // Smoothly fly to the chosen city when switched
+  useEffect(() => {
+    mapRef.current?.flyTo({
+      center: [city.center.longitude, city.center.latitude],
+      zoom: city.zoom,
+      essential: true,
+    });
+  }, [city]);
 
   const track = useMemo<GeoJSON.FeatureCollection>(
     () => ({
@@ -43,9 +58,10 @@ export function MapView({
 
   return (
     <Map
+      ref={mapRef}
       mapStyle={DEV_MAP_STYLE}
-      initialViewState={{ ...NUKUS_CENTER, zoom: 13 }}
-      maxBounds={PILOT_BOUNDS}
+      initialViewState={{ longitude: city.center.longitude, latitude: city.center.latitude, zoom: city.zoom }}
+      maxBounds={city.bounds}
       minZoom={10}
       maxZoom={19}
       style={{ width: '100%', height: '100%' }}
@@ -58,10 +74,11 @@ export function MapView({
         positionOptions={{ enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }}
         onGeolocate={(event) => {
           const { longitude, latitude } = event.coords;
-          setNotice(isInsidePilotBounds(longitude, latitude) ? null : OUT_OF_BOUNDS_NOTICE);
+          const inside = isInsideCityBounds(longitude, latitude, city.id);
+          setNotice(inside ? null : outOfCityNotice(city.id));
         }}
         onError={(error) => setNotice(geolocationNotice(error.code))}
-        onOutOfMaxBounds={() => setNotice(OUT_OF_BOUNDS_NOTICE)}
+        onOutOfMaxBounds={() => setNotice(outOfCityNotice(city.id))}
       />
 
       <TerritoryLayer
@@ -82,7 +99,7 @@ export function MapView({
         <div className="map-notice" role="status">
           <p>{notice}</p>
           <button type="button" onClick={() => setNotice(null)} aria-label="Dismiss">
-            Dismiss
+            ×
           </button>
         </div>
       ) : null}

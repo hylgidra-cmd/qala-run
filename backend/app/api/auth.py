@@ -77,6 +77,8 @@ class RegisterIn(BaseModel):
     username: str
     password: str
     display_name: str = ""
+    city: str = "nukus"
+    avatar_data: str | None = None
 
     @field_validator("username")
     @classmethod
@@ -104,6 +106,8 @@ class AuthOut(BaseModel):
     player_id: str
     display_name: str
     color_hex: str
+    city: str = "nukus"
+    avatar_data: str | None = None
 
 
 # ── endpoints ─────────────────────────────────────────────────────────────────
@@ -132,6 +136,7 @@ async def register(
 
     display_name = body.display_name.strip() or body.username
     password_hash = _hash_password(body.password)
+    city = body.city.lower() if body.city else "nukus"
     # Use a deterministic device_key so we don't leave a null
     device_key = f"usr_{uuid.uuid4().hex}"
 
@@ -139,8 +144,8 @@ async def register(
         text(
             """
             INSERT INTO demo_users
-                (device_key, player_id, display_name, username, password_hash)
-            VALUES (:dk, :pid, :dn, :un, :ph)
+                (device_key, player_id, display_name, username, password_hash, city, avatar_data)
+            VALUES (:dk, :pid, :dn, :un, :ph, :city, :avatar)
             RETURNING id, color_hex
             """
         ),
@@ -150,6 +155,8 @@ async def register(
             "dn": display_name,
             "un": body.username,
             "ph": password_hash,
+            "city": city,
+            "avatar": body.avatar_data,
         },
     )
     created = row.one()
@@ -162,6 +169,8 @@ async def register(
         player_id=str(player_id),
         display_name=display_name,
         color_hex=created.color_hex or "#00ff88",
+        city=city,
+        avatar_data=body.avatar_data,
     )
 
 
@@ -175,7 +184,7 @@ async def login(
         await connection.execute(
             text(
                 """
-                SELECT id, player_id, display_name, color_hex, password_hash
+                SELECT id, player_id, display_name, color_hex, city, avatar_data, password_hash
                   FROM demo_users
                  WHERE lower(username) = lower(:u)
                 """
@@ -199,5 +208,7 @@ async def login(
         player_id=str(row.player_id),
         display_name=row.display_name,
         color_hex=row.color_hex or "#00ff88",
+        city=getattr(row, "city", "nukus") or "nukus",
+        avatar_data=getattr(row, "avatar_data", None),
     )
 

@@ -1,4 +1,6 @@
-import { type FormEvent, useState } from 'react';
+import { type ChangeEvent, type FormEvent, useState } from 'react';
+import { CITIES_LIST, DEFAULT_CITY_ID } from '../map/cities';
+import { DefaultAvatar } from '../ui/DefaultAvatar';
 import { useAuth } from './useAuth';
 
 interface Props {
@@ -15,8 +17,52 @@ export function AuthPage({ onSuccess, onClose }: Props) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [city, setCity] = useState(DEFAULT_CITY_ID);
+  const [avatarData, setAvatarData] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check size < 2MB
+    if (file.size > 2 * 1024 * 1024) {
+      setError('Rasm kólemi 2MB dan kishi bolıwı kerek');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      // Compress if needed using canvas
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_DIM = 200;
+        let w = img.width;
+        let h = img.height;
+        if (w > h) {
+          if (w > MAX_DIM) {
+            h = Math.round((h * MAX_DIM) / w);
+            w = MAX_DIM;
+          }
+        } else {
+          if (h > MAX_DIM) {
+            w = Math.round((w * MAX_DIM) / h);
+            h = MAX_DIM;
+          }
+        }
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, w, h);
+        setAvatarData(canvas.toDataURL('image/jpeg', 0.85));
+      };
+      img.src = result;
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -27,7 +73,13 @@ export function AuthPage({ onSuccess, onClose }: Props) {
       if (tab === 'login') {
         await login(username.trim(), password);
       } else {
-        await register(username.trim(), password, displayName.trim() || username.trim());
+        await register(
+          username.trim(),
+          password,
+          displayName.trim() || username.trim(),
+          city,
+          avatarData,
+        );
       }
       onSuccess();
     } catch (err) {
@@ -55,7 +107,7 @@ export function AuthPage({ onSuccess, onClose }: Props) {
         <div className="auth-logo">
           <span className="auth-logo-mark">🏃</span>
           <h1 className="auth-title">QalaRun</h1>
-          <p className="auth-subtitle">Nókis — Aymaqtı iyelew</p>
+          <p className="auth-subtitle">Aymaqtı iyelew oyını</p>
         </div>
 
         {/* Tabs */}
@@ -78,6 +130,26 @@ export function AuthPage({ onSuccess, onClose }: Props) {
 
         {/* Form */}
         <form className="auth-form" onSubmit={(e) => void handleSubmit(e)}>
+          {tab === 'register' && (
+            <div className="auth-avatar-section">
+              <label className="auth-avatar-picker" title="Avatar rásmin qoyıw">
+                {avatarData ? (
+                  <img src={avatarData} alt="Avatar" className="auth-avatar-img" />
+                ) : (
+                  <DefaultAvatar size={68} />
+                )}
+                <span className="auth-avatar-badge">📷</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarChange}
+                  style={{ display: 'none' }}
+                />
+              </label>
+              <span className="auth-avatar-hint">Avatar (ixtiyoriy)</span>
+            </div>
+          )}
+
           <div className="auth-field">
             <label htmlFor="auth-username">Foydalanuvchi nomi</label>
             <input
@@ -96,18 +168,36 @@ export function AuthPage({ onSuccess, onClose }: Props) {
           </div>
 
           {tab === 'register' && (
-            <div className="auth-field">
-              <label htmlFor="auth-displayname">Ko'rsatiladigan at (ixtiyoriy)</label>
-              <input
-                id="auth-displayname"
-                type="text"
-                autoComplete="name"
-                placeholder="Ali Rahimov"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                maxLength={24}
-              />
-            </div>
+            <>
+              <div className="auth-field">
+                <label htmlFor="auth-displayname">Ko'rsatiladigan at (ixtiyoriy)</label>
+                <input
+                  id="auth-displayname"
+                  type="text"
+                  autoComplete="name"
+                  placeholder="Ali Rahimov"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  maxLength={24}
+                />
+              </div>
+
+              <div className="auth-field">
+                <label htmlFor="auth-city">Qala (Shahar)</label>
+                <select
+                  id="auth-city"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  className="auth-select"
+                >
+                  {CITIES_LIST.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.flag} {c.name} ({c.country})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </>
           )}
 
           <div className="auth-field">

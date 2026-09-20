@@ -26,6 +26,8 @@ async def load_me(connection: AsyncConnection, user_id: str) -> MeOut:
                        u.player_id,
                        u.display_name,
                        u.color_hex,
+                       u.city,
+                       u.avatar_data,
                        u.created_at,
                        (SELECT count(*) FROM runs r
                          WHERE r.user_id = u.id AND r.status = 'accepted') AS runs_accepted,
@@ -68,6 +70,8 @@ async def load_me(connection: AsyncConnection, user_id: str) -> MeOut:
         player_id=player.player_id,
         display_name=player.display_name,
         color_hex=getattr(player, "color_hex", None) or "#00ff88",
+        city=getattr(player, "city", "nukus") or "nukus",
+        avatar_data=getattr(player, "avatar_data", None),
         joined_at=player.created_at.isoformat(),
         stats=PlayerStats(
             runs_accepted=int(player.runs_accepted),
@@ -92,11 +96,11 @@ async def rename_me(
     user_id: Annotated[str, Depends(get_demo_user)],
     connection: Annotated[AsyncConnection, Depends(get_connection)],
 ) -> MeOut:
-    if body.display_name is None and body.color_hex is None:
-        raise HTTPException(422, "display_name or color_hex is required")
+    if body.display_name is None and body.color_hex is None and body.city is None and body.avatar_data is None:
+        raise HTTPException(422, "No update fields provided")
 
     updates = []
-    params: dict[str, str] = {"user_id": user_id}
+    params: dict[str, str | None] = {"user_id": user_id}
 
     if body.display_name is not None:
         name = body.display_name.strip()
@@ -109,6 +113,14 @@ async def rename_me(
         updates.append("color_hex = :color_hex")
         params["color_hex"] = body.color_hex
 
+    if body.city is not None:
+        updates.append("city = :city")
+        params["city"] = body.city.lower()
+
+    if body.avatar_data is not None:
+        updates.append("avatar_data = :avatar_data")
+        params["avatar_data"] = body.avatar_data
+
     if updates:
         await connection.execute(
             text(f"UPDATE demo_users SET {', '.join(updates)} WHERE id = :user_id"),
@@ -116,3 +128,4 @@ async def rename_me(
         )
 
     return await load_me(connection, user_id)
+

@@ -32,8 +32,14 @@ export function useAuth() {
   );
 
   const register = useCallback(
-    async (username: string, password: string, displayName?: string) => {
-      const u = await registerUser(username, password, displayName);
+    async (
+      username: string,
+      password: string,
+      displayName?: string,
+      city?: string,
+      avatarData?: string | null,
+    ) => {
+      const u = await registerUser(username, password, displayName, city, avatarData);
       persist(u);
       return u;
     },

@@ -65,13 +65,37 @@ async def test_login_wrong_password_fails(client: AsyncClient) -> None:
 async def test_authenticated_request_with_jwt(client: AsyncClient) -> None:
     reg_res = await client.post(
         "/api/v1/auth/register",
-        json={"username": "jwt_tester", "password": "password123", "display_name": "JWT Tester"},
+        json={
+            "username": "jwt_tester",
+            "password": "password123",
+            "display_name": "JWT Tester",
+            "city": "tashkent",
+            "avatar_data": "data:image/png;base64,testdata",
+        },
     )
-    token = reg_res.json()["token"]
+    assert reg_res.status_code == 201
+    body = reg_res.json()
+    assert body["city"] == "tashkent"
+    assert body["avatar_data"] == "data:image/png;base64,testdata"
+    token = body["token"]
 
     # Request /api/v1/me with Bearer token
     me_res = await client.get("/api/v1/me", headers={"Authorization": f"Bearer {token}"})
     assert me_res.status_code == 200
     me = me_res.json()
     assert me["display_name"] == "JWT Tester"
+    assert me["city"] == "tashkent"
+    assert me["avatar_data"] == "data:image/png;base64,testdata"
+
+    # Update city and avatar
+    patch_res = await client.patch(
+        "/api/v1/me",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"city": "almaty", "avatar_data": "data:image/png;base64,updated"},
+    )
+    assert patch_res.status_code == 200
+    updated = patch_res.json()
+    assert updated["city"] == "almaty"
+    assert updated["avatar_data"] == "data:image/png;base64,updated"
+
 

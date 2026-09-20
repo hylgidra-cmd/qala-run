@@ -21,6 +21,7 @@ from app.api.schemas import (
     RunStarted,
 )
 from app.config import get_settings
+from app.geo.cities import is_inside_city_bbox
 from app.geo.loop import close_ring, closing_gap_m, is_inside_bbox, perimeter_m
 from app.geo.reasons import RejectionReason
 from app.signal.activity import get_classifier
@@ -309,8 +310,12 @@ async def finish_run(
 
     coordinates = [(point.raw.lon, point.raw.lat) for point in smoothed]
 
-    # --- 8: inside the pilot region ---
-    if not is_inside_bbox(coordinates, settings.pilot_bbox):
+    # --- 8: inside the selected city's region ---
+    user_city = await connection.scalar(
+        text("SELECT city FROM demo_users WHERE id = :user_id"),
+        {"user_id": user_id},
+    )
+    if not is_inside_city_bbox(coordinates, user_city):
         return await _reject(
             connection, run_id, mode, RejectionReason.OUTSIDE_REGION, activity, warnings
         )

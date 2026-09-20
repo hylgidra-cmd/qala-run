@@ -30,13 +30,20 @@ export const t = {
   },
 
   geo: {
-    outOfBounds: 'Siz Nókis pilot aymaǵınan tısqarıdasız, sonlıqtan karta sizdi izley almaydı.',
+    outOfBounds: 'Siz saylaǵan qala aymaǵınan tısqarıdasız, sonlıqtan karta sizdi izley almaydı.',
+    outsideCity: (city: string) => `Siz saylaǵan qalada (${city}) emessiz! Karta sizdi izley almaydı.`,
     denied:
       'Bul sayt ushın jaylasıw bloklanǵan. Brauzerdiń mánzil qatarındaǵı sazlawlarda ruxsat beriń hám jaylasıw dúgmesin qayta basıń.',
     unavailable:
       'Jaylasıw anıqlanbadı. GPS i joq noutbuk Wi-Fi arqalı anıqlaydı, ol úy ishinde islemewi múmkin.',
     timeout: 'Jaylasıw sorawınıń waqtı tamam boldı. Dúgmeni qayta basıń.',
     unknown: 'Jaylasıw házirshe qoljetimsiz.',
+  },
+
+  cities: {
+    label: 'Qala',
+    select: 'Qalanı saylań',
+    change: 'Qalanı ózgertiw',
   },
 
   run: {

@@ -41,6 +41,8 @@ export interface Me {
   player_id: string;
   display_name: string;
   color_hex: string;
+  city: string;
+  avatar_data?: string | null;
   joined_at: string;
   stats: {
     runs_accepted: number;
@@ -54,7 +56,12 @@ export function fetchMe() {
   return request<Me>('/me');
 }
 
-export function updateMe(input: { display_name?: string; color_hex?: string }) {
+export function updateMe(input: {
+  display_name?: string;
+  color_hex?: string;
+  city?: string;
+  avatar_data?: string | null;
+}) {
   return request<Me>('/me', {
     method: 'PATCH',
     body: JSON.stringify(input),
