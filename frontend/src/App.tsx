@@ -2,7 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { AdminView } from './admin/AdminView';
 import { AuthPage } from './auth/AuthPage';
 import { useAuth } from './auth/useAuth';
+import { ChatPanel } from './chat/ChatPanel';
+import { HistoryModal } from './history/HistoryModal';
 import { t } from './i18n/qq';
+import { LeaderboardModal } from './leaderboard/LeaderboardModal';
 import { MapView } from './map/MapView';
 import { CITIES_LIST, DEFAULT_CITY_ID, getCity } from './map/cities';
 import { InvasionToast } from './notifications/InvasionToast';
@@ -13,7 +16,6 @@ import { initials } from './profile/identity';
 import { useProfile } from './profile/useProfile';
 import { RunPanel } from './run/RunPanel';
 import { type TerritoryMode, useRunTracker } from './run/useRunTracker';
-import { DefaultAvatar } from './ui/DefaultAvatar';
 import { PhoneQr } from './ui/PhoneQr';
 
 export function App() {
@@ -23,6 +25,9 @@ export function App() {
   const [mode, setMode] = useState<TerritoryMode>('solo');
   const [panelOpen, setPanelOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [leaderboardOpen, setLeaderboardOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const [clanPrompt, setClanPrompt] = useState(false);
   const [registerDismissed, setRegisterDismissed] = useState(false);
   const [isAdmin, setIsAdmin] = useState(() => window.location.hash === '#admin');
@@ -144,6 +149,48 @@ export function App() {
         </div>
 
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {/* Action buttons: Reyting, Tariyx, Chat */}
+          <button
+            type="button"
+            className={`topbar-nav-btn ${leaderboardOpen ? 'active' : ''}`}
+            onClick={() => {
+              setLeaderboardOpen((o) => !o);
+              setHistoryOpen(false);
+              setChatOpen(false);
+            }}
+            title="Reyting Jadvali"
+          >
+            🏆 Reyting
+          </button>
+
+          {isAuthenticated && (
+            <button
+              type="button"
+              className={`topbar-nav-btn ${historyOpen ? 'active' : ''}`}
+              onClick={() => {
+                setHistoryOpen((o) => !o);
+                setLeaderboardOpen(false);
+                setChatOpen(false);
+              }}
+              title="Juwırıwlar Tariyxı"
+            >
+              📜 Tariyx
+            </button>
+          )}
+
+          <button
+            type="button"
+            className={`topbar-nav-btn ${chatOpen ? 'active' : ''}`}
+            onClick={() => {
+              setChatOpen((o) => !o);
+              setLeaderboardOpen(false);
+              setHistoryOpen(false);
+            }}
+            title="Chat"
+          >
+            💬 Chat
+          </button>
+
           <button
             type="button"
             className="admin-toggle-btn"
@@ -251,8 +298,34 @@ export function App() {
 
         <InvasionToast notifications={notifications} onDismiss={dismissNotifications} />
 
+        {leaderboardOpen && (
+          <LeaderboardModal
+            initialCity={activeCity}
+            onClose={() => setLeaderboardOpen(false)}
+          />
+        )}
+
+        {historyOpen && (
+          <HistoryModal
+            onClose={() => setHistoryOpen(false)}
+          />
+        )}
+
+        {chatOpen && (
+          <ChatPanel
+            currentCityId={activeCity}
+            cityName={currentCityObj.name}
+            me={profile.me}
+            onClose={() => setChatOpen(false)}
+            onFlyToLocation={(_lat, _lon) => {
+              // Smoothly fly or show location
+            }}
+          />
+        )}
+
         <RunPanel tracker={tracker} apiReachable={apiReachable} />
       </section>
     </main>
   );
 }
+

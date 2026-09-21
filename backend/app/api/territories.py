@@ -35,11 +35,13 @@ async def list_territories(
             SELECT t.id,
                    t.mode,
                    t.owner_clan_id AS owner_id,
+                   NULL AS owner_player_id,
                    c.name AS owner_name,
                    c.tag AS owner_tag,
                    c.color_hex AS color,
                    t.area_m2,
                    t.created_at,
+                   t.expires_at,
                    ST_AsGeoJSON(t.geom) AS geometry
               FROM territories t
               JOIN clans c ON c.id = t.owner_clan_id
@@ -52,11 +54,13 @@ async def list_territories(
             SELECT t.id,
                    t.mode,
                    t.owner_user_id AS owner_id,
+                   u.player_id AS owner_player_id,
                    u.display_name AS owner_name,
                    NULL AS owner_tag,
                    u.color_hex AS color,
                    t.area_m2,
                    t.created_at,
+                   t.expires_at,
                    ST_AsGeoJSON(t.geom) AS geometry
               FROM territories t
               JOIN demo_users u ON u.id = t.owner_user_id
@@ -82,11 +86,13 @@ async def list_territories(
                 "properties": {
                     "mode": row.mode,
                     "owner_id": str(row.owner_id),
+                    "owner_player_id": getattr(row, "owner_player_id", None),
                     "owner_name": row.owner_name,
                     "owner_tag": row.owner_tag,
                     "color": row.color,
                     "area_m2": float(row.area_m2),
                     "created_at": row.created_at.isoformat(),
+                    "expires_at": row.expires_at.isoformat() if row.expires_at else None,
                 },
             }
             for row in rows

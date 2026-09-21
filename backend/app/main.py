@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from sqlalchemy import text
 
-from app.api import admin, auth, clans, notifications, players, runs, territories, zones
+from app.api import admin, auth, chat, clans, notifications, players, runs, territories, zones
 from app.config import get_settings
 from app.db import get_engine, get_redis
 
@@ -48,6 +48,7 @@ app.include_router(players.router)
 app.include_router(clans.router)
 app.include_router(admin.router)
 app.include_router(notifications.router)
+app.include_router(chat.router)
 
 
 @app.get("/", tags=["meta"])

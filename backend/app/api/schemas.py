@@ -121,6 +121,29 @@ class ClanStanding(BaseModel):
     area_m2: float
 
 
+class PlayerStanding(BaseModel):
+    user_id: str
+    player_id: str
+    display_name: str
+    color_hex: str
+    city: str
+    avatar_data: str | None = None
+    runs_count: int
+    total_area_m2: float
+
+
+class RunHistoryOut(BaseModel):
+    id: str
+    started_at: str
+    finished_at: str | None = None
+    status: str
+    mode: str
+    avg_speed_ms: float | None = None
+    distance_m: float | None = None
+    awarded_area_m2: float | None = None
+    activity_type: str | None = None
+
+
 class PlayerStats(BaseModel):
     runs_accepted: int
     solo_area_m2: float

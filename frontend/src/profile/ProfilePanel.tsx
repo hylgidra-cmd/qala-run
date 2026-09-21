@@ -1,10 +1,9 @@
 import { type ChangeEvent, useEffect, useState } from 'react';
 import { t } from '../i18n/qq';
-import { CITIES_LIST, getCity } from '../map/cities';
+import { CITIES_LIST } from '../map/cities';
 import { formatArea } from '../run/format';
 import { DefaultAvatar } from '../ui/DefaultAvatar';
 import { ClanSection } from './ClanSection';
-import { avatarHue, initials } from './identity';
 import type { Profile } from './useProfile';
 
 interface ProfilePanelProps {
@@ -115,8 +114,6 @@ export function ProfilePanel({ profile, onClose, onLogout, clanPrompt = false }:
       // Clipboard access can be refused; the id is on screen either way.
     }
   };
-
-  const currentCity = getCity(me.city);
 
   return (
     <div className="profile-modal-backdrop" onClick={onClose}>

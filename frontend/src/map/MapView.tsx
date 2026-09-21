@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import Map, { GeolocateControl, Layer, Marker, type MapRef, NavigationControl, Source } from 'react-map-gl/maplibre';
+import Map, { GeolocateControl, Layer, Marker, type MapRef, NavigationControl, Popup, Source } from 'react-map-gl/maplibre';
 import { type LiveRunner, fetchLiveRunners } from '../admin/api';
 import type { TrackPoint } from '../run/api';
+import { formatArea } from '../run/format';
 import { TerritoryLayer } from './TerritoryLayer';
 import { getCity } from './cities';
 import { geolocationNotice, isInsideCityBounds, outOfCityNotice } from './geolocation';
@@ -19,6 +20,17 @@ interface MapViewProps {
   onApiReachable?: (reachable: boolean) => void;
 }
 
+interface SelectedTerritory {
+  longitude: number;
+  latitude: number;
+  ownerName: string;
+  ownerTag?: string | null;
+  ownerPlayerId?: string | null;
+  areaM2: number;
+  color: string;
+  createdAt: string;
+  mode: string;
+}
 
 export function MapView({
   cityId = 'nukus',
@@ -30,6 +42,7 @@ export function MapView({
 }: MapViewProps) {
   const [notice, setNotice] = useState<string | null>(null);
   const [otherRunners, setOtherRunners] = useState<LiveRunner[]>([]);
+  const [selectedTerritory, setSelectedTerritory] = useState<SelectedTerritory | null>(null);
   const mapRef = useRef<MapRef | null>(null);
   const city = getCity(cityId);
 
@@ -84,6 +97,30 @@ export function MapView({
     [trackPoints],
   );
 
+  const handleMapClick = (event: any) => {
+    const features = event.features;
+    if (features && features.length > 0) {
+      const terrFeature = features.find((f: any) => f.layer.id === 'territory-fill');
+      if (terrFeature && terrFeature.properties) {
+        const p = terrFeature.properties;
+        setSelectedTerritory({
+          longitude: event.lngLat.lng,
+          latitude: event.lngLat.lat,
+          ownerName: p.owner_name || 'Belgisiz',
+          ownerTag: p.owner_tag,
+          ownerPlayerId: p.owner_player_id,
+          areaM2: Number(p.area_m2 || 0),
+          color: p.color || '#00ff88',
+          createdAt: p.created_at,
+          mode: p.mode || 'solo',
+        });
+        return;
+      }
+    }
+    // Clicked outside territory
+    setSelectedTerritory(null);
+  };
+
   return (
     <Map
       ref={mapRef}
@@ -92,6 +129,8 @@ export function MapView({
       maxBounds={city.bounds}
       minZoom={10}
       maxZoom={19}
+      interactiveLayerIds={['territory-fill']}
+      onClick={handleMapClick}
       style={{ width: '100%', height: '100%' }}
     >
       <NavigationControl position="top-right" />
@@ -122,6 +161,36 @@ export function MapView({
           paint={{ 'line-color': '#ff8a3d', 'line-width': 4, 'line-opacity': 0.9 }}
         />
       </Source>
+
+      {/* Selected Territory Info Popup */}
+      {selectedTerritory && (
+        <Popup
+          longitude={selectedTerritory.longitude}
+          latitude={selectedTerritory.latitude}
+          anchor="top"
+          onClose={() => setSelectedTerritory(null)}
+          closeButton={true}
+          closeOnClick={false}
+          className="territory-popup-wrapper"
+        >
+          <div className="territory-popup-content">
+            <div className="popup-badge" style={{ background: `${selectedTerritory.color}22`, color: selectedTerritory.color, borderColor: selectedTerritory.color }}>
+              {selectedTerritory.mode === 'clan' ? '🛡️ KLAN AYMAǴI' : '🏃 JEKE AYMAQ'}
+            </div>
+            <h3 className="popup-owner" style={{ color: selectedTerritory.color }}>
+              {selectedTerritory.ownerTag ? `[${selectedTerritory.ownerTag}] ` : ''}
+              {selectedTerritory.ownerName}
+            </h3>
+            {selectedTerritory.ownerPlayerId && (
+              <p className="popup-player-id">ID: <strong>{selectedTerritory.ownerPlayerId}</strong></p>
+            )}
+            <div className="popup-metric">
+              <span className="p-label">Iyelengen maydan:</span>
+              <strong className="p-val">{formatArea(selectedTerritory.areaM2)}</strong>
+            </div>
+          </div>
+        </Popup>
+      )}
 
       {/* Other active players/runners on the map */}
       {otherRunners.map((r) => {
@@ -174,3 +243,4 @@ export function MapView({
     </Map>
   );
 }
+
