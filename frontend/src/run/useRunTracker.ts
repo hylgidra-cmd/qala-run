@@ -170,10 +170,16 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
           if (previous.length > 0) {
             const prev = previous[previous.length - 1];
             const d = distanceBetween(prev.lat, prev.lon, point.lat, point.lon);
+            const dt = point.ts - prev.ts;
             setDistanceM((cur) => cur + d);
-          }
-          if (point.speed !== null && point.speed > 0) {
-            setSpeedKmh(Math.round(point.speed * 3.6 * 10) / 10);
+            if (point.speed !== null && point.speed > 0) {
+              setSpeedKmh(Math.round(point.speed * 3.6 * 10) / 10);
+            } else if (dt > 0 && d > 0.5) {
+              const computedSpeedKmh = (d / dt) * 3.6;
+              if (computedSpeedKmh < 45) {
+                setSpeedKmh(Math.round(computedSpeedKmh * 10) / 10);
+              }
+            }
           }
           return [...previous, point];
         });
