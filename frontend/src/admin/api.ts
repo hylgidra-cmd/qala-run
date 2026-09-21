@@ -31,3 +31,8 @@ export function fetchLiveRunners(): Promise<LiveRunner[]> {
 export function fetchAdminStats(): Promise<AdminStats> {
   return request<AdminStats>('/admin/stats');
 }
+
+export function resetMap(): Promise<{ status: string; message: string }> {
+  return request<{ status: string; message: string }>('/admin/reset-map', { method: 'POST' });
+}
+

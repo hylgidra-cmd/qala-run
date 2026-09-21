@@ -89,9 +89,39 @@ export function AdminView({ onBack }: AdminViewProps) {
           </div>
         ) : null}
 
-        <button type="button" className="admin-back-button" onClick={onBack}>
-          ← Kartaǵa qaytıw
-        </button>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <button
+            type="button"
+            className="admin-clear-button"
+            style={{
+              background: '#e2483d',
+              color: '#fff',
+              border: 'none',
+              padding: '8px 14px',
+              borderRadius: '8px',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+            onClick={async () => {
+              if (window.confirm("Barlıq sızıqlar hám iyelengen jerlerdi kartadan óshiriwdi qáleysiz be?")) {
+                try {
+                  const { resetMap } = await import('./api');
+                  await resetMap();
+                  alert("Karta tolıq tazalandı!");
+                  window.location.reload();
+                } catch {
+                  alert("Tazalawda qátelik júz berdi.");
+                }
+              }
+            }}
+          >
+            🗑️ Kartanı tazalaw (Reset)
+          </button>
+
+          <button type="button" className="admin-back-button" onClick={onBack}>
+            ← Kartaǵa qaytıw
+          </button>
+        </div>
       </header>
 
       <div className="admin-main">

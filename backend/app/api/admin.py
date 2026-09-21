@@ -199,3 +199,15 @@ async def run_cleanup(
         expired_territories_deleted=expired.rowcount,
         abandoned_runs_closed=abandoned.rowcount,
     )
+
+
+@router.post("/reset-map")
+async def reset_map(
+    connection: Annotated[AsyncConnection, Depends(get_connection)],
+) -> dict[str, str]:
+    """Clears all territories, track points, and runs from the map for a fresh start."""
+    await connection.execute(
+        text("TRUNCATE territories, track_points, runs, notifications RESTART IDENTITY CASCADE;")
+    )
+    return {"status": "ok", "message": "Map and runs reset successfully"}
+
