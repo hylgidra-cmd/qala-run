@@ -199,6 +199,7 @@ export function App() {
       <section className="map-stage" aria-label={t.map.label}>
         <MapView
           cityId={activeCity}
+          currentUserId={profile.me?.user_id}
           mode={mode}
           trackPoints={tracker.points}
           territoryRefreshKey={tracker.result?.territory_id ?? ''}

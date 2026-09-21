@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Map, { Layer, Marker, NavigationControl, Source } from 'react-map-gl/maplibre';
 import { TerritoryLayer } from '../map/TerritoryLayer';
-import { DEV_MAP_STYLE, NUKUS_CENTER, PILOT_BOUNDS } from '../map/style';
+import { CITIES_LIST, DEFAULT_CITY_ID, getCity } from '../map/cities';
+import { DEV_MAP_STYLE } from '../map/style';
 import { formatArea } from '../run/format';
 import { type AdminStats, type LiveRunner, fetchAdminStats, fetchLiveRunners } from './api';
 
@@ -13,7 +14,10 @@ export function AdminView({ onBack }: AdminViewProps) {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [runners, setRunners] = useState<LiveRunner[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [selectedCityId, setSelectedCityId] = useState<string>(DEFAULT_CITY_ID);
   const mapRef = useRef<any>(null);
+
+  const currentCity = getCity(selectedCityId);
 
   const loadData = useCallback(async () => {
     try {
@@ -35,6 +39,17 @@ export function AdminView({ onBack }: AdminViewProps) {
     }, 3000);
     return () => window.clearInterval(interval);
   }, [loadData]);
+
+  // When city changes, fly the map to the city
+  useEffect(() => {
+    if (mapRef.current) {
+      mapRef.current.flyTo({
+        center: [currentCity.center.longitude, currentCity.center.latitude],
+        zoom: currentCity.zoom,
+        duration: 1200,
+      });
+    }
+  }, [currentCity]);
 
   // Combined tracks of all active runners
   const tracksGeoJson = useMemo<GeoJSON.FeatureCollection>(() => {
@@ -127,10 +142,45 @@ export function AdminView({ onBack }: AdminViewProps) {
       <div className="admin-main">
         {/* Sidebar */}
         <aside className="admin-sidebar">
+          {/* City selector menu in left sidebar */}
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', background: 'rgba(0,0,0,0.2)' }}>
+            <label style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#c7ff4a', fontWeight: 800, letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>
+              🌍 Qalanı saylań
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+              {CITIES_LIST.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setSelectedCityId(c.id)}
+                  style={{
+                    padding: '8px',
+                    borderRadius: '8px',
+                    border: selectedCityId === c.id ? '2px solid #00ff88' : '1px solid rgba(255,255,255,0.1)',
+                    background: selectedCityId === c.id ? 'rgba(0, 255, 136, 0.15)' : 'rgba(255,255,255,0.04)',
+                    color: selectedCityId === c.id ? '#00ff88' : '#effff5',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  <span>{c.flag}</span>
+                  <span>{c.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="admin-sidebar-head">
             <h3>Oyınshılar hám QR Paydalanıwshılar ({runners.length})</h3>
             <p className="admin-live-badge">● Jonlı yangılanıw</p>
           </div>
+
 
           <div className="admin-runner-list">
             {runners.length === 0 ? (
@@ -195,8 +245,8 @@ export function AdminView({ onBack }: AdminViewProps) {
           <Map
             ref={mapRef}
             mapStyle={DEV_MAP_STYLE}
-            initialViewState={{ ...NUKUS_CENTER, zoom: 13 }}
-            maxBounds={PILOT_BOUNDS}
+            initialViewState={{ longitude: currentCity.center.longitude, latitude: currentCity.center.latitude, zoom: currentCity.zoom }}
+            maxBounds={currentCity.bounds}
             minZoom={10}
             maxZoom={19}
             style={{ width: '100%', height: '100%' }}

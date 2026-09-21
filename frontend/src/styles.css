@@ -616,8 +616,9 @@ a:focus-visible {
 
 @media (max-width: 640px) {
   .qr-card,
-  .qr-reopen {
-    display: none;
+  .qr-reopen,
+  .admin-toggle-btn {
+    display: none !important;
   }
 }
 
