@@ -60,3 +60,4 @@ export function getCity(cityId?: string | null): City {
   }
   return CITIES[DEFAULT_CITY_ID];
 }
+

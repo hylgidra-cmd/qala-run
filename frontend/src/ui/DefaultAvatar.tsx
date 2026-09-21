@@ -34,3 +34,4 @@ export function DefaultAvatar({ size = 48, className = '', style }: Props) {
     </svg>
   );
 }
+

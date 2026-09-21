@@ -31,3 +31,4 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_column("demo_users", "avatar_data")
     op.drop_column("demo_users", "city")
+

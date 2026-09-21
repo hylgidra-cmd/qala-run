@@ -70,3 +70,4 @@ def is_inside_city_bbox(
     city = get_city(city_id)
     west, south, east, north = city.bbox
     return all(west <= lon <= east and south <= lat <= north for lon, lat in coordinates)
+

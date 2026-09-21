@@ -181,6 +181,9 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
               }
             }
           }
+          if (point.speed !== null && point.speed > 0) {
+            setSpeedKmh(Math.round(point.speed * 3.6 * 10) / 10);
+          }
           return [...previous, point];
         });
       },
