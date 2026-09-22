@@ -41,10 +41,51 @@ export function MapView({
   onApiReachable,
 }: MapViewProps) {
   const [notice, setNotice] = useState<string | null>(null);
+  const [locating, setLocating] = useState(false);
   const [otherRunners, setOtherRunners] = useState<LiveRunner[]>([]);
   const [selectedTerritory, setSelectedTerritory] = useState<SelectedTerritory | null>(null);
   const mapRef = useRef<MapRef | null>(null);
   const city = getCity(cityId);
+
+  const handleQuickLocate = () => {
+    // If active tracking points exist, center on the most recent point
+    if (trackPoints && trackPoints.length > 0) {
+      const latest = trackPoints[trackPoints.length - 1];
+      mapRef.current?.flyTo({
+        center: [latest.lon, latest.lat],
+        zoom: 16,
+        essential: true,
+      });
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      setNotice('GPS brauzerińizde qollap-quwatlanbaydı');
+      return;
+    }
+
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocating(false);
+        const { longitude, latitude } = pos.coords;
+        mapRef.current?.flyTo({
+          center: [longitude, latitude],
+          zoom: 16,
+          essential: true,
+        });
+        const inside = isInsideCityBounds(longitude, latitude, city.id);
+        if (!inside) {
+          setNotice(outOfCityNotice(city.id));
+        }
+      },
+      (err) => {
+        setLocating(false);
+        setNotice(geolocationNotice(err.code));
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 },
+    );
+  };
 
   // Poll active runners to show other players on the map
   useEffect(() => {
@@ -231,6 +272,19 @@ export function MapView({
           </Marker>
         );
       })}
+
+      {/* Floating GPS / Geolocation center button */}
+      <button
+        type="button"
+        className={`map-floating-geo-btn ${locating ? 'locating' : ''}`}
+        onClick={handleQuickLocate}
+        title="Mening jaylasqan ornım (GPS)"
+        aria-label="Mening jaylasqan ornım (GPS)"
+      >
+        <span className="geo-icon" aria-hidden="true">
+          {locating ? '📡' : '🎯'}
+        </span>
+      </button>
 
       {notice ? (
         <div className="map-notice" role="status">

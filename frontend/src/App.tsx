@@ -105,10 +105,10 @@ export function App() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className="topbar-left">
           <a className="brand" href="/" aria-label={t.brand.home}>
             <span className="brand-mark" aria-hidden="true">DS</span>
-            <span>{t.brand.name}</span>
+            <span className="brand-title">{t.brand.name}</span>
           </a>
 
           {/* City switcher dropdown */}
@@ -148,7 +148,7 @@ export function App() {
           </button>
         </div>
 
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div className="topbar-actions">
           {/* Action buttons: Reyting, Tariyx, Chat */}
           <button
             type="button"
@@ -159,8 +159,10 @@ export function App() {
               setChatOpen(false);
             }}
             title="Reyting Jadvali"
+            aria-label="Reyting"
           >
-            🏆 Reyting
+            <span className="nav-btn-icon">🏆</span>
+            <span className="nav-btn-text">Reyting</span>
           </button>
 
           {isAuthenticated && (
@@ -173,8 +175,10 @@ export function App() {
                 setChatOpen(false);
               }}
               title="Juwırıwlar Tariyxı"
+              aria-label="Tariyx"
             >
-              📜 Tariyx
+              <span className="nav-btn-icon">📜</span>
+              <span className="nav-btn-text">Tariyx</span>
             </button>
           )}
 
@@ -187,8 +191,10 @@ export function App() {
               setHistoryOpen(false);
             }}
             title="Chat"
+            aria-label="Chat"
           >
-            💬 Chat
+            <span className="nav-btn-icon">💬</span>
+            <span className="nav-btn-text">Chat</span>
           </button>
 
           <button

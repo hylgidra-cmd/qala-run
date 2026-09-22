@@ -74,3 +74,4 @@ async def test_chat_and_leaderboard_flow(client: AsyncClient) -> None:
     msgs = chat_list.json()
     assert len(msgs) >= 2
     assert any(m["content"] == "Salom barchaga!" for m in msgs)
+
