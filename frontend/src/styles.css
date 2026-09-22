@@ -1083,13 +1083,19 @@ a:focus-visible {
   box-shadow: 0 2px 8px rgba(16, 37, 31, 0.1);
 }
 
-/* ── Floating GPS Location Button ──────────────────────────────────── */
-.map-floating-geo-btn {
+/* ── Floating Map Overlay Controls ─────────────────────────────────── */
+.map-floating-controls {
   position: absolute;
   z-index: 6;
   top: 96px;
   right: 18px;
-  left: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.map-floating-theme-btn,
+.map-floating-geo-btn {
   width: 38px;
   height: 38px;
   border-radius: 10px;
@@ -1104,15 +1110,177 @@ a:focus-visible {
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.map-floating-theme-btn:hover,
 .map-floating-geo-btn:hover {
   background: #ffffff;
   border-color: #21D8A0;
+  color: #10251F;
   transform: translateY(-1px);
   box-shadow: 0 6px 20px rgba(33, 216, 160, 0.25);
 }
 
+.map-floating-theme-btn:active,
 .map-floating-geo-btn:active {
   transform: scale(0.95);
+}
+
+/* ── Runner Profile Popup ─────────────────────────────────────────── */
+.runner-popup-wrapper .maplibregl-popup-content {
+  background: rgba(16, 37, 31, 0.96);
+  border: 1.5px solid #21D8A0;
+  border-radius: 18px;
+  padding: 16px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 25px rgba(33, 216, 160, 0.2);
+  color: #F7F9F6;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  min-width: 220px;
+}
+
+.runner-popup-wrapper .maplibregl-popup-close-button {
+  color: #8faea1;
+  font-size: 16px;
+  padding: 4px 8px;
+}
+
+.runner-popup-wrapper .maplibregl-popup-close-button:hover {
+  color: #21D8A0;
+}
+
+.runner-popup-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.runner-popup-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.runner-avatar-badge {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
+}
+
+.runner-popup-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.runner-popup-name {
+  margin: 0;
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #F7F9F6;
+}
+
+.runner-popup-id {
+  font-family: 'Chakra Petch', monospace;
+  font-size: 0.76rem;
+  color: #8faea1;
+}
+
+.runner-popup-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #21D8A0;
+}
+
+.status-dot-inline {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #21D8A0;
+  box-shadow: 0 0 6px #21D8A0;
+}
+
+.runner-friend-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 14px;
+  background: #21D8A0;
+  color: #10251F;
+  border: none;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 850;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(33, 216, 160, 0.3);
+}
+
+.runner-friend-btn:hover:not(:disabled) {
+  background: #28ebd0;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(33, 216, 160, 0.45);
+}
+
+.runner-friend-btn.sent {
+  background: rgba(33, 216, 160, 0.2);
+  color: #21D8A0;
+  border: 1px solid rgba(33, 216, 160, 0.4);
+  cursor: default;
+  box-shadow: none;
+}
+
+/* ── Friend Request Notification Toast ───────────────────────────── */
+.friend-request-toast {
+  position: absolute;
+  z-index: 30;
+  top: 76px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(16, 37, 31, 0.95);
+  border: 1px solid #21D8A0;
+  border-radius: 999px;
+  padding: 10px 18px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 20px rgba(33, 216, 160, 0.3);
+  backdrop-filter: blur(12px);
+  animation: popIn 0.25s ease-out;
+}
+
+.friend-request-toast .toast-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #F7F9F6;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.friend-request-toast .toast-icon {
+  color: #21D8A0;
+}
+
+.friend-request-toast .toast-close {
+  background: transparent;
+  border: none;
+  color: #8faea1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  border-radius: 50%;
+}
+
+.friend-request-toast .toast-close:hover {
+  color: #F7F9F6;
 }
 
 .map-floating-geo-btn .geo-icon {

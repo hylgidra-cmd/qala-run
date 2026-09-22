@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Map, { Layer, Marker, type MapRef, NavigationControl, Popup, Source } from 'react-map-gl/maplibre';
-import { Crosshair, Loader2, Shield, User, X } from 'lucide-react';
+import { Check, Crosshair, Loader2, Moon, Shield, Sun, User, UserPlus, X } from 'lucide-react';
 import { type LiveRunner, fetchLiveRunners } from '../admin/api';
 import type { TrackPoint } from '../run/api';
 import { formatArea } from '../run/format';
+import { t } from '../i18n/qq';
 import { TerritoryLayer } from './TerritoryLayer';
 import { getCity } from './cities';
 import { geolocationNotice, isInsideCityBounds, outOfCityNotice } from './geolocation';
@@ -20,6 +21,8 @@ interface MapViewProps {
   territoryRefreshKey?: string;
   onApiReachable?: (reachable: boolean) => void;
   theme?: MapTheme;
+  onToggleTheme?: () => void;
+  onSendFriendRequest?: (runner: LiveRunner) => void;
 }
 
 interface SelectedTerritory {
@@ -42,11 +45,15 @@ export function MapView({
   territoryRefreshKey = '',
   onApiReachable,
   theme = 'day',
+  onToggleTheme,
+  onSendFriendRequest,
 }: MapViewProps) {
   const [notice, setNotice] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
   const [otherRunners, setOtherRunners] = useState<LiveRunner[]>([]);
   const [selectedTerritory, setSelectedTerritory] = useState<SelectedTerritory | null>(null);
+  const [selectedRunner, setSelectedRunner] = useState<LiveRunner | null>(null);
+  const [sentFriendRequests, setSentFriendRequests] = useState<Record<string, boolean>>({});
   const mapRef = useRef<MapRef | null>(null);
   const city = getCity(cityId);
 
@@ -103,73 +110,64 @@ export function MapView({
         const list = await fetchLiveRunners();
         if (active) {
           setOtherRunners(list.filter((r) => r.user_id !== currentUserId));
+          onApiReachable?.(true);
         }
       } catch {
-        // quiet failure
-      }
-      if (active) {
-        timer = window.setTimeout(poll, 4000);
+        if (active) {
+          onApiReachable?.(false);
+        }
+      } finally {
+        if (active) {
+          timer = window.setTimeout(poll, 10000);
+        }
       }
     };
 
     void poll();
     return () => {
       active = false;
-      if (timer) window.clearTimeout(timer);
+      if (timer !== null) window.clearTimeout(timer);
     };
-  }, [currentUserId]);
+  }, [currentUserId, onApiReachable]);
 
-  // Smoothly fly to the chosen city when switched
-  useEffect(() => {
-    mapRef.current?.flyTo({
-      center: [city.center.longitude, city.center.latitude],
-      zoom: city.zoom,
-      essential: true,
-    });
-  }, [city]);
+  // Transform trackPoints into a GeoJSON Feature
+  const track = useMemo(() => {
+    const coordinates = (trackPoints ?? []).map((p) => [p.lon, p.lat]);
+    return {
+      type: 'Feature' as const,
+      geometry: {
+        type: 'LineString' as const,
+        coordinates,
+      },
+      properties: {},
+    };
+  }, [trackPoints]);
 
-  const track = useMemo<GeoJSON.FeatureCollection>(
-    () => ({
-      type: 'FeatureCollection',
-      features:
-        trackPoints.length > 1
-          ? [
-              {
-                type: 'Feature',
-                properties: {},
-                geometry: {
-                  type: 'LineString',
-                  coordinates: trackPoints.map((point) => [point.lon, point.lat]),
-                },
-              },
-            ]
-          : [],
-    }),
-    [trackPoints],
-  );
-
-  const handleMapClick = (event: any) => {
-    const features = event.features;
-    if (features && features.length > 0) {
-      const terrFeature = features.find((f: any) => f.layer.id === 'territory-fill');
-      if (terrFeature && terrFeature.properties) {
-        const props = terrFeature.properties;
-        setSelectedTerritory({
-          longitude: event.lngLat.lng,
-          latitude: event.lngLat.lat,
-          ownerName: props.owner_name || 'Námálim juwırıwshı',
-          ownerTag: props.owner_tag || null,
-          ownerPlayerId: props.owner_player_id || null,
-          areaM2: Number(props.area_m2 || 0),
-          color: props.color || '#21D8A0',
-          createdAt: props.created_at || '',
-          mode: props.mode || 'solo',
-        });
-        return;
-      }
+  const handleMapClick = (e: any) => {
+    // Look for territory fill click
+    const feature = e.features && e.features[0];
+    if (feature && feature.layer?.id === 'territory-fill') {
+      const props = feature.properties;
+      setSelectedTerritory({
+        longitude: e.lngLat.lng,
+        latitude: e.lngLat.lat,
+        ownerName: props.owner_name || 'Noma\'lum',
+        ownerTag: props.owner_tag,
+        ownerPlayerId: props.owner_player_id || props.user_id,
+        areaM2: Number(props.area_m2) || 0,
+        color: props.color || '#21D8A0',
+        createdAt: props.created_at || '',
+        mode: props.mode || 'solo',
+      });
+      setSelectedRunner(null);
+    } else {
+      setSelectedTerritory(null);
     }
-    // Clicked outside territory
-    setSelectedTerritory(null);
+  };
+
+  const handleFriendRequest = (runner: LiveRunner) => {
+    setSentFriendRequests((prev) => ({ ...prev, [runner.user_id]: true }));
+    onSendFriendRequest?.(runner);
   };
 
   return (
@@ -240,7 +238,56 @@ export function MapView({
         </Popup>
       )}
 
-      {/* Other active players/runners on the map */}
+      {/* Selected Live Runner Profile Popup */}
+      {selectedRunner && selectedRunner.location && (
+        <Popup
+          longitude={selectedRunner.location.lon}
+          latitude={selectedRunner.location.lat}
+          anchor="bottom"
+          onClose={() => setSelectedRunner(null)}
+          closeButton={true}
+          closeOnClick={false}
+          className="runner-popup-wrapper"
+        >
+          <div className="runner-popup-content">
+            <div className="runner-popup-header">
+              <div className="runner-avatar-badge" style={{ backgroundColor: selectedRunner.color || '#21D8A0' }}>
+                <User size={18} color="#10251F" />
+              </div>
+              <div className="runner-popup-titles">
+                <h3 className="runner-popup-name">{selectedRunner.display_name}</h3>
+                <span className="runner-popup-id">ID: {selectedRunner.user_id}</span>
+              </div>
+            </div>
+
+            <div className="runner-popup-status">
+              <span className={`status-dot-inline ${selectedRunner.status === 'running' ? 'running' : 'online'}`} />
+              <span>{selectedRunner.status === 'running' ? 'Juwırmaqta 🏃' : 'Onlayn'}</span>
+            </div>
+
+            <button
+              type="button"
+              className={`runner-friend-btn ${sentFriendRequests[selectedRunner.user_id] ? 'sent' : ''}`}
+              onClick={() => handleFriendRequest(selectedRunner)}
+              disabled={!!sentFriendRequests[selectedRunner.user_id]}
+            >
+              {sentFriendRequests[selectedRunner.user_id] ? (
+                <>
+                  <Check size={14} />
+                  <span>{t.friends.sent}</span>
+                </>
+              ) : (
+                <>
+                  <UserPlus size={14} />
+                  <span>{t.friends.add}</span>
+                </>
+              )}
+            </button>
+          </div>
+        </Popup>
+      )}
+
+      {/* Other active players/runners on the map (Circular avatar pins without label below) */}
       {otherRunners.map((r) => {
         if (!r.location) return null;
         const color = r.color || '#21D8A0';
@@ -253,41 +300,55 @@ export function MapView({
           >
             <div
               className={`map-runner-pin ${r.status === 'running' ? 'is-running' : ''}`}
-              title={`${r.display_name} (${r.status === 'running' ? 'Juwırmaqta' : 'Onlayn'})`}
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedRunner(r);
+                setSelectedTerritory(null);
+              }}
+              title={`${r.display_name} (ID: ${r.user_id})`}
             >
               <div
                 className="runner-pin-dot"
                 style={{ backgroundColor: color }}
               >
                 <span className="runner-pin-icon" aria-hidden="true">
-                  <User size={13} strokeWidth={2.5} />
+                  <User size={14} strokeWidth={2.5} color="#10251F" />
                 </span>
                 {r.status === 'running' && (
                   <span className="runner-pin-pulse" style={{ borderColor: color }} />
                 )}
               </div>
-              <span
-                className="runner-pin-label"
-              >
-                {r.display_name}
-              </span>
             </div>
           </Marker>
         );
       })}
 
-      {/* Floating GPS / Geolocation center button */}
-      <button
-        type="button"
-        className={`map-floating-geo-btn ${locating ? 'locating' : ''}`}
-        onClick={handleQuickLocate}
-        title="Mening jaylasqan ornım (GPS)"
-        aria-label="Mening jaylasqan ornım (GPS)"
-      >
-        <span className="geo-icon" aria-hidden="true">
-          {locating ? <Loader2 size={18} className="spinning" /> : <Crosshair size={18} />}
-        </span>
-      </button>
+      {/* Floating Map Controls: Quick Theme Toggle & GPS location button */}
+      <div className="map-floating-controls">
+        {onToggleTheme && (
+          <button
+            type="button"
+            className="map-floating-theme-btn"
+            onClick={onToggleTheme}
+            title={theme === 'night' ? 'Kúndizgi rejimge ótiw' : 'Keshki rejimge ótiw'}
+            aria-label="Karta rejimin ózgertiw"
+          >
+            {theme === 'night' ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
+        )}
+
+        <button
+          type="button"
+          className={`map-floating-geo-btn ${locating ? 'locating' : ''}`}
+          onClick={handleQuickLocate}
+          title="Mening jaylasqan ornım (GPS)"
+          aria-label="Mening jaylasqan ornım (GPS)"
+        >
+          <span className="geo-icon" aria-hidden="true">
+            {locating ? <Loader2 size={18} className="spinning" /> : <Crosshair size={18} />}
+          </span>
+        </button>
+      </div>
 
       {notice ? (
         <div className="map-notice" role="status">

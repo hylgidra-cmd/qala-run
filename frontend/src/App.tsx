@@ -13,6 +13,8 @@ import {
   ShieldAlert,
   Sun,
   User,
+  UserPlus,
+  X,
 } from 'lucide-react';
 import { AdminView } from './admin/AdminView';
 import { AuthPage } from './auth/AuthPage';
@@ -50,6 +52,7 @@ export function App() {
   const [isAdmin, setIsAdmin] = useState(() => window.location.hash === '#admin');
   const tracker = useRunTracker(mode);
   const [apiReachable, setApiReachable] = useState(true);
+  const [friendToast, setFriendToast] = useState<string | null>(null);
   const handleApiReachable = useCallback((reachable: boolean) => setApiReachable(reachable), []);
   const { notifications, dismiss: dismissNotifications } = useNotifications();
   const [theme, setTheme] = useState<MapTheme>(() => {
@@ -158,6 +161,7 @@ export function App() {
                 </option>
               ))}
             </select>
+            <span className="city-chevron" aria-hidden="true">▾</span>
             <ChevronDown size={11} className="city-chevron" aria-hidden="true" />
           </div>
         </div>
@@ -321,6 +325,8 @@ export function App() {
           territoryRefreshKey={tracker.result?.territory_id ?? ''}
           onApiReachable={handleApiReachable}
           theme={theme}
+          onToggleTheme={() => handleSetTheme(theme === 'day' ? 'night' : 'day')}
+          onSendFriendRequest={(runner) => setFriendToast(t.friends.received(runner.display_name))}
         />
 
         {tracker.phase === 'idle' && !tracker.result ? (
@@ -399,6 +405,23 @@ export function App() {
         )}
 
         <InvasionToast notifications={notifications} onDismiss={dismissNotifications} />
+
+        {friendToast && (
+          <div className="friend-request-toast" role="alert">
+            <div className="toast-content">
+              <UserPlus size={18} className="toast-icon" />
+              <span className="toast-message">{friendToast}</span>
+              <button
+                type="button"
+                onClick={() => setFriendToast(null)}
+                className="toast-close"
+                aria-label="Jabıw"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+        )}
 
         {leaderboardOpen && (
           <LeaderboardModal

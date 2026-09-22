@@ -130,7 +130,8 @@ export function RunPanel({ tracker, apiReachable }: RunPanelProps) {
               onClick={() => void tracker.finish()}
               disabled={phase === 'finishing'}
             >
-              <Square size={15} fill="currentColor" /> {phase === 'finishing' ? t.run.checking : t.run.finish}
+              <Square size={15} fill="currentColor" />
+              <span>{phase === 'finishing' ? t.run.checking : t.run.finish}</span>
             </button>
             <button
               className="run-abandon-btn"
@@ -153,7 +154,8 @@ export function RunPanel({ tracker, apiReachable }: RunPanelProps) {
             onClick={() => void tracker.start()}
             disabled={phase === 'done'}
           >
-            <Play size={18} fill="#10251F" strokeWidth={0} /> {t.run.start}
+            <Play size={18} fill="#10251F" strokeWidth={0} />
+            <span>{t.run.start}</span>
           </button>
         </div>
       ) : null}

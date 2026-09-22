@@ -141,6 +141,13 @@ export const t = {
     logout: 'Akkaunttan shıǵıw',
   },
 
+  friends: {
+    add: 'Dostlıqqa qosıw',
+    sent: 'Dostlıq usınısı jiberildi!',
+    received: (name: string) => `${name} saǵan dostlıq usınısın jibermekte`,
+    alreadySent: 'Usınıs aldın jiberilgen',
+  },
+
     clan: {
     title: 'Klan',
     none: 'Klanǵa qosılmaǵansız',

@@ -7,6 +7,7 @@ export type MapTheme = 'day' | 'night';
 
 export const DEV_MAP_STYLE =
   import.meta.env.VITE_MAP_STYLE_URL ??
+  'https://tiles.openfreemap.org/styles/positron';
   MAP_STYLES.day;
 
 export const NUKUS_CENTER = {
