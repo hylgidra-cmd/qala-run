@@ -131,20 +131,22 @@ export function App() {
 
         <div className="mode-switch" aria-label={t.mode.label}>
           <button
-            className={mode === 'solo' ? 'active' : ''}
+            className={`mode-btn ${mode === 'solo' ? 'active' : ''}`}
             type="button"
             onClick={() => setMode('solo')}
             aria-pressed={mode === 'solo'}
           >
-            {t.mode.solo}
+            <span className="mode-icon" aria-hidden="true">🏃</span>
+            <span>{t.mode.solo}</span>
           </button>
           <button
-            className={mode === 'clan' ? 'active' : ''}
+            className={`mode-btn ${mode === 'clan' ? 'active' : ''}`}
             type="button"
             onClick={chooseClan}
             aria-pressed={mode === 'clan'}
           >
-            {t.mode.clan}
+            <span className="mode-icon" aria-hidden="true">🛡️</span>
+            <span>{t.mode.clan}</span>
           </button>
         </div>
 
@@ -219,7 +221,7 @@ export function App() {
                 setPanelOpen((open) => !open);
               }}
               style={{
-                background: profile.me?.avatar_data ? 'transparent' : (profile.me?.color_hex || '#00ff88'),
+                background: profile.me?.avatar_data ? 'transparent' : (profile.me?.color_hex || '#00D995'),
                 padding: profile.me?.avatar_data ? 0 : undefined,
                 overflow: 'hidden',
               }}
@@ -260,18 +262,20 @@ export function App() {
         />
 
         {tracker.phase === 'idle' && !tracker.result ? (
-          <aside className="status-card">
-            <p className="eyebrow">{currentCityObj.name.toUpperCase()} AYMAǴI</p>
-            <h1>{t.map.headline}</h1>
-            <p>{t.map.lead}</p>
-            <div className="status-row">
-              <span className="status-dot" />
-              <span>{apiReachable ? t.map.ready : t.map.offline}</span>
+          <aside className="status-card compact" aria-label="Aymaq haqqında">
+            <div className="status-card-header">
+              <span className="status-badge">📍 {currentCityObj.name}</span>
+              <div className="status-indicator">
+                <span className="status-dot" />
+                <span>{apiReachable ? t.map.ready : t.map.offline}</span>
+              </div>
             </div>
+            <h2 className="status-card-title">{t.map.headline}</h2>
+            <p className="status-card-lead">{t.map.lead}</p>
           </aside>
         ) : null}
 
-        <PhoneQr />
+        <PhoneQr defaultOpen={false} />
 
         {showRegister && profile.me ? (
           <RegisterModal

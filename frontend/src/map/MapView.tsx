@@ -223,35 +223,29 @@ export function MapView({
       {/* Other active players/runners on the map */}
       {otherRunners.map((r) => {
         if (!r.location) return null;
-        const color = r.color || '#00ff88';
+        const color = r.color || '#00D995';
         return (
           <Marker
             key={`runner-${r.user_id}`}
             longitude={r.location.lon}
             latitude={r.location.lat}
-            anchor="bottom"
+            anchor="center"
           >
             <div
-              className={`admin-marker ${r.status === 'running' ? 'running' : ''}`}
-              style={{
-                borderColor: color,
-                boxShadow: `0 0 10px ${color}88`,
-                transform: 'scale(0.85)',
-              }}
+              className={`map-runner-pin ${r.status === 'running' ? 'is-running' : ''}`}
               title={`${r.display_name} (${r.status === 'running' ? 'Juwırmaqta 🏃' : 'Onlayn'})`}
             >
-              <span className="marker-pin">{r.status === 'running' ? '🏃' : '📍'}</span>
+              <div
+                className="runner-pin-dot"
+                style={{ backgroundColor: color }}
+              >
+                {r.status === 'running' && (
+                  <span className="runner-pin-pulse" style={{ borderColor: color }} />
+                )}
+              </div>
               <span
-                className="marker-label"
-                style={{
-                  color: color,
-                  fontSize: '0.68rem',
-                  padding: '2px 5px',
-                  borderRadius: '4px',
-                  background: '#07130f',
-                  border: `1px solid ${color}`,
-                  whiteSpace: 'nowrap',
-                }}
+                className="runner-pin-label"
+                style={{ borderColor: `${color}44` }}
               >
                 {r.display_name}
               </span>
