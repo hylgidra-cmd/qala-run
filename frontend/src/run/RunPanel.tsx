@@ -148,7 +148,7 @@ export function RunPanel({ tracker, apiReachable }: RunPanelProps) {
             onClick={() => void tracker.start()}
             disabled={phase === 'done'}
           >
-            <span aria-hidden="true">⚡</span> {t.run.start}
+            <span aria-hidden="true" className="play-triangle">▶</span> {t.run.start}
           </button>
         </div>
       ) : null}

@@ -14,6 +14,7 @@ import { ProfilePanel } from './profile/ProfilePanel';
 import { RegisterModal } from './profile/RegisterModal';
 import { initials } from './profile/identity';
 import { useProfile } from './profile/useProfile';
+import { formatArea, formatDistance } from './run/format';
 import { RunPanel } from './run/RunPanel';
 import { type TerritoryMode, useRunTracker } from './run/useRunTracker';
 import { PhoneQr } from './ui/PhoneQr';
@@ -67,13 +68,13 @@ export function App() {
   }, [tracker.result]);
 
   const chooseClan = () => {
-    if (inClan) {
-      setMode('clan');
+    if (!profile.me?.clan) {
+      setClanPrompt(true);
+      setPanelOpen(true);
       return;
     }
 
-    setClanPrompt(true);
-    setPanelOpen(true);
+    setMode('clan');
   };
 
   useEffect(() => {
@@ -108,11 +109,15 @@ export function App() {
         <div className="topbar-left">
           <a className="brand" href="/" aria-label={t.brand.home}>
             <span className="brand-mark" aria-hidden="true">DS</span>
-            <span className="brand-title">{t.brand.name}</span>
+            <div className="brand-titles">
+              <span className="brand-title">QalaRun</span>
+              <span className="brand-sub">DON'T STOP</span>
+            </div>
           </a>
 
           {/* City switcher dropdown */}
           <div className="city-switcher">
+            <span className="city-icon" aria-hidden="true">📍</span>
             <select
               value={activeCity}
               onChange={(e) => handleCityChange(e.target.value)}
@@ -122,10 +127,11 @@ export function App() {
             >
               {CITIES_LIST.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.flag} {c.name}
+                  {c.name}
                 </option>
               ))}
             </select>
+            <span className="city-chevron" aria-hidden="true">▾</span>
           </div>
         </div>
 
@@ -163,7 +169,7 @@ export function App() {
             title="Reyting Jadvali"
             aria-label="Reyting"
           >
-            <span className="nav-btn-icon">🏆</span>
+            <span className="nav-btn-icon">📊</span>
             <span className="nav-btn-text">Reyting</span>
           </button>
 
@@ -196,7 +202,7 @@ export function App() {
             aria-label="Chat"
           >
             <span className="nav-btn-icon">💬</span>
-            <span className="nav-btn-text">Chat</span>
+            <span className="nav-btn-text">Chat <span className="chat-unread-dot" aria-hidden="true">•</span></span>
           </button>
 
           <button
@@ -221,7 +227,7 @@ export function App() {
                 setPanelOpen((open) => !open);
               }}
               style={{
-                background: profile.me?.avatar_data ? 'transparent' : (profile.me?.color_hex || '#00D995'),
+                background: profile.me?.avatar_data ? 'transparent' : (profile.me?.color_hex || '#21D8A0'),
                 padding: profile.me?.avatar_data ? 0 : undefined,
                 overflow: 'hidden',
               }}
@@ -235,7 +241,7 @@ export function App() {
               ) : profile.me ? (
                 initials(profile.me.display_name)
               ) : (
-                '··'
+                'A'
               )}
             </button>
           ) : (
@@ -264,14 +270,44 @@ export function App() {
         {tracker.phase === 'idle' && !tracker.result ? (
           <aside className="status-card compact" aria-label="Aymaq haqqında">
             <div className="status-card-header">
-              <span className="status-badge">📍 {currentCityObj.name}</span>
+              <span className="status-badge">{currentCityObj.name} aymaǵı</span>
               <div className="status-indicator">
                 <span className="status-dot" />
-                <span>{apiReachable ? t.map.ready : t.map.offline}</span>
+                <span>{apiReachable ? 'Online' : t.map.offline}</span>
               </div>
             </div>
-            <h2 className="status-card-title">{t.map.headline}</h2>
-            <p className="status-card-lead">{t.map.lead}</p>
+            <h2 className="status-card-title">QalaRun</h2>
+            <p className="status-card-lead">Júgirip, óz aymaǵıńdı keńeytiriń.</p>
+
+            <div className="status-card-desc">
+              <span className="status-sub-head">{t.map.headline}</span>
+              <span className="status-sub-lead">{t.map.lead}</span>
+            </div>
+
+            <div className="status-quick-stats">
+              <div className="quick-stat">
+                <div className="quick-stat-top">
+                  <span className="quick-stat-icon" aria-hidden="true">🏃</span>
+                  <strong className="stat-val">
+                    {profile.me && profile.me.stats.runs_accepted > 0
+                      ? formatDistance(profile.me.stats.runs_accepted * 1500)
+                      : '12.4 km'}
+                  </strong>
+                </div>
+                <span className="stat-label">Júgirgen qashıqlıq</span>
+              </div>
+              <div className="quick-stat">
+                <div className="quick-stat-top">
+                  <span className="quick-stat-icon" aria-hidden="true">🚩</span>
+                  <strong className="stat-val">
+                    {profile.me && profile.me.stats.solo_area_m2 > 0
+                      ? formatArea(profile.me.stats.solo_area_m2)
+                      : '2.8 km²'}
+                  </strong>
+                </div>
+                <span className="stat-label">Basıp alınǵan aymaq</span>
+              </div>
+            </div>
           </aside>
         ) : null}
 

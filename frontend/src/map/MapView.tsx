@@ -223,7 +223,7 @@ export function MapView({
       {/* Other active players/runners on the map */}
       {otherRunners.map((r) => {
         if (!r.location) return null;
-        const color = r.color || '#00D995';
+        const color = r.color || '#21D8A0';
         return (
           <Marker
             key={`runner-${r.user_id}`}
@@ -239,13 +239,13 @@ export function MapView({
                 className="runner-pin-dot"
                 style={{ backgroundColor: color }}
               >
+                <span className="runner-pin-icon" aria-hidden="true">🏃</span>
                 {r.status === 'running' && (
                   <span className="runner-pin-pulse" style={{ borderColor: color }} />
                 )}
               </div>
               <span
                 className="runner-pin-label"
-                style={{ borderColor: `${color}44` }}
               >
                 {r.display_name}
               </span>

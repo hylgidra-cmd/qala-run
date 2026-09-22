@@ -30,7 +30,7 @@ export function PhoneQr({ href, defaultOpen = true }: PhoneQrProps) {
       type: 'svg',
       margin: 1,
       errorCorrectionLevel: 'M',
-      color: { dark: '#08130e', light: '#ffffff' },
+      color: { dark: '#10251F', light: '#ffffff' },
     })
       .then((markup) => {
         if (active) {
@@ -50,16 +50,19 @@ export function PhoneQr({ href, defaultOpen = true }: PhoneQrProps) {
 
   if (!open) {
     return (
-      <button
-        className="qr-phone-btn"
-        type="button"
-        onClick={() => setOpen(true)}
-        title="Telefonda ashıw"
-        aria-label={t.qr.label}
-      >
-        <span className="qr-phone-icon" aria-hidden="true">📱</span>
-        <span className="qr-phone-text">Telefonda ashıw</span>
-      </button>
+      <div className="phone-qr-wrapper">
+        <button
+          className="qr-phone-btn"
+          type="button"
+          onClick={() => setOpen(true)}
+          title="Telefonda ashıw"
+          aria-label={t.qr.label}
+        >
+          <span className="qr-phone-icon" aria-hidden="true">📱</span>
+          <span className="qr-phone-text">Telefonda ashıw</span>
+        </button>
+        <span className="phone-qr-slogan">Qaraqalpaqstan birge júgirdi.</span>
+      </div>
     );
   }
 

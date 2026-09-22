@@ -1,20 +1,25 @@
 :root {
-  color: #f0f7f3;
-  background: #08130e;
+  color: #10251F;
+  background: #F7F9F6;
   font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  --color-primary: #00D995;
-  --color-bg-dark: #08130e;
-  --color-surface: rgba(13, 30, 23, 0.85);
-  --color-surface-solid: #0d1e17;
-  --color-border: rgba(0, 217, 149, 0.22);
-  --color-border-subtle: rgba(255, 255, 255, 0.08);
-  --color-text: #f0f7f3;
-  --color-text-muted: #8faea1;
+  --color-forest: #10251F;
+  --color-warm-white: #F7F9F6;
+  --color-mint: #21D8A0;
+  --color-muted: #738780;
+  --color-gold: #E8B464;
+  --color-primary: #21D8A0;
+  --color-bg-dark: #10251F;
+  --color-surface: #F7F9F6;
+  --color-surface-solid: #F7F9F6;
+  --color-border: rgba(16, 37, 31, 0.08);
+  --color-border-subtle: rgba(16, 37, 31, 0.05);
+  --color-text: #10251F;
+  --color-text-muted: #738780;
   --font-mono: 'Chakra Petch', monospace;
   --font-display: 'Outfit', sans-serif;
 }
@@ -29,14 +34,14 @@
   height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: #08130e;
+  background: #F7F9F6;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 217, 149, 0.3);
+  background: rgba(16, 37, 31, 0.2);
   border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #00D995;
+  background: #21D8A0;
 }
 
 html,
@@ -47,7 +52,7 @@ body,
   margin: 0;
   max-width: 100vw;
   overflow-x: hidden;
-  background: #08130e;
+  background: #F7F9F6;
 }
 
 button,
@@ -57,7 +62,7 @@ a {
 
 button:focus-visible,
 a:focus-visible {
-  outline: 2px solid #00D995;
+  outline: 2px solid #21D8A0;
   outline-offset: 2px;
 }
 
@@ -68,9 +73,10 @@ a:focus-visible {
   max-width: 100vw;
   height: 100%;
   overflow: hidden;
-  background: #08130e;
+  background: #F7F9F6;
 }
 
+/* ── Yuqori panel: #10251F (to‘q o‘rmon yashili) ──────────────────── */
 .topbar {
   z-index: 10;
   display: grid;
@@ -78,38 +84,33 @@ a:focus-visible {
   align-items: center;
   gap: 16px;
   padding: 0 20px;
-  color: #f0f7f3;
-  background: rgba(8, 19, 14, 0.92);
-  border-bottom: 1px solid rgba(0, 217, 149, 0.18);
-  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  color: #F7F9F6;
+  background: #10251F;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.2);
   box-sizing: border-box;
 }
 
 .topbar-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   min-width: 0;
 }
 
 .topbar-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   justify-content: flex-end;
 }
 
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   width: fit-content;
   color: inherit;
-  font-size: 1rem;
-  font-weight: 800;
-  letter-spacing: -0.01em;
   text-decoration: none;
 }
 
@@ -119,13 +120,13 @@ a:focus-visible {
   height: 32px;
   place-items: center;
   font-family: 'Chakra Petch', sans-serif;
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   font-weight: 900;
   letter-spacing: -0.03em;
-  color: #04120b;
-  background: #00D995;
+  color: #10251F;
+  background: #21D8A0;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 217, 149, 0.3);
+  box-shadow: 0 2px 8px rgba(33, 216, 160, 0.35);
   transition: transform 0.2s;
 }
 
@@ -133,44 +134,79 @@ a:focus-visible {
   transform: scale(1.05);
 }
 
+.brand-titles {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
 .brand-title {
   font-family: 'Outfit', sans-serif;
-  font-size: 1.05rem;
+  font-size: 1.15rem;
   font-weight: 800;
   letter-spacing: -0.01em;
-  color: #f0f7f3;
+  color: #ffffff;
+}
+
+.brand-sub {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #738780;
+  text-transform: uppercase;
+}
+
+.city-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
+.city-icon {
+  font-size: 0.85rem;
 }
 
 .topbar-city-select {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(0, 217, 149, 0.22);
+  background: transparent;
+  border: none;
   border-radius: 999px;
-  color: #f0f7f3;
-  font-size: 0.8rem;
+  color: #F7F9F6;
+  font-size: 0.82rem;
   font-weight: 700;
-  padding: 5px 12px;
+  padding: 0 4px;
   cursor: pointer;
   outline: none;
-  transition: all 0.2s;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.city-chevron {
+  color: #738780;
+  font-size: 0.72rem;
+  pointer-events: none;
 }
 
 .topbar-city-select:hover,
 .topbar-city-select:focus {
-  background: rgba(0, 217, 149, 0.08);
-  border-color: #00D995;
+  color: #21D8A0;
 }
 
 .topbar-city-select option {
-  background: #0d1e17;
-  color: #f0f7f3;
+  background: #10251F;
+  color: #F7F9F6;
 }
 
 .mode-switch {
   display: inline-flex;
-  gap: 3px;
+  gap: 2px;
   padding: 3px;
-  background: #0a1811;
-  border: 1px solid rgba(0, 217, 149, 0.25);
+  background: #091713;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 999px;
 }
 
@@ -178,10 +214,40 @@ a:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 14px;
-  color: #8faea1;
+  padding: 6px 18px;
+  color: #738780;
   background: transparent;
   border: 0;
+  border-radius: 999px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mode-switch .mode-btn:hover {
+  color: #F7F9F6;
+}
+
+.mode-switch .mode-btn.active {
+  color: #10251F;
+  font-weight: 850;
+  background: #21D8A0;
+  box-shadow: 0 2px 10px rgba(33, 216, 160, 0.35);
+}
+
+.mode-switch .mode-icon {
+  font-size: 0.95rem;
+}
+
+.topbar-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  color: #F7F9F6;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 999px;
   font-size: 0.82rem;
   font-weight: 700;
@@ -189,29 +255,67 @@ a:focus-visible {
   transition: all 0.15s ease;
 }
 
-.mode-switch .mode-btn:hover {
-  color: #f0f7f3;
+.topbar-nav-btn:hover {
+  background: rgba(33, 216, 160, 0.12);
+  border-color: rgba(33, 216, 160, 0.3);
+  color: #21D8A0;
 }
 
-.mode-switch .mode-btn.active {
-  color: #04120b;
+.topbar-nav-btn.active {
+  background: rgba(33, 216, 160, 0.2);
+  border-color: #21D8A0;
+  color: #21D8A0;
+}
+
+.chat-unread-dot {
+  color: #21D8A0;
+  font-weight: 900;
+  font-size: 1.1rem;
+  line-height: 0;
+}
+
+.login-topbar-btn {
+  padding: 6px 14px;
+  background: #21D8A0;
+  color: #10251F;
+  border: none;
+  border-radius: 999px;
+  font-size: 0.84rem;
   font-weight: 800;
-  background: #00D995;
-  box-shadow: 0 2px 8px rgba(0, 217, 149, 0.35);
+  cursor: pointer;
+  transition: transform 0.15s;
 }
 
-.mode-switch .mode-icon {
-  font-size: 0.95rem;
+.login-topbar-btn:hover {
+  transform: scale(1.04);
+}
+
+.admin-toggle-btn {
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  color: #738780;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-toggle-btn:hover {
+  color: #F7F9F6;
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .profile-button {
-  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 34px;
   height: 34px;
-  color: #04120b;
-  font-weight: 800;
-  background: #00D995;
-  border: 2px solid rgba(0, 217, 149, 0.4);
+  color: #10251F;
+  font-weight: 850;
+  background: #21D8A0;
+  border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 50%;
   cursor: pointer;
   transition: all 0.15s;
@@ -219,29 +323,28 @@ a:focus-visible {
 
 .profile-button:hover {
   transform: scale(1.06);
-  border-color: #00D995;
+  border-color: #21D8A0;
 }
 
 .map-stage {
   position: relative;
   min-height: 0;
+  background: #F7F9F6;
 }
 
-/* ── Compact Left Info Card ────────────────────────────────────────── */
+/* ── Xarita ustidagi kartalar: #F7F9F6 (iliq oq) ─────────────────────── */
 .status-card.compact {
   position: absolute;
   z-index: 4;
-  top: 16px;
-  left: 16px;
-  width: min(290px, calc(100% - 32px));
-  padding: 14px 16px;
-  color: #f0f7f3;
-  background: rgba(8, 19, 14, 0.88);
-  border: 1px solid rgba(0, 217, 149, 0.2);
-  border-radius: 18px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  top: 18px;
+  left: 18px;
+  width: min(300px, calc(100% - 36px));
+  padding: 16px 18px;
+  color: #10251F;
+  background: #F7F9F6;
+  border: 1px solid rgba(16, 37, 31, 0.08);
+  border-radius: 20px;
+  box-shadow: 0 12px 32px rgba(16, 37, 31, 0.08), 0 2px 6px rgba(16, 37, 31, 0.04);
   pointer-events: auto;
 }
 
@@ -249,13 +352,13 @@ a:focus-visible {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .status-badge {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: #00D995;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #738780;
 }
 
 .status-indicator {
@@ -263,59 +366,118 @@ a:focus-visible {
   align-items: center;
   gap: 6px;
   font-size: 0.75rem;
-  color: #8faea1;
+  font-weight: 700;
+  color: #21D8A0;
 }
 
 .status-dot {
   width: 7px;
   height: 7px;
-  background: #00D995;
+  background: #21D8A0;
   border-radius: 50%;
-  box-shadow: 0 0 6px #00D995;
+  box-shadow: 0 0 4px #21D8A0;
 }
 
 .status-card-title {
-  margin: 2px 0 4px;
-  font-size: 1.12rem;
-  font-weight: 800;
-  color: #f0f7f3;
-  letter-spacing: -0.01em;
+  margin: 4px 0 2px;
+  font-size: 1.65rem;
+  font-weight: 900;
+  color: #10251F;
+  letter-spacing: -0.02em;
+  font-family: 'Outfit', sans-serif;
 }
 
 .status-card-lead {
-  margin: 0;
-  font-size: 0.78rem;
-  color: #a3baa0;
-  line-height: 1.35;
+  margin: 0 0 12px;
+  font-size: 0.82rem;
+  color: #738780;
+  line-height: 1.4;
 }
 
-/* ── 'Telefonda ashıw' Button & Modal ───────────────────────────────── */
-.qr-phone-btn {
+.status-card-desc {
+  display: none;
+}
+
+.status-quick-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(16, 37, 31, 0.06);
+}
+
+.quick-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.quick-stat-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.quick-stat-icon {
+  font-size: 0.95rem;
+}
+
+.quick-stat .stat-val {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #10251F;
+  font-family: 'Chakra Petch', sans-serif;
+}
+
+.quick-stat .stat-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #738780;
+  margin-top: 1px;
+}
+
+/* ── 'Telefonda ashıw': #F7F9F6 (iliq oq) ───────────────────────────── */
+.phone-qr-wrapper {
   position: absolute;
   z-index: 5;
   right: 18px;
-  bottom: 24px;
+  bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  pointer-events: auto;
+}
+
+.qr-phone-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 9px 16px;
-  background: rgba(13, 30, 23, 0.92);
-  border: 1px solid rgba(0, 217, 149, 0.25);
+  padding: 10px 18px;
+  background: #F7F9F6;
+  border: 1px solid rgba(16, 37, 31, 0.1);
   border-radius: 999px;
-  color: #f0f7f3;
-  font-size: 0.82rem;
+  color: #10251F;
+  font-size: 0.84rem;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(12px);
+  box-shadow: 0 6px 20px rgba(16, 37, 31, 0.08);
   transition: all 0.2s;
 }
 
 .qr-phone-btn:hover {
-  background: rgba(0, 217, 149, 0.12);
-  border-color: #00D995;
-  color: #00D995;
+  background: #ffffff;
+  border-color: #21D8A0;
+  color: #10251F;
   transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(16, 37, 31, 0.12);
+}
+
+.phone-qr-slogan {
+  font-size: 0.76rem;
+  color: #738780;
+  font-style: italic;
+  padding-right: 4px;
 }
 
 .qr-phone-icon {
@@ -325,13 +487,13 @@ a:focus-visible {
 .qr-modal-card {
   width: 100%;
   max-width: 340px;
-  background: #0d1e17;
-  border: 1px solid rgba(0, 217, 149, 0.3);
+  background: #F7F9F6;
+  border: 1px solid rgba(16, 37, 31, 0.1);
   border-radius: 20px;
   padding: 22px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75);
+  box-shadow: 0 20px 50px rgba(16, 37, 31, 0.15);
   animation: popIn 0.2s ease-out;
-  color: #f0f7f3;
+  color: #10251F;
 }
 
 .qr-modal-head {
@@ -351,17 +513,18 @@ a:focus-visible {
   margin: 0;
   font-size: 1.15rem;
   font-weight: 800;
-  color: #f0f7f3;
+  color: #10251F;
 }
 
 .qr-image {
   overflow: hidden;
-  background: #fff;
+  background: #ffffff;
+  border: 1px solid rgba(16, 37, 31, 0.08);
   border-radius: 14px;
   padding: 10px;
   width: fit-content;
   margin: 12px auto;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 16px rgba(16, 37, 31, 0.06);
 }
 
 .qr-image svg {
@@ -371,8 +534,8 @@ a:focus-visible {
 }
 
 .qr-url-box {
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(16, 37, 31, 0.04);
+  border: 1px solid rgba(16, 37, 31, 0.08);
   border-radius: 10px;
   padding: 8px 12px;
   margin: 10px 0;
@@ -382,7 +545,7 @@ a:focus-visible {
 .qr-url {
   margin: 0;
   overflow-wrap: anywhere;
-  color: #00D995;
+  color: #21D8A0;
   font-family: 'Chakra Petch', monospace;
   font-size: 0.74rem;
   font-weight: 700;
@@ -390,7 +553,7 @@ a:focus-visible {
 
 .qr-hint {
   margin: 6px 0 0;
-  color: #8faea1;
+  color: #738780;
   font-size: 0.76rem;
   line-height: 1.4;
   text-align: center;
@@ -571,30 +734,35 @@ a:focus-visible {
   min-width: 240px;
   font-family: 'Outfit', sans-serif;
   font-size: 1.05rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  background: #00D995;
-  color: #04120b;
+  font-weight: 850;
+  letter-spacing: 0.01em;
+  background: #21D8A0;
+  color: #10251F;
   border: none;
   border-radius: 999px;
   padding: 15px 36px;
-  box-shadow: 0 6px 20px rgba(0, 217, 149, 0.3);
+  box-shadow: 0 8px 24px rgba(33, 216, 160, 0.4);
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .run-button.start:hover {
-  background: #00e8a0;
+  background: #27e7ad;
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 217, 149, 0.42);
+  box-shadow: 0 10px 28px rgba(33, 216, 160, 0.5);
 }
 
 .run-button.start:active {
   transform: scale(0.97);
+}
+
+.run-button.start .play-triangle {
+  font-size: 0.88rem;
+  color: #10251F;
 }
 
 /* Victory / Capture Card */
@@ -801,7 +969,7 @@ a:focus-visible {
   z-index: 5;
 }
 
-/* ── Standardized Map Runner Pins ──────────────────────────────────── */
+/* ── Standardized Map Runner Pins: #21D8A0 dot with runner silhouette ── */
 .map-runner-pin {
   display: flex;
   flex-direction: column;
@@ -819,12 +987,20 @@ a:focus-visible {
 
 .runner-pin-dot {
   position: relative;
-  width: 14px;
-  height: 14px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  background: #00D995;
+  background: #21D8A0;
   border: 2px solid #ffffff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 12px rgba(16, 37, 31, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.runner-pin-icon {
+  font-size: 0.85rem;
+  line-height: 1;
 }
 
 .runner-pin-pulse {
@@ -834,7 +1010,7 @@ a:focus-visible {
   right: -5px;
   bottom: -5px;
   border-radius: 50%;
-  border: 2px solid currentColor;
+  border: 2px solid #21D8A0;
   animation: runnerPulseRing 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
   pointer-events: none;
 }
@@ -845,7 +1021,7 @@ a:focus-visible {
     opacity: 0.9;
   }
   100% {
-    transform: scale(2.4);
+    transform: scale(2.2);
     opacity: 0;
   }
 }
@@ -853,46 +1029,43 @@ a:focus-visible {
 .runner-pin-label {
   margin-top: 4px;
   font-family: 'Outfit', sans-serif;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  color: #f0f7f3;
-  background: rgba(8, 19, 14, 0.92);
-  border: 1px solid rgba(0, 217, 149, 0.3);
+  color: #10251F;
+  background: #F7F9F6;
+  border: 1px solid rgba(16, 37, 31, 0.1);
   border-radius: 6px;
   padding: 2px 7px;
   white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(16, 37, 31, 0.1);
 }
 
 /* ── Floating GPS Location Button ──────────────────────────────────── */
 .map-floating-geo-btn {
   position: absolute;
   z-index: 6;
-  top: 220px;
-  left: 16px;
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: rgba(8, 19, 14, 0.9);
-  border: 1px solid rgba(0, 217, 149, 0.35);
-  color: #00D995;
+  top: 96px;
+  right: 18px;
+  left: auto;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: #F7F9F6;
+  border: 1px solid rgba(16, 37, 31, 0.12);
+  color: #10251F;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 16px rgba(16, 37, 31, 0.08);
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
 }
 
 .map-floating-geo-btn:hover {
-  background: rgba(0, 217, 149, 0.15);
-  border-color: #00D995;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(0, 217, 149, 0.25);
+  background: #ffffff;
+  border-color: #21D8A0;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(33, 216, 160, 0.25);
 }
 
 .map-floating-geo-btn:active {
@@ -900,7 +1073,7 @@ a:focus-visible {
 }
 
 .map-floating-geo-btn .geo-icon {
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   line-height: 1;
   transition: transform 0.2s;
 }
@@ -910,35 +1083,33 @@ a:focus-visible {
 }
 
 .map-floating-geo-btn.locating {
-  border-color: #00D995;
+  border-color: #21D8A0;
   animation: geo-pulse 1.2s infinite alternate;
 }
 
 @keyframes geo-pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(0, 217, 149, 0.6);
+    box-shadow: 0 0 0 0 rgba(33, 216, 160, 0.6);
     transform: scale(1);
   }
   100% {
-    box-shadow: 0 0 0 12px rgba(0, 217, 149, 0);
+    box-shadow: 0 0 0 12px rgba(33, 216, 160, 0);
     transform: scale(1.05);
   }
 }
 
-/* ── MapLibre Controls Dark Theme Styling ───────────────────────────── */
+/* ── MapLibre Controls Light Theme Styling ─────────────────────────── */
 .maplibregl-ctrl-group {
-  background: rgba(5, 14, 10, 0.9) !important;
-  border: 1px solid rgba(0, 255, 136, 0.3) !important;
-  border-radius: 12px !important;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6), 0 0 15px rgba(0, 255, 136, 0.12) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
+  background: #F7F9F6 !important;
+  border: 1px solid rgba(16, 37, 31, 0.12) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 4px 16px rgba(16, 37, 31, 0.08) !important;
   overflow: hidden;
 }
 
 .maplibregl-ctrl-group button {
   background-color: transparent !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-bottom: 1px solid rgba(16, 37, 31, 0.08) !important;
   transition: background-color 0.2s !important;
 }
 
@@ -947,11 +1118,11 @@ a:focus-visible {
 }
 
 .maplibregl-ctrl-group button:hover {
-  background-color: rgba(0, 255, 136, 0.18) !important;
+  background-color: rgba(33, 216, 160, 0.15) !important;
 }
 
 .maplibregl-ctrl-icon {
-  filter: invert(1) hue-rotate(90deg) brightness(1.25);
+  filter: invert(1) brightness(0.15) !important;
 }
 
 @media (max-width: 640px) {
@@ -2830,15 +3001,14 @@ a:focus-visible {
 }
 
 .leaderboard-item.top-1 {
-  background: linear-gradient(90deg, rgba(255, 215, 0, 0.14) 0%, rgba(255, 215, 0, 0.03) 100%);
-  border: 1.5px solid rgba(255, 215, 0, 0.5);
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.15);
+  background: rgba(232, 180, 100, 0.12);
+  border: 1.5px solid rgba(232, 180, 100, 0.5);
+  box-shadow: 0 4px 14px rgba(232, 180, 100, 0.15);
 }
 
 .leaderboard-item.top-1 .rank-col {
-  color: #ffd700;
+  color: #E8B464;
   font-size: 1.3rem;
-  text-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
 }
 
 .leaderboard-item.top-2 {
