@@ -2714,12 +2714,51 @@ a:focus-visible {
 
 @media (max-width: 640px) {
   .chat-panel-container {
-    top: 70px;
-    right: 10px;
-    left: 10px;
-    width: auto;
-    height: calc(100% - 80px);
+    position: fixed;
+    inset: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100%;
+    height: 100dvh;
+    border-radius: 0;
+    border: none;
+    z-index: 99999;
+    background: #07130f;
   }
+
+  .chat-header {
+    padding-top: max(12px, env(safe-area-inset-top));
+  }
+
+  .chat-input-bar {
+    padding-bottom: max(14px, env(safe-area-inset-bottom));
+  }
+}
+
+.chat-error-banner {
+  background: rgba(255, 68, 68, 0.18);
+  border: 1px solid rgba(255, 68, 68, 0.4);
+  color: #ff8585;
+  font-size: 0.8rem;
+  padding: 8px 12px;
+  margin: 8px 12px 0 12px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.chat-error-banner .error-close-btn {
+  background: none;
+  border: none;
+  color: #ff8585;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0 4px;
 }
 
 .chat-header {

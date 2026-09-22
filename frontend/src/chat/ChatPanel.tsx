@@ -13,6 +13,8 @@ interface ChatPanelProps {
 
 const QUICK_EMOJIS = ['🏃', '⚡', '🔥', '🏆', '⚔️', '📍', '👏', '😂'];
 
+type ChatTab = 'global' | 'city' | 'clan';
+
 export function ChatPanel({
   currentCityId,
   cityName,
@@ -20,14 +22,16 @@ export function ChatPanel({
   onClose,
   onFlyToLocation,
 }: ChatPanelProps) {
-  const [tab, setTab] = useState<'global' | 'clan'>('global');
+  const [tab, setTab] = useState<ChatTab>('global');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [sending, setSending] = useState(false);
   const [sharingLocation, setSharingLocation] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  const activeChannelId = tab === 'global' ? currentCityId : me?.clan?.id ?? '';
+  const activeChannelType: 'global' | 'clan' = tab === 'clan' ? 'clan' : 'global';
+  const activeChannelId = tab === 'global' ? 'global' : tab === 'city' ? currentCityId : me?.clan?.id ?? '';
 
   const loadMessages = async () => {
     if (!activeChannelId) {
@@ -35,10 +39,10 @@ export function ChatPanel({
       return;
     }
     try {
-      const list = await fetchChatMessages(tab, activeChannelId);
+      const list = await fetchChatMessages(activeChannelType, activeChannelId);
       setMessages(list);
     } catch {
-      // API error or warming up
+      // API warming up or network glitch
     }
   };
 
@@ -61,17 +65,18 @@ export function ChatPanel({
     const textToSend = inputText.trim();
     setInputText('');
     setSending(true);
+    setErrorMessage(null);
 
     try {
       const msg = await sendChatMessage({
-        channel_type: tab,
+        channel_type: activeChannelType,
         channel_id: activeChannelId,
         content: textToSend,
         msg_type: 'text',
       });
       setMessages((prev) => [...prev, msg]);
-    } catch {
-      // Failed to send
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Xabar jiberiwde qátelik júz berdi');
       setInputText(textToSend);
     } finally {
       setSending(false);
@@ -82,24 +87,27 @@ export function ChatPanel({
     if (!('geolocation' in navigator) || sharingLocation || !activeChannelId) return;
 
     setSharingLocation(true);
+    setErrorMessage(null);
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const { latitude, longitude } = pos.coords;
         try {
           const msg = await sendChatMessage({
-            channel_type: tab,
+            channel_type: activeChannelType,
             channel_id: activeChannelId,
             content: `📍 Jaylasıw: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`,
             msg_type: 'location',
             payload: { lat: latitude, lon: longitude },
           });
           setMessages((prev) => [...prev, msg]);
+        } catch (err: any) {
+          setErrorMessage(err?.message || 'Jaylasıwdı jiberiwde qátelik júz berdi');
         } finally {
           setSharingLocation(false);
         }
       },
       () => {
-        alert('Jaylasıwdı anıqlap bolmadı.');
+        setErrorMessage('GPS arqalı jaylasıwdı anıqlap bolmadı');
         setSharingLocation(false);
       },
       { enableHighAccuracy: true, timeout: 10000 },
@@ -126,14 +134,32 @@ export function ChatPanel({
           <button
             type="button"
             className={`chat-tab ${tab === 'global' ? 'active' : ''}`}
-            onClick={() => setTab('global')}
+            onClick={() => {
+              setTab('global');
+              setErrorMessage(null);
+            }}
+            title="Barlıq qalalardan barlıq oyınshılar"
           >
-            🌐 {cityName}
+            🌍 Global
+          </button>
+          <button
+            type="button"
+            className={`chat-tab ${tab === 'city' ? 'active' : ''}`}
+            onClick={() => {
+              setTab('city');
+              setErrorMessage(null);
+            }}
+            title={`${cityName} aymaǵındaǵı oyınshılar`}
+          >
+            📍 {cityName}
           </button>
           <button
             type="button"
             className={`chat-tab ${tab === 'clan' ? 'active' : ''}`}
-            onClick={() => setTab('clan')}
+            onClick={() => {
+              setTab('clan');
+              setErrorMessage(null);
+            }}
             disabled={!me?.clan}
             title={!me?.clan ? 'Klanǵa qosılıń' : undefined}
           >
@@ -145,6 +171,13 @@ export function ChatPanel({
         </button>
       </div>
 
+      {errorMessage && (
+        <div className="chat-error-banner" onClick={() => setErrorMessage(null)}>
+          <span>⚠️ {errorMessage}</span>
+          <button type="button" className="error-close-btn">✕</button>
+        </div>
+      )}
+
       <div className="chat-messages-area">
         {tab === 'clan' && !me?.clan ? (
           <div className="chat-empty-notice">
@@ -152,11 +185,15 @@ export function ChatPanel({
           </div>
         ) : messages.length === 0 ? (
           <div className="chat-empty-notice">
-            Házirshe hesh qanday xabar joq. Birinshi bolıp xabar jazıń! 💬
+            {tab === 'global'
+              ? '🌍 Global chatta házirshe hesh qanday xabar joq. Birinshi bolıp barlıq qalalardaǵı oyınshılarǵa sálem jollań! 💬'
+              : tab === 'city'
+              ? `📍 ${cityName} chatında házirshe xabar joq. Usı qala juwırıwshılarına xabar jazıń! 💬`
+              : '🛡️ Klan chatında házirshe xabar joq. Klanyorlarıńızǵa birinshi bolıp jazıń! 💬'}
           </div>
         ) : (
           messages.map((m) => {
-            const isMine = m.sender.user_id === me?.user_id;
+            const isMine = (me && m.sender.user_id === me.user_id) || false;
             return (
               <div key={m.id} className={`chat-message-row ${isMine ? 'mine' : 'other'}`}>
                 {!isMine && (
@@ -169,14 +206,15 @@ export function ChatPanel({
                   </div>
                 )}
                 <div className="msg-bubble">
-                  {!isMine && (
-                    <div className="msg-sender" style={{ color: m.sender.color_hex }}>
-                      {m.sender.display_name}
-                    </div>
-                  )}
+                  <div
+                    className="msg-sender"
+                    style={{ color: isMine ? '#07130f' : (m.sender.color_hex || '#00ff88') }}
+                  >
+                    {isMine ? 'Siz' : m.sender.display_name}
+                  </div>
                   {m.msg_type === 'location' ? (
                     <div className="msg-location-card">
-                      <div className="location-text">📍 Meniń jaylasıwım</div>
+                      <div className="location-text">{m.content}</div>
                       {m.payload.lat && m.payload.lon && onFlyToLocation && (
                         <button
                           type="button"
@@ -233,8 +271,9 @@ export function ChatPanel({
           type="submit"
           disabled={!inputText.trim() || sending || (tab === 'clan' && !me?.clan)}
           className="chat-send-btn"
+          title="Jiberiw"
         >
-          ➤
+          {sending ? '···' : '➤'}
         </button>
       </form>
     </div>
