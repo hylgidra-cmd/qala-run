@@ -1,4 +1,19 @@
 import { useCallback, useEffect, useState } from 'react';
+import {
+  Activity,
+  BarChart3,
+  ChevronDown,
+  Flag,
+  History,
+  LogIn,
+  MapPin,
+  MessageSquare,
+  Moon,
+  Shield,
+  ShieldAlert,
+  Sun,
+  User,
+} from 'lucide-react';
 import { AdminView } from './admin/AdminView';
 import { AuthPage } from './auth/AuthPage';
 import { useAuth } from './auth/useAuth';
@@ -8,6 +23,7 @@ import { t } from './i18n/qq';
 import { LeaderboardModal } from './leaderboard/LeaderboardModal';
 import { MapView } from './map/MapView';
 import { CITIES_LIST, DEFAULT_CITY_ID, getCity } from './map/cities';
+import { type MapTheme } from './map/style';
 import { InvasionToast } from './notifications/InvasionToast';
 import { useNotifications } from './notifications/useNotifications';
 import { ProfilePanel } from './profile/ProfilePanel';
@@ -36,6 +52,17 @@ export function App() {
   const [apiReachable, setApiReachable] = useState(true);
   const handleApiReachable = useCallback((reachable: boolean) => setApiReachable(reachable), []);
   const { notifications, dismiss: dismissNotifications } = useNotifications();
+  const [theme, setTheme] = useState<MapTheme>(() => {
+    const urlTheme = new URLSearchParams(window.location.search).get('theme');
+    if (urlTheme === 'night' || urlTheme === 'day') return urlTheme;
+    const saved = localStorage.getItem('dontstop.theme');
+    return saved === 'night' ? 'night' : 'day';
+  });
+
+  const handleSetTheme = (newTheme: MapTheme) => {
+    setTheme(newTheme);
+    localStorage.setItem('dontstop.theme', newTheme);
+  };
 
   // Sync active city from player's profile if set
   useEffect(() => {
@@ -104,7 +131,7 @@ export function App() {
   const currentCityObj = getCity(activeCity);
 
   return (
-    <main className="app-shell">
+    <main className="app-shell" data-theme={theme}>
       <header className="topbar">
         <div className="topbar-left">
           <a className="brand" href="/" aria-label={t.brand.home}>
@@ -117,7 +144,7 @@ export function App() {
 
           {/* City switcher dropdown */}
           <div className="city-switcher">
-            <span className="city-icon" aria-hidden="true">📍</span>
+            <MapPin size={13} className="city-icon" aria-hidden="true" />
             <select
               value={activeCity}
               onChange={(e) => handleCityChange(e.target.value)}
@@ -131,7 +158,7 @@ export function App() {
                 </option>
               ))}
             </select>
-            <span className="city-chevron" aria-hidden="true">▾</span>
+            <ChevronDown size={11} className="city-chevron" aria-hidden="true" />
           </div>
         </div>
 
@@ -142,7 +169,9 @@ export function App() {
             onClick={() => setMode('solo')}
             aria-pressed={mode === 'solo'}
           >
-            <span className="mode-icon" aria-hidden="true">🏃</span>
+            <span className="mode-icon" aria-hidden="true">
+              <User size={14} />
+            </span>
             <span>{t.mode.solo}</span>
           </button>
           <button
@@ -151,12 +180,38 @@ export function App() {
             onClick={chooseClan}
             aria-pressed={mode === 'clan'}
           >
-            <span className="mode-icon" aria-hidden="true">🛡️</span>
+            <span className="mode-icon" aria-hidden="true">
+              <Shield size={14} />
+            </span>
             <span>{t.mode.clan}</span>
           </button>
         </div>
 
         <div className="topbar-actions">
+          {/* Day / Night Theme Switch */}
+          <div className="theme-toggle-pill" role="group" aria-label="Xarita vaqti rejimi">
+            <button
+              type="button"
+              className={`theme-toggle-btn ${theme === 'day' ? 'active' : ''}`}
+              onClick={() => handleSetTheme('day')}
+              title="Kúndizgi rejim (Day)"
+              aria-label="Kúndizgi rejim"
+            >
+              <Sun size={14} />
+              <span className="theme-btn-label">Kúndiz</span>
+            </button>
+            <button
+              type="button"
+              className={`theme-toggle-btn ${theme === 'night' ? 'active' : ''}`}
+              onClick={() => handleSetTheme('night')}
+              title="Keshki rejim (Night)"
+              aria-label="Keshki rejim"
+            >
+              <Moon size={14} />
+              <span className="theme-btn-label">Keshki</span>
+            </button>
+          </div>
+
           {/* Action buttons: Reyting, Tariyx, Chat */}
           <button
             type="button"
@@ -169,7 +224,7 @@ export function App() {
             title="Reyting Jadvali"
             aria-label="Reyting"
           >
-            <span className="nav-btn-icon">📊</span>
+            <BarChart3 size={15} className="nav-btn-icon" />
             <span className="nav-btn-text">Reyting</span>
           </button>
 
@@ -185,7 +240,7 @@ export function App() {
               title="Juwırıwlar Tariyxı"
               aria-label="Tariyx"
             >
-              <span className="nav-btn-icon">📜</span>
+              <History size={15} className="nav-btn-icon" />
               <span className="nav-btn-text">Tariyx</span>
             </button>
           )}
@@ -201,7 +256,7 @@ export function App() {
             title="Chat"
             aria-label="Chat"
           >
-            <span className="nav-btn-icon">💬</span>
+            <MessageSquare size={15} className="nav-btn-icon" />
             <span className="nav-btn-text">Chat <span className="chat-unread-dot" aria-hidden="true">•</span></span>
           </button>
 
@@ -214,7 +269,7 @@ export function App() {
             }}
             title="Admin Baqlaw Orayı"
           >
-            Admin 🛡️
+            <ShieldAlert size={13} className="inline-icon" /> Admin
           </button>
 
           {isAuthenticated ? (
@@ -241,7 +296,7 @@ export function App() {
               ) : profile.me ? (
                 initials(profile.me.display_name)
               ) : (
-                'A'
+                <User size={16} />
               )}
             </button>
           ) : (
@@ -251,7 +306,7 @@ export function App() {
               onClick={() => setAuthModalOpen(true)}
               title="Kirish / Ro'yxatdan o'tiw"
             >
-              Kirish ⚡
+              <LogIn size={13} /> Kirish
             </button>
           )}
         </div>
@@ -265,6 +320,7 @@ export function App() {
           trackPoints={tracker.points}
           territoryRefreshKey={tracker.result?.territory_id ?? ''}
           onApiReachable={handleApiReachable}
+          theme={theme}
         />
 
         {tracker.phase === 'idle' && !tracker.result ? (
@@ -287,7 +343,7 @@ export function App() {
             <div className="status-quick-stats">
               <div className="quick-stat">
                 <div className="quick-stat-top">
-                  <span className="quick-stat-icon" aria-hidden="true">🏃</span>
+                  <Activity size={16} className="quick-stat-icon" aria-hidden="true" />
                   <strong className="stat-val">
                     {profile.me && profile.me.stats.runs_accepted > 0
                       ? formatDistance(profile.me.stats.runs_accepted * 1500)
@@ -298,7 +354,7 @@ export function App() {
               </div>
               <div className="quick-stat">
                 <div className="quick-stat-top">
-                  <span className="quick-stat-icon" aria-hidden="true">🚩</span>
+                  <Flag size={16} className="quick-stat-icon" aria-hidden="true" />
                   <strong className="stat-val">
                     {profile.me && profile.me.stats.solo_area_m2 > 0
                       ? formatArea(profile.me.stats.solo_area_m2)

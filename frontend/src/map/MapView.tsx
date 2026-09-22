@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Map, { Layer, Marker, type MapRef, NavigationControl, Popup, Source } from 'react-map-gl/maplibre';
+import { Crosshair, Loader2, Shield, User, X } from 'lucide-react';
 import { type LiveRunner, fetchLiveRunners } from '../admin/api';
 import type { TrackPoint } from '../run/api';
 import { formatArea } from '../run/format';
 import { TerritoryLayer } from './TerritoryLayer';
 import { getCity } from './cities';
 import { geolocationNotice, isInsideCityBounds, outOfCityNotice } from './geolocation';
-import { DEV_MAP_STYLE } from './style';
+import { MAP_STYLES, type MapTheme } from './style';
 
 interface MapViewProps {
   /** Active city identifier (nukus, tashkent, almaty, istanbul). */
@@ -18,6 +19,7 @@ interface MapViewProps {
   trackPoints?: TrackPoint[];
   territoryRefreshKey?: string;
   onApiReachable?: (reachable: boolean) => void;
+  theme?: MapTheme;
 }
 
 interface SelectedTerritory {
@@ -39,6 +41,7 @@ export function MapView({
   trackPoints = [],
   territoryRefreshKey = '',
   onApiReachable,
+  theme = 'day',
 }: MapViewProps) {
   const [notice, setNotice] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
@@ -46,6 +49,8 @@ export function MapView({
   const [selectedTerritory, setSelectedTerritory] = useState<SelectedTerritory | null>(null);
   const mapRef = useRef<MapRef | null>(null);
   const city = getCity(cityId);
+
+  const activeMapStyle = theme === 'night' ? MAP_STYLES.night : MAP_STYLES.day;
 
   const handleQuickLocate = () => {
     // If active tracking points exist, center on the most recent point
@@ -69,43 +74,48 @@ export function MapView({
       (pos) => {
         setLocating(false);
         const { longitude, latitude } = pos.coords;
+        if (!isInsideCityBounds(longitude, latitude, cityId)) {
+          setNotice(outOfCityNotice(cityId));
+          return;
+        }
+
         mapRef.current?.flyTo({
           center: [longitude, latitude],
           zoom: 16,
           essential: true,
         });
-        const inside = isInsideCityBounds(longitude, latitude, city.id);
-        if (!inside) {
-          setNotice(outOfCityNotice(city.id));
-        }
       },
       (err) => {
         setLocating(false);
         setNotice(geolocationNotice(err.code));
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
     );
   };
 
-  // Poll active runners to show other players on the map
+  // Poll live runners
   useEffect(() => {
+    let timer: number | null = null;
     let active = true;
-    const fetchOthers = async () => {
+
+    const poll = async () => {
       try {
         const list = await fetchLiveRunners();
         if (active) {
-          setOtherRunners(list.filter((r) => r.user_id !== currentUserId && r.location !== null));
+          setOtherRunners(list.filter((r) => r.user_id !== currentUserId));
         }
       } catch {
-        // Backend warming up or unreachable
+        // quiet failure
+      }
+      if (active) {
+        timer = window.setTimeout(poll, 4000);
       }
     };
 
-    void fetchOthers();
-    const interval = window.setInterval(fetchOthers, 4000);
+    void poll();
     return () => {
       active = false;
-      window.clearInterval(interval);
+      if (timer) window.clearTimeout(timer);
     };
   }, [currentUserId]);
 
@@ -143,17 +153,17 @@ export function MapView({
     if (features && features.length > 0) {
       const terrFeature = features.find((f: any) => f.layer.id === 'territory-fill');
       if (terrFeature && terrFeature.properties) {
-        const p = terrFeature.properties;
+        const props = terrFeature.properties;
         setSelectedTerritory({
           longitude: event.lngLat.lng,
           latitude: event.lngLat.lat,
-          ownerName: p.owner_name || 'Belgisiz',
-          ownerTag: p.owner_tag,
-          ownerPlayerId: p.owner_player_id,
-          areaM2: Number(p.area_m2 || 0),
-          color: p.color || '#00ff88',
-          createdAt: p.created_at,
-          mode: p.mode || 'solo',
+          ownerName: props.owner_name || 'Námálim juwırıwshı',
+          ownerTag: props.owner_tag || null,
+          ownerPlayerId: props.owner_player_id || null,
+          areaM2: Number(props.area_m2 || 0),
+          color: props.color || '#21D8A0',
+          createdAt: props.created_at || '',
+          mode: props.mode || 'solo',
         });
         return;
       }
@@ -165,7 +175,7 @@ export function MapView({
   return (
     <Map
       ref={mapRef}
-      mapStyle={DEV_MAP_STYLE}
+      mapStyle={activeMapStyle}
       initialViewState={{ longitude: city.center.longitude, latitude: city.center.latitude, zoom: city.zoom }}
       maxBounds={city.bounds}
       minZoom={10}
@@ -203,7 +213,17 @@ export function MapView({
         >
           <div className="territory-popup-content">
             <div className="popup-badge" style={{ background: `${selectedTerritory.color}22`, color: selectedTerritory.color, borderColor: selectedTerritory.color }}>
-              {selectedTerritory.mode === 'clan' ? '🛡️ KLAN AYMAǴI' : '🏃 JEKE AYMAQ'}
+              {selectedTerritory.mode === 'clan' ? (
+                <>
+                  <Shield size={12} className="inline-icon" />
+                  <span>KLAN AYMAǴI</span>
+                </>
+              ) : (
+                <>
+                  <User size={12} className="inline-icon" />
+                  <span>JEKE AYMAQ</span>
+                </>
+              )}
             </div>
             <h3 className="popup-owner" style={{ color: selectedTerritory.color }}>
               {selectedTerritory.ownerTag ? `[${selectedTerritory.ownerTag}] ` : ''}
@@ -233,13 +253,15 @@ export function MapView({
           >
             <div
               className={`map-runner-pin ${r.status === 'running' ? 'is-running' : ''}`}
-              title={`${r.display_name} (${r.status === 'running' ? 'Juwırmaqta 🏃' : 'Onlayn'})`}
+              title={`${r.display_name} (${r.status === 'running' ? 'Juwırmaqta' : 'Onlayn'})`}
             >
               <div
                 className="runner-pin-dot"
                 style={{ backgroundColor: color }}
               >
-                <span className="runner-pin-icon" aria-hidden="true">🏃</span>
+                <span className="runner-pin-icon" aria-hidden="true">
+                  <User size={13} strokeWidth={2.5} />
+                </span>
                 {r.status === 'running' && (
                   <span className="runner-pin-pulse" style={{ borderColor: color }} />
                 )}
@@ -263,7 +285,7 @@ export function MapView({
         aria-label="Mening jaylasqan ornım (GPS)"
       >
         <span className="geo-icon" aria-hidden="true">
-          {locating ? '📡' : '🎯'}
+          {locating ? <Loader2 size={18} className="spinning" /> : <Crosshair size={18} />}
         </span>
       </button>
 
@@ -271,11 +293,10 @@ export function MapView({
         <div className="map-notice" role="status">
           <p>{notice}</p>
           <button type="button" onClick={() => setNotice(null)} aria-label="Dismiss">
-            ×
+            <X size={14} />
           </button>
         </div>
       ) : null}
     </Map>
   );
 }
-

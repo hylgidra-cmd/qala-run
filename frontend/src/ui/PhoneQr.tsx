@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Smartphone, X } from 'lucide-react';
 import QRCode from 'qrcode';
 import { t } from '../i18n/qq';
 import { isPhoneReachable, phoneShareUrl } from './qr';
@@ -58,7 +59,7 @@ export function PhoneQr({ href, defaultOpen = true }: PhoneQrProps) {
           title="Telefonda ashıw"
           aria-label={t.qr.label}
         >
-          <span className="qr-phone-icon" aria-hidden="true">📱</span>
+          <Smartphone size={16} className="qr-phone-icon" aria-hidden="true" />
           <span className="qr-phone-text">Telefonda ashıw</span>
         </button>
         <span className="phone-qr-slogan">Qaraqalpaqstan birge júgirdi.</span>
@@ -75,7 +76,7 @@ export function PhoneQr({ href, defaultOpen = true }: PhoneQrProps) {
       >
         <div className="qr-modal-head">
           <div className="qr-modal-title">
-            <span className="qr-modal-icon">📱</span>
+            <Smartphone size={20} className="qr-modal-icon" />
             <h3>Telefonda ashıw</h3>
           </div>
           <button
@@ -84,7 +85,7 @@ export function PhoneQr({ href, defaultOpen = true }: PhoneQrProps) {
             onClick={() => setOpen(false)}
             aria-label={t.qr.hide}
           >
-            ✕
+            <X size={18} />
           </button>
         </div>
 

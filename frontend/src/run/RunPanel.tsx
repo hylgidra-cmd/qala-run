@@ -1,3 +1,4 @@
+import { Play, Square, X, MapPin, Smartphone } from 'lucide-react';
 import { t } from '../i18n/qq';
 import {
   describeActivity,
@@ -112,9 +113,13 @@ export function RunPanel({ tracker, apiReachable }: RunPanelProps) {
           <p className="run-note">{t.run.tracking(points.length)}</p>
 
           <div className="hud-status-row">
-            <span className="hud-points-badge">📍 {points.length} noqat</span>
+            <span className="hud-points-badge">
+              <MapPin size={12} className="inline-icon" /> {points.length} noqat
+            </span>
             {screenLocked ? (
-              <span className="hud-wakelock-badge">⚡ Ekran oʻshpeydi</span>
+              <span className="hud-wakelock-badge">
+                <Smartphone size={12} className="inline-icon" /> Ekran oʻshpeydi
+              </span>
             ) : null}
           </div>
 
@@ -125,7 +130,7 @@ export function RunPanel({ tracker, apiReachable }: RunPanelProps) {
               onClick={() => void tracker.finish()}
               disabled={phase === 'finishing'}
             >
-              {phase === 'finishing' ? t.run.checking : t.run.finish}
+              <Square size={15} fill="currentColor" /> {phase === 'finishing' ? t.run.checking : t.run.finish}
             </button>
             <button
               className="run-abandon-btn"
@@ -133,7 +138,7 @@ export function RunPanel({ tracker, apiReachable }: RunPanelProps) {
               onClick={tracker.reset}
               title="Biykarlaw"
             >
-              ✕
+              <X size={18} />
             </button>
           </div>
         </div>
@@ -148,7 +153,7 @@ export function RunPanel({ tracker, apiReachable }: RunPanelProps) {
             onClick={() => void tracker.start()}
             disabled={phase === 'done'}
           >
-            <span aria-hidden="true" className="play-triangle">▶</span> {t.run.start}
+            <Play size={18} fill="#10251F" strokeWidth={0} /> {t.run.start}
           </button>
         </div>
       ) : null}

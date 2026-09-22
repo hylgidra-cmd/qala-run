@@ -238,6 +238,49 @@ a:focus-visible {
 
 .mode-switch .mode-icon {
   font-size: 0.95rem;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* ── Day / Night Theme Toggle Switch ───────────────────────────────── */
+.theme-toggle-pill {
+  display: inline-flex;
+  align-items: center;
+  background: #091713;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.theme-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 999px;
+  color: #738780;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.theme-toggle-btn svg {
+  display: block;
+}
+
+.theme-toggle-btn:hover {
+  color: #F7F9F6;
+}
+
+.theme-toggle-btn.active {
+  background: #21D8A0;
+  color: #10251F;
+  font-weight: 850;
+  box-shadow: 0 2px 10px rgba(33, 216, 160, 0.35);
 }
 
 .topbar-nav-btn {
@@ -1125,6 +1168,91 @@ a:focus-visible {
   filter: invert(1) brightness(0.15) !important;
 }
 
+/* ── Night Mode Overrides ──────────────────────────────────────────── */
+[data-theme="night"] .app-shell,
+[data-theme="night"] .map-stage {
+  background: #08130e;
+}
+
+[data-theme="night"] .status-card.compact {
+  background: rgba(13, 30, 23, 0.94);
+  color: #F7F9F6;
+  border: 1px solid rgba(33, 216, 160, 0.25);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+[data-theme="night"] .status-card-title,
+[data-theme="night"] .quick-stat .stat-val {
+  color: #F7F9F6;
+}
+
+[data-theme="night"] .status-card-lead,
+[data-theme="night"] .quick-stat .stat-label {
+  color: #8faea1;
+}
+
+[data-theme="night"] .status-badge {
+  color: #8faea1;
+}
+
+[data-theme="night"] .status-quick-stats {
+  border-top-color: rgba(33, 216, 160, 0.15);
+}
+
+[data-theme="night"] .phone-qr-wrapper .phone-qr-slogan {
+  color: #8faea1;
+}
+
+[data-theme="night"] .qr-phone-btn {
+  background: rgba(13, 30, 23, 0.94);
+  color: #F7F9F6;
+  border: 1px solid rgba(33, 216, 160, 0.25);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="night"] .qr-phone-btn:hover {
+  background: rgba(18, 42, 32, 0.98);
+  border-color: #21D8A0;
+}
+
+[data-theme="night"] .qr-modal-card {
+  background: rgba(13, 30, 23, 0.96);
+  color: #F7F9F6;
+  border: 1px solid rgba(33, 216, 160, 0.3);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75);
+}
+
+[data-theme="night"] .qr-modal-title h3 {
+  color: #F7F9F6;
+}
+
+[data-theme="night"] .maplibregl-ctrl-group,
+[data-theme="night"] .map-floating-geo-btn {
+  background: rgba(13, 30, 23, 0.94) !important;
+  border: 1px solid rgba(33, 216, 160, 0.25) !important;
+  color: #F7F9F6 !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-theme="night"] .map-floating-geo-btn:hover {
+  background: rgba(22, 50, 39, 0.98) !important;
+  border-color: #21D8A0 !important;
+}
+
+[data-theme="night"] .maplibregl-ctrl-group button {
+  border-bottom: 1px solid rgba(33, 216, 160, 0.15) !important;
+}
+
+[data-theme="night"] .maplibregl-ctrl-group button:last-child {
+  border-bottom: none !important;
+}
+
+[data-theme="night"] .maplibregl-ctrl-icon {
+  filter: invert(1) brightness(1.8) !important;
+}
+
 @media (max-width: 640px) {
   .app-shell {
     grid-template-rows: 62px 1fr;
@@ -1197,6 +1325,19 @@ a:focus-visible {
     align-items: center;
     gap: 5px;
     flex-shrink: 0;
+  }
+
+  .theme-toggle-pill {
+    padding: 2px;
+    gap: 1px;
+  }
+
+  .theme-toggle-btn {
+    padding: 5px 6px;
+  }
+
+  .theme-btn-label {
+    display: none;
   }
 
   .topbar-nav-btn {
