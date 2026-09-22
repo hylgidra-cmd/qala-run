@@ -171,184 +171,195 @@ export function MapView({
   };
 
   return (
-    <Map
-      ref={mapRef}
-      mapStyle={activeMapStyle}
-      initialViewState={{ longitude: city.center.longitude, latitude: city.center.latitude, zoom: city.zoom }}
-      maxBounds={city.bounds}
-      minZoom={10}
-      maxZoom={19}
-      interactiveLayerIds={['territory-fill']}
-      onClick={handleMapClick}
-      style={{ width: '100%', height: '100%' }}
-    >
-      <NavigationControl position="top-right" />
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <Map
+        ref={mapRef}
+        mapStyle={activeMapStyle}
+        initialViewState={{ longitude: city.center.longitude, latitude: city.center.latitude, zoom: city.zoom }}
+        maxBounds={city.bounds}
+        minZoom={10}
+        maxZoom={19}
+        interactiveLayerIds={['territory-fill']}
+        onClick={handleMapClick}
+        style={{ width: '100%', height: '100%' }}
+      >
+        <NavigationControl position="top-right" />
 
-      <TerritoryLayer
-        mode={mode}
-        refreshKey={territoryRefreshKey}
-        onApiReachable={onApiReachable}
-      />
-
-      <Source id="live-track" type="geojson" data={track}>
-        <Layer
-          id="live-track-line"
-          type="line"
-          paint={{ 'line-color': '#ff8a3d', 'line-width': 4, 'line-opacity': 0.9 }}
+        <TerritoryLayer
+          mode={mode}
+          refreshKey={territoryRefreshKey}
+          onApiReachable={onApiReachable}
         />
-      </Source>
 
-      {/* Active City Event Banner */}
-      <div className="map-event-banner" role="status">
-        <Flame size={15} className="event-flame-icon" />
-        <span>{t.events.banner}</span>
-      </div>
+        <Source id="live-track" type="geojson" data={track}>
+          <Layer
+            id="live-track-line"
+            type="line"
+            paint={{ 'line-color': '#ff8a3d', 'line-width': 4, 'line-opacity': 0.9 }}
+          />
+        </Source>
 
-      {/* Selected Territory Info Popup */}
-      {selectedTerritory && (
-        <Popup
-          longitude={selectedTerritory.longitude}
-          latitude={selectedTerritory.latitude}
-          anchor="top"
-          onClose={() => setSelectedTerritory(null)}
-          closeButton={true}
-          closeOnClick={false}
-          className="territory-popup-wrapper"
-        >
-          <div className="territory-popup-content">
-            <div className="popup-badge" style={{ background: `${selectedTerritory.color}22`, color: selectedTerritory.color, borderColor: selectedTerritory.color }}>
-              {selectedTerritory.mode === 'clan' ? (
-                <>
-                  <Shield size={12} className="inline-icon" />
-                  <span>KLAN AYMAǴI</span>
-                </>
-              ) : (
-                <>
-                  <User size={12} className="inline-icon" />
-                  <span>JEKE AYMAQ</span>
-                </>
-              )}
-            </div>
-            <h3 className="popup-owner" style={{ color: selectedTerritory.color }}>
-              {selectedTerritory.ownerTag ? `[${selectedTerritory.ownerTag}] ` : ''}
-              {selectedTerritory.ownerName}
-            </h3>
-            {selectedTerritory.ownerPlayerId && (
-              <p className="popup-player-id">ID: <strong>{selectedTerritory.ownerPlayerId}</strong></p>
-            )}
-            <div className="popup-metric">
-              <span className="p-label">Iyelengen maydan:</span>
-              <strong className="p-val">{formatArea(selectedTerritory.areaM2)}</strong>
-            </div>
+        {/* Active City Event Banner */}
+        <div className="map-event-banner" role="status">
+          <Flame size={15} className="event-flame-icon" />
+          <span>{t.events.banner}</span>
+        </div>
 
-            {(() => {
-              const decay = getTerritoryDecayInfo(selectedTerritory.createdAt);
-              return (
-                <div className="popup-decay-section">
-                  <div className="decay-header">
-                    <Clock size={11} className="inline-icon" />
-                    <span>{t.events.daysLeft(decay.daysLeft)}</span>
-                  </div>
-                  <div className="decay-bar-track">
-                    <div
-                      className="decay-bar-fill"
-                      style={{
-                        width: `${decay.percentRemaining}%`,
-                        backgroundColor: decay.daysLeft < 10 ? '#ff5e6d' : selectedTerritory.color,
-                      }}
-                    />
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-        </Popup>
-      )}
-
-      {/* Selected Live Runner Profile Popup */}
-      {selectedRunner && selectedRunner.location && (
-        <Popup
-          longitude={selectedRunner.location.lon}
-          latitude={selectedRunner.location.lat}
-          anchor="bottom"
-          onClose={() => setSelectedRunner(null)}
-          closeButton={true}
-          closeOnClick={false}
-          className="runner-popup-wrapper"
-        >
-          <div className="runner-popup-content">
-            <div className="runner-popup-header">
-              <div className="runner-avatar-badge" style={{ backgroundColor: selectedRunner.color || '#21D8A0' }}>
-                <User size={18} color="#10251F" />
-              </div>
-              <div className="runner-popup-titles">
-                <h3 className="runner-popup-name">{selectedRunner.display_name}</h3>
-                <span className="runner-popup-id">ID: {selectedRunner.user_id}</span>
-              </div>
-            </div>
-
-            <div className="runner-popup-status">
-              <span className={`status-dot-inline ${selectedRunner.status === 'running' ? 'running' : 'online'}`} />
-              <span>{selectedRunner.status === 'running' ? 'Juwırmaqta 🏃' : 'Onlayn'}</span>
-            </div>
-
-            <button
-              type="button"
-              className={`runner-friend-btn ${sentFriendRequests[selectedRunner.user_id] ? 'sent' : ''}`}
-              onClick={() => handleFriendRequest(selectedRunner)}
-              disabled={!!sentFriendRequests[selectedRunner.user_id]}
-            >
-              {sentFriendRequests[selectedRunner.user_id] ? (
-                <>
-                  <Check size={14} />
-                  <span>{t.friends.sent}</span>
-                </>
-              ) : (
-                <>
-                  <UserPlus size={14} />
-                  <span>{t.friends.add}</span>
-                </>
-              )}
-            </button>
-          </div>
-        </Popup>
-      )}
-
-      {/* Other active players/runners on the map (Circular avatar pins without label below) */}
-      {otherRunners.map((r) => {
-        if (!r.location) return null;
-        const color = r.color || '#21D8A0';
-        return (
-          <Marker
-            key={`runner-${r.user_id}`}
-            longitude={r.location.lon}
-            latitude={r.location.lat}
-            anchor="center"
+        {/* Selected Territory Info Popup */}
+        {selectedTerritory && (
+          <Popup
+            longitude={selectedTerritory.longitude}
+            latitude={selectedTerritory.latitude}
+            anchor="top"
+            onClose={() => setSelectedTerritory(null)}
+            closeButton={true}
+            closeOnClick={false}
+            className="territory-popup-wrapper"
           >
-            <div
-              className={`map-runner-pin ${r.status === 'running' ? 'is-running' : ''}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                setSelectedRunner(r);
-                setSelectedTerritory(null);
-              }}
-              title={`${r.display_name} (ID: ${r.user_id})`}
-            >
-              <div
-                className="runner-pin-dot"
-                style={{ backgroundColor: color }}
-              >
-                <span className="runner-pin-icon" aria-hidden="true">
-                  <User size={14} strokeWidth={2.5} color="#10251F" />
-                </span>
-                {r.status === 'running' && (
-                  <span className="runner-pin-pulse" style={{ borderColor: color }} />
+            <div className="territory-popup-content">
+              <div className="popup-badge" style={{ background: `${selectedTerritory.color}22`, color: selectedTerritory.color, borderColor: selectedTerritory.color }}>
+                {selectedTerritory.mode === 'clan' ? (
+                  <>
+                    <Shield size={12} className="inline-icon" />
+                    <span>KLAN AYMAǴI</span>
+                  </>
+                ) : (
+                  <>
+                    <User size={12} className="inline-icon" />
+                    <span>JEKE AYMAQ</span>
+                  </>
                 )}
               </div>
+              <h3 className="popup-owner" style={{ color: selectedTerritory.color }}>
+                {selectedTerritory.ownerTag ? `[${selectedTerritory.ownerTag}] ` : ''}
+                {selectedTerritory.ownerName}
+              </h3>
+              {selectedTerritory.ownerPlayerId && (
+                <p className="popup-player-id">ID: <strong>{selectedTerritory.ownerPlayerId}</strong></p>
+              )}
+              <div className="popup-metric">
+                <span className="p-label">Iyelengen maydan:</span>
+                <strong className="p-val">{formatArea(selectedTerritory.areaM2)}</strong>
+              </div>
+
+              {(() => {
+                const decay = getTerritoryDecayInfo(selectedTerritory.createdAt);
+                return (
+                  <div className="popup-decay-section">
+                    <div className="decay-header">
+                      <Clock size={11} className="inline-icon" />
+                      <span>{t.events.daysLeft(decay.daysLeft)}</span>
+                    </div>
+                    <div className="decay-bar-track">
+                      <div
+                        className="decay-bar-fill"
+                        style={{
+                          width: `${decay.percentRemaining}%`,
+                          backgroundColor: decay.daysLeft < 10 ? '#ff5e6d' : selectedTerritory.color,
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
-          </Marker>
-        );
-      })}
+          </Popup>
+        )}
+
+        {/* Selected Live Runner Profile Popup */}
+        {selectedRunner && selectedRunner.location && (
+          <Popup
+            longitude={selectedRunner.location.lon}
+            latitude={selectedRunner.location.lat}
+            anchor="bottom"
+            onClose={() => setSelectedRunner(null)}
+            closeButton={true}
+            closeOnClick={false}
+            className="runner-popup-wrapper"
+          >
+            <div className="runner-popup-content">
+              <div className="runner-popup-header">
+                <div className="runner-avatar-badge" style={{ backgroundColor: selectedRunner.color || '#21D8A0' }}>
+                  <User size={18} color="#10251F" />
+                </div>
+                <div className="runner-popup-titles">
+                  <h3 className="runner-popup-name">{selectedRunner.display_name}</h3>
+                  <span className="runner-popup-id">ID: {selectedRunner.user_id}</span>
+                </div>
+              </div>
+
+              <div className="runner-popup-status">
+                <span className={`status-dot-inline ${selectedRunner.status === 'running' ? 'running' : 'online'}`} />
+                <span>{selectedRunner.status === 'running' ? 'Juwırmaqta 🏃' : 'Onlayn'}</span>
+              </div>
+
+              <button
+                type="button"
+                className={`runner-friend-btn ${sentFriendRequests[selectedRunner.user_id] ? 'sent' : ''}`}
+                onClick={() => handleFriendRequest(selectedRunner)}
+                disabled={!!sentFriendRequests[selectedRunner.user_id]}
+              >
+                {sentFriendRequests[selectedRunner.user_id] ? (
+                  <>
+                    <Check size={14} />
+                    <span>{t.friends.sent}</span>
+                  </>
+                ) : (
+                  <>
+                    <UserPlus size={14} />
+                    <span>{t.friends.add}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </Popup>
+        )}
+
+        {/* Other active players/runners on the map (Circular avatar pins without label below) */}
+        {otherRunners.map((r) => {
+          if (!r.location) return null;
+          const color = r.color || '#21D8A0';
+          return (
+            <Marker
+              key={`runner-${r.user_id}`}
+              longitude={r.location.lon}
+              latitude={r.location.lat}
+              anchor="center"
+            >
+              <div
+                className={`map-runner-pin ${r.status === 'running' ? 'is-running' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedRunner(r);
+                  setSelectedTerritory(null);
+                }}
+                title={`${r.display_name} (ID: ${r.user_id})`}
+              >
+                <div
+                  className="runner-pin-dot"
+                  style={{ backgroundColor: color }}
+                >
+                  <span className="runner-pin-icon" aria-hidden="true">
+                    <User size={14} strokeWidth={2.5} color="#10251F" />
+                  </span>
+                  {r.status === 'running' && (
+                    <span className="runner-pin-pulse" style={{ borderColor: color }} />
+                  )}
+                </div>
+              </div>
+            </Marker>
+          );
+        })}
+
+        {notice ? (
+          <div className="map-notice" role="status">
+            <p>{notice}</p>
+            <button type="button" onClick={() => setNotice(null)} aria-label="Dismiss">
+              <X size={14} />
+            </button>
+          </div>
+        ) : null}
+      </Map>
 
       {/* Floating Map Controls: Quick Theme Toggle & GPS location button */}
       <div className="map-floating-controls">
@@ -376,15 +387,6 @@ export function MapView({
           </span>
         </button>
       </div>
-
-      {notice ? (
-        <div className="map-notice" role="status">
-          <p>{notice}</p>
-          <button type="button" onClick={() => setNotice(null)} aria-label="Dismiss">
-            <X size={14} />
-          </button>
-        </div>
-      ) : null}
-    </Map>
+    </div>
   );
 }
