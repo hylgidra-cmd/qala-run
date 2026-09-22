@@ -606,8 +606,9 @@ a:focus-visible {
 .map-floating-geo-btn {
   position: absolute;
   z-index: 6;
-  top: 84px;
-  right: 18px;
+  top: 86px;
+  left: 20px;
+  right: auto;
   width: 44px;
   height: 44px;
   border-radius: 50%;
@@ -882,8 +883,9 @@ a:focus-visible {
   }
 
   .map-floating-geo-btn {
-    top: 130px;
-    right: 12px;
+    top: 76px;
+    left: 12px;
+    right: auto;
   }
 }
 

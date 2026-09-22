@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import Map, { GeolocateControl, Layer, Marker, type MapRef, NavigationControl, Popup, Source } from 'react-map-gl/maplibre';
+import Map, { Layer, Marker, type MapRef, NavigationControl, Popup, Source } from 'react-map-gl/maplibre';
 import { type LiveRunner, fetchLiveRunners } from '../admin/api';
 import type { TrackPoint } from '../run/api';
 import { formatArea } from '../run/format';
@@ -175,19 +175,6 @@ export function MapView({
       style={{ width: '100%', height: '100%' }}
     >
       <NavigationControl position="top-right" />
-      <GeolocateControl
-        position="top-right"
-        trackUserLocation
-        showUserLocation
-        positionOptions={{ enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }}
-        onGeolocate={(event) => {
-          const { longitude, latitude } = event.coords;
-          const inside = isInsideCityBounds(longitude, latitude, city.id);
-          setNotice(inside ? null : outOfCityNotice(city.id));
-        }}
-        onError={(error) => setNotice(geolocationNotice(error.code))}
-        onOutOfMaxBounds={() => setNotice(outOfCityNotice(city.id))}
-      />
 
       <TerritoryLayer
         mode={mode}
