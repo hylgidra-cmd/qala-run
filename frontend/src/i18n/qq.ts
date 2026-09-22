@@ -139,6 +139,13 @@ export const t = {
     loading: 'Júklenbekte…',
     unavailable: 'Profil házirshe qoljetimsiz.',
     logout: 'Akkaunttan shıǵıw',
+    privacyZone: 'Maxfiylik zonası (200m radius)',
+    privacyActive: 'Maxfiylik zonası belsendi: Uy kórsetkishleri jasırıldı',
+  },
+
+  events: {
+    banner: '🔥 Nókis eventı: 2x Maydon boyınsha bonus!',
+    daysLeft: (days: number) => `60-kunlik muddat: ${days} kún qaldı`,
   },
 
   friends: {

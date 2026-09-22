@@ -179,3 +179,45 @@ export function fetchExclusions(
 
   return request<ExclusionCollection>(`/zones/exclusions?${query.toString()}`);
 }
+
+/** Anti-Cheat Validation Gate: Checks max speed and teleportation jumps */
+export function validateTrackPoints(points: TrackPoint[]): { valid: boolean; reason?: string } {
+  if (!points || points.length < 2) return { valid: true };
+
+  for (let i = 1; i < points.length; i++) {
+    const prev = points[i - 1];
+    const curr = points[i];
+
+    // Speed check (> 7 m/s ≈ 25.2 km/h)
+    if (curr.speed !== null && curr.speed > 7) {
+      return { valid: false, reason: 'ACTIVITY_NOT_ALLOWED' };
+    }
+
+    // Teleport jump check: >100m in <2s
+    const dt = Math.abs(curr.ts - prev.ts);
+    if (dt > 0 && dt <= 2) {
+      const dLat = (curr.lat - prev.lat) * 111_000;
+      const dLon = (curr.lon - prev.lon) * 111_000 * Math.cos((curr.lat * Math.PI) / 180);
+      const distM = Math.sqrt(dLat * dLat + dLon * dLon);
+      if (distM > 100) {
+        return { valid: false, reason: 'TELEPORT_DETECTED' };
+      }
+    }
+  }
+
+  return { valid: true };
+}
+
+/** Calculates 60-day rolling window territory decay */
+export function getTerritoryDecayInfo(createdAtStr?: string): { daysLeft: number; percentRemaining: number; isDecayed: boolean } {
+  const TOTAL_DAYS = 60;
+  const createdTime = createdAtStr ? new Date(createdAtStr).getTime() : Date.now() - 15 * 86400 * 1000;
+  const ageMs = Date.now() - createdTime;
+  const ageDays = Math.max(0, Math.floor(ageMs / (86400 * 1000)));
+
+  const daysLeft = Math.max(0, TOTAL_DAYS - ageDays);
+  const percentRemaining = Math.round((daysLeft / TOTAL_DAYS) * 100);
+  const isDecayed = daysLeft <= 0;
+
+  return { daysLeft, percentRemaining, isDecayed };
+}

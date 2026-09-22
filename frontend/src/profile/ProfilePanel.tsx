@@ -1,4 +1,5 @@
 import { type ChangeEvent, useEffect, useState } from 'react';
+import { Shield } from 'lucide-react';
 import { t } from '../i18n/qq';
 import { CITIES_LIST } from '../map/cities';
 import { formatArea } from '../run/format';
@@ -20,6 +21,14 @@ export function ProfilePanel({ profile, onClose, onLogout, clanPrompt = false }:
   const [saving, setSaving] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [privacyZoneEnabled, setPrivacyZoneEnabled] = useState(() => {
+    return localStorage.getItem('dontstop.privacyZone') === 'true';
+  });
+
+  const handlePrivacyToggle = (enabled: boolean) => {
+    setPrivacyZoneEnabled(enabled);
+    localStorage.setItem('dontstop.privacyZone', enabled ? 'true' : 'false');
+  };
 
   useEffect(() => {
     if (me?.display_name) {
@@ -206,6 +215,27 @@ export function ProfilePanel({ profile, onClose, onLogout, clanPrompt = false }:
               ))}
             </select>
           </div>
+        </div>
+
+        {/* Privacy Zone Setting Switch */}
+        <div className="field privacy-zone-toggle" style={{ marginTop: '12px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+            <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#F7F9F6' }}>
+              <Shield size={14} className="inline-icon" style={{ marginRight: '6px', color: '#21D8A0' }} />
+              {t.profile.privacyZone}
+            </span>
+            <input
+              type="checkbox"
+              checked={privacyZoneEnabled}
+              onChange={(e) => handlePrivacyToggle(e.target.checked)}
+              style={{ width: '18px', height: '18px', accentColor: '#21D8A0', cursor: 'pointer' }}
+            />
+          </label>
+          {privacyZoneEnabled && (
+            <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: '#8faea1' }}>
+              {t.profile.privacyActive}
+            </p>
+          )}
         </div>
 
         <div className="profile-stats-grid">

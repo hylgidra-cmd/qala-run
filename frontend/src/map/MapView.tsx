@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Map, { Layer, Marker, type MapRef, NavigationControl, Popup, Source } from 'react-map-gl/maplibre';
-import { Check, Crosshair, Loader2, Moon, Shield, Sun, User, UserPlus, X } from 'lucide-react';
+import { Check, Clock, Crosshair, Flame, Loader2, Moon, Shield, Sun, User, UserPlus, X } from 'lucide-react';
 import { type LiveRunner, fetchLiveRunners } from '../admin/api';
-import type { TrackPoint } from '../run/api';
+import { type TrackPoint, getTerritoryDecayInfo } from '../run/api';
 import { formatArea } from '../run/format';
 import { t } from '../i18n/qq';
 import { TerritoryLayer } from './TerritoryLayer';
@@ -198,6 +198,12 @@ export function MapView({
         />
       </Source>
 
+      {/* Active City Event Banner */}
+      <div className="map-event-banner" role="status">
+        <Flame size={15} className="event-flame-icon" />
+        <span>{t.events.banner}</span>
+      </div>
+
       {/* Selected Territory Info Popup */}
       {selectedTerritory && (
         <Popup
@@ -234,6 +240,27 @@ export function MapView({
               <span className="p-label">Iyelengen maydan:</span>
               <strong className="p-val">{formatArea(selectedTerritory.areaM2)}</strong>
             </div>
+
+            {(() => {
+              const decay = getTerritoryDecayInfo(selectedTerritory.createdAt);
+              return (
+                <div className="popup-decay-section">
+                  <div className="decay-header">
+                    <Clock size={11} className="inline-icon" />
+                    <span>{t.events.daysLeft(decay.daysLeft)}</span>
+                  </div>
+                  <div className="decay-bar-track">
+                    <div
+                      className="decay-bar-fill"
+                      style={{
+                        width: `${decay.percentRemaining}%`,
+                        backgroundColor: decay.daysLeft < 10 ? '#ff5e6d' : selectedTerritory.color,
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </Popup>
       )}
