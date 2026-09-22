@@ -8,10 +8,8 @@ import {
   LogIn,
   MapPin,
   MessageSquare,
-  Moon,
   Shield,
   ShieldAlert,
-  Sun,
   User,
   UserPlus,
   X,
@@ -140,8 +138,8 @@ export function App() {
           <a className="brand" href="/" aria-label={t.brand.home}>
             <span className="brand-mark" aria-hidden="true">DS</span>
             <div className="brand-titles">
-              <span className="brand-title">QalaRun</span>
-              <span className="brand-sub">DON'T STOP</span>
+              <span className="brand-title">DON'T STOP</span>
+              <span className="brand-sub">TERRITORY CAPTURE</span>
             </div>
           </a>
 
@@ -161,7 +159,6 @@ export function App() {
                 </option>
               ))}
             </select>
-            <span className="city-chevron" aria-hidden="true">▾</span>
             <ChevronDown size={11} className="city-chevron" aria-hidden="true" />
           </div>
         </div>
@@ -192,30 +189,6 @@ export function App() {
         </div>
 
         <div className="topbar-actions">
-          {/* Day / Night Theme Switch */}
-          <div className="theme-toggle-pill" role="group" aria-label="Xarita vaqti rejimi">
-            <button
-              type="button"
-              className={`theme-toggle-btn ${theme === 'day' ? 'active' : ''}`}
-              onClick={() => handleSetTheme('day')}
-              title="Kúndizgi rejim (Day)"
-              aria-label="Kúndizgi rejim"
-            >
-              <Sun size={14} />
-              <span className="theme-btn-label">Kúndiz</span>
-            </button>
-            <button
-              type="button"
-              className={`theme-toggle-btn ${theme === 'night' ? 'active' : ''}`}
-              onClick={() => handleSetTheme('night')}
-              title="Keshki rejim (Night)"
-              aria-label="Keshki rejim"
-            >
-              <Moon size={14} />
-              <span className="theme-btn-label">Keshki</span>
-            </button>
-          </div>
-
           {/* Action buttons: Reyting, Tariyx, Chat */}
           <button
             type="button"
@@ -338,7 +311,7 @@ export function App() {
                 <span>{apiReachable ? 'Online' : t.map.offline}</span>
               </div>
             </div>
-            <h2 className="status-card-title">QalaRun</h2>
+            <h2 className="status-card-title">Don't Stop</h2>
             <p className="status-card-lead">Júgirip, óz aymaǵıńdı keńeytiriń.</p>
 
             <div className="status-card-desc">
