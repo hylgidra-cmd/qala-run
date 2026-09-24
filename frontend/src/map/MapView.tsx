@@ -170,6 +170,36 @@ export function MapView({
     onSendFriendRequest?.(runner);
   };
 
+  // Construct closed loop polygon preview when user has >= 3 track points
+  const loopPreviewPolygon = useMemo(() => {
+    const rawCoords = (trackPoints ?? []).map((p) => [p.lon, p.lat]);
+    if (rawCoords.length < 3) return null;
+    return {
+      type: 'Feature' as const,
+      geometry: {
+        type: 'Polygon' as const,
+        coordinates: [[...rawCoords, rawCoords[0]]],
+      },
+      properties: {},
+    };
+  }, [trackPoints]);
+
+  // Construct closing dashed line connecting current position back to starting point
+  const loopClosingLine = useMemo(() => {
+    const rawCoords = (trackPoints ?? []).map((p) => [p.lon, p.lat]);
+    if (rawCoords.length < 3) return null;
+    const first = rawCoords[0];
+    const last = rawCoords[rawCoords.length - 1];
+    return {
+      type: 'Feature' as const,
+      geometry: {
+        type: 'LineString' as const,
+        coordinates: [last, first],
+      },
+      properties: {},
+    };
+  }, [trackPoints]);
+
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <Map
@@ -191,13 +221,43 @@ export function MapView({
           onApiReachable={onApiReachable}
         />
 
+        {/* Closed Loop Polygon Preview (INTVL Style Fill) */}
+        {loopPreviewPolygon && (
+          <Source id="loop-preview-fill" type="geojson" data={loopPreviewPolygon}>
+            <Layer
+              id="loop-preview-polygon-layer"
+              type="fill"
+              paint={{ 'fill-color': '#00ff88', 'fill-opacity': 0.15 }}
+            />
+          </Source>
+        )}
+
+        {/* Active Track Line */}
         <Source id="live-track" type="geojson" data={track}>
           <Layer
             id="live-track-line"
             type="line"
-            paint={{ 'line-color': '#ff8a3d', 'line-width': 4, 'line-opacity': 0.9 }}
+            layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+            paint={{ 'line-color': '#00ff88', 'line-width': 5, 'line-opacity': 0.95 }}
           />
         </Source>
+
+        {/* Loop Closure Connector (Dashed Line back to Start Fix) */}
+        {loopClosingLine && (
+          <Source id="loop-closing-line" type="geojson" data={loopClosingLine}>
+            <Layer
+              id="loop-closing-line-layer"
+              type="line"
+              layout={{ 'line-cap': 'round' }}
+              paint={{
+                'line-color': '#ffea00',
+                'line-width': 3,
+                'line-dasharray': [2, 2],
+                'line-opacity': 0.9,
+              }}
+            />
+          </Source>
+        )}
 
         {/* Active City Event Banner */}
         <div className="map-event-banner" role="status">
@@ -266,90 +326,93 @@ export function MapView({
           </Popup>
         )}
 
-        {/* Selected Live Runner Profile Popup */}
-        {selectedRunner && selectedRunner.location && (
-          <Popup
-            longitude={selectedRunner.location.lon}
-            latitude={selectedRunner.location.lat}
-            anchor="bottom"
-            onClose={() => setSelectedRunner(null)}
-            closeButton={true}
-            closeOnClick={false}
-            className="runner-popup-wrapper"
-          >
-            <div className="runner-popup-content">
-              <div className="runner-popup-header">
-                <div className="runner-avatar-badge" style={{ backgroundColor: selectedRunner.color || '#21D8A0' }}>
-                  <User size={18} color="#10251F" />
-                </div>
-                <div className="runner-popup-titles">
-                  <h3 className="runner-popup-name">{selectedRunner.display_name}</h3>
-                  <span className="runner-popup-id">ID: {selectedRunner.user_id}</span>
-                </div>
-              </div>
 
-              <div className="runner-popup-status">
-                <span className={`status-dot-inline ${selectedRunner.status === 'running' ? 'running' : 'online'}`} />
-                <span>{selectedRunner.status === 'running' ? 'Juwırmaqta 🏃' : 'Onlayn'}</span>
-              </div>
 
-              <button
-                type="button"
-                className={`runner-friend-btn ${sentFriendRequests[selectedRunner.user_id] ? 'sent' : ''}`}
-                onClick={() => handleFriendRequest(selectedRunner)}
-                disabled={!!sentFriendRequests[selectedRunner.user_id]}
-              >
-                {sentFriendRequests[selectedRunner.user_id] ? (
-                  <>
-                    <Check size={14} />
-                    <span>{t.friends.sent}</span>
-                  </>
-                ) : (
-                  <>
-                    <UserPlus size={14} />
-                    <span>{t.friends.add}</span>
-                  </>
-                )}
-              </button>
+
+
+      {/* Selected Live Runner Profile Popup */}
+      {selectedRunner && selectedRunner.location && (
+        <Popup
+          longitude={selectedRunner.location.lon}
+          latitude={selectedRunner.location.lat}
+          anchor="bottom"
+          onClose={() => setSelectedRunner(null)}
+          closeButton={true}
+          closeOnClick={false}
+          className="runner-popup-wrapper"
+        >
+          <div className="runner-popup-content">
+            <div className="runner-popup-header">
+              <div className="runner-avatar-badge" style={{ backgroundColor: selectedRunner.color || '#21D8A0' }}>
+                <User size={18} color="#10251F" />
+              </div>
+              <div className="runner-popup-titles">
+                <h3 className="runner-popup-name">{selectedRunner.display_name}</h3>
+                <span className="runner-popup-id">ID: {selectedRunner.user_id}</span>
+              </div>
             </div>
-          </Popup>
-        )}
 
-        {/* Other active players/runners on the map (Circular avatar pins without label below) */}
-        {otherRunners.map((r) => {
-          if (!r.location) return null;
-          const color = r.color || '#21D8A0';
-          return (
-            <Marker
-              key={`runner-${r.user_id}`}
-              longitude={r.location.lon}
-              latitude={r.location.lat}
-              anchor="center"
+            <div className="runner-popup-status">
+              <span className={`status-dot-inline ${selectedRunner.status === 'running' ? 'running' : 'online'}`} />
+              <span>{selectedRunner.status === 'running' ? 'Juwırmaqta 🏃' : 'Onlayn'}</span>
+            </div>
+
+            <button
+              type="button"
+              className={`runner-friend-btn ${sentFriendRequests[selectedRunner.user_id] ? 'sent' : ''}`}
+              onClick={() => handleFriendRequest(selectedRunner)}
+              disabled={!!sentFriendRequests[selectedRunner.user_id]}
             >
-              <div
-                className={`map-runner-pin ${r.status === 'running' ? 'is-running' : ''}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedRunner(r);
-                  setSelectedTerritory(null);
-                }}
-                title={`${r.display_name} (ID: ${r.user_id})`}
-              >
-                <div
-                  className="runner-pin-dot"
-                  style={{ backgroundColor: color }}
-                >
-                  <span className="runner-pin-icon" aria-hidden="true">
-                    <User size={14} strokeWidth={2.5} color="#10251F" />
-                  </span>
-                  {r.status === 'running' && (
-                    <span className="runner-pin-pulse" style={{ borderColor: color }} />
-                  )}
-                </div>
+              {sentFriendRequests[selectedRunner.user_id] ? (
+                <>
+                  <Check size={14} />
+                  <span>{t.friends.sent}</span>
+                </>
+              ) : (
+                <>
+                  <UserPlus size={14} />
+                  <span>{t.friends.add}</span>
+                </>
+              )}
+            </button>
+          </div>
+        </Popup>
+      )}
+
+
+      {/* Other active players/runners on the map */}
+      {otherRunners.map((r) => {
+        if (!r.location) return null;
+        const color = r.color || '#21D8A0';
+        return (
+          <Marker
+            key={`runner-${r.user_id}`}
+            longitude={r.location.lon}
+            latitude={r.location.lat}
+            anchor="center"
+          >
+            <div
+              className={`map-runner-pin ${r.status === 'running' ? 'is-running' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedRunner(r);
+                setSelectedTerritory(null);
+              }}
+              title={`${r.display_name} (ID: ${r.user_id})`}
+            >
+              <div className="runner-pin-dot" style={{ backgroundColor: color }}>
+                <span className="runner-pin-icon" aria-hidden="true">
+                  <User size={14} strokeWidth={2.5} color="#10251F" />
+                </span>
+                {r.status === 'running' && (
+                  <span className="runner-pin-pulse" style={{ borderColor: color }} />
+                )}
               </div>
-            </Marker>
-          );
-        })}
+            </div>
+          </Marker>
+        );
+      })}
+
 
         {notice ? (
           <div className="map-notice" role="status">
@@ -387,6 +450,8 @@ export function MapView({
           </span>
         </button>
       </div>
+
     </div>
   );
 }
+

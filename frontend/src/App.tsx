@@ -7,6 +7,7 @@ import {
   History,
   LogIn,
   MapPin,
+  Menu,
   MessageSquare,
   Shield,
   ShieldAlert,
@@ -45,7 +46,9 @@ export function App() {
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [clanPrompt, setClanPrompt] = useState(false);
+
   const [registerDismissed, setRegisterDismissed] = useState(false);
   const [isAdmin, setIsAdmin] = useState(() => window.location.hash === '#admin');
   const tracker = useRunTracker(mode);
@@ -286,8 +289,162 @@ export function App() {
               <LogIn size={13} /> Kirish
             </button>
           )}
+
+          {/* Mobile Hamburger Toggle Button */}
+          <button
+            type="button"
+            className="mobile-menu-toggle"
+            onClick={() => setMobileMenuOpen((o) => !o)}
+            aria-label="Menyu"
+            title="Menyu"
+          >
+            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+
         </div>
       </header>
+
+      {/* Mobile Drawer Menu (Visible when hamburger button is clicked) */}
+      {mobileMenuOpen && (
+        <div className="mobile-drawer-overlay" onClick={() => setMobileMenuOpen(false)}>
+          <div className="mobile-drawer-content" onClick={(e) => e.stopPropagation()}>
+            <div className="drawer-header">
+              <span className="drawer-title">MENYU</span>
+              <button
+                type="button"
+                className="drawer-close-btn"
+                onClick={() => setMobileMenuOpen(false)}
+                aria-label="Yopish"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="drawer-section">
+              <label className="drawer-label">QALA SAYLAW</label>
+              <div className="city-switcher drawer-city">
+                <MapPin size={15} className="city-icon" aria-hidden="true" />
+                <select
+                  value={activeCity}
+                  onChange={(e) => {
+                    handleCityChange(e.target.value);
+                    setMobileMenuOpen(false);
+                  }}
+                  className="topbar-city-select"
+                  aria-label={t.cities.label}
+                >
+                  {CITIES_LIST.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={13} className="city-chevron" aria-hidden="true" />
+              </div>
+            </div>
+
+            <div className="drawer-section">
+              <label className="drawer-label">REJIM</label>
+              <div className="mode-switch drawer-mode">
+                <button
+                  className={`mode-btn ${mode === 'solo' ? 'active' : ''}`}
+                  type="button"
+                  onClick={() => {
+                    setMode('solo');
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  <User size={15} /> <span>{t.mode.solo}</span>
+                </button>
+                <button
+                  className={`mode-btn ${mode === 'clan' ? 'active' : ''}`}
+                  type="button"
+                  onClick={() => {
+                    chooseClan();
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  <Shield size={15} /> <span>{t.mode.clan}</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="drawer-nav-list">
+              <button
+                type="button"
+                className="drawer-nav-item"
+                onClick={() => {
+                  setLeaderboardOpen(true);
+                  setMobileMenuOpen(false);
+                }}
+              >
+                <BarChart3 size={16} /> <span>Reyting Jadvali</span>
+              </button>
+
+              {isAuthenticated && (
+                <button
+                  type="button"
+                  className="drawer-nav-item"
+                  onClick={() => {
+                    setHistoryOpen(true);
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  <History size={16} /> <span>Juwırıwlar Tariyxı</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                className="drawer-nav-item"
+                onClick={() => {
+                  setChatOpen(true);
+                  setMobileMenuOpen(false);
+                }}
+              >
+                <MessageSquare size={16} /> <span>Chat</span>
+              </button>
+
+              <button
+                type="button"
+                className="drawer-nav-item"
+                onClick={() => {
+                  window.location.hash = '#admin';
+                  setIsAdmin(true);
+                  setMobileMenuOpen(false);
+                }}
+              >
+                <ShieldAlert size={16} /> <span>Admin Baqlaw Orayı</span>
+              </button>
+
+              {isAuthenticated ? (
+                <button
+                  type="button"
+                  className="drawer-nav-item highlight"
+                  onClick={() => {
+                    setPanelOpen(true);
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  <User size={16} /> <span>{profile.me?.display_name || 'Profil'}</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="drawer-nav-item highlight"
+                  onClick={() => {
+                    setAuthModalOpen(true);
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  <LogIn size={16} /> <span>Kirish / Ro'yxatdan o'tiw</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
 
       <section className="map-stage" aria-label={t.map.label}>
         <MapView

@@ -116,12 +116,21 @@ export function RunPanel({ tracker, apiReachable }: RunPanelProps) {
             <span className="hud-points-badge">
               <MapPin size={12} className="inline-icon" /> {points.length} noqat
             </span>
+            {tracker.loopGapM !== null && points.length >= 3 ? (
+              <span className={`hud-loop-badge ${tracker.isLoopReady ? 'ready' : ''}`}>
+                <span aria-hidden="true">🔄 </span>
+                {tracker.isLoopReady
+                  ? `Aylana tayyor! (${tracker.loopGapM}m)`
+                  : `Basa kiyiwge: ${tracker.loopGapM}m`}
+              </span>
+            ) : null}
             {screenLocked ? (
               <span className="hud-wakelock-badge">
                 <Smartphone size={12} className="inline-icon" /> Ekran oʻshpeydi
               </span>
             ) : null}
           </div>
+
 
           <div className="hud-actions">
             <button

@@ -43,6 +43,9 @@ export interface RunTracker {
   distanceM: number;
   speedKmh: number;
   screenLocked: boolean;
+  loopGapM?: number | null;
+  isLoopReady?: boolean;
+
   start: () => Promise<void>;
   finish: () => Promise<void>;
   reset: () => void;
@@ -59,6 +62,8 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
   const [distanceM, setDistanceM] = useState(0);
   const [speedKmh, setSpeedKmh] = useState(0);
   const [screenLocked, setScreenLocked] = useState(false);
+  const [loopGapM, setLoopGapM] = useState<number | null>(null);
+  const [isLoopReady, setIsLoopReady] = useState(false);
 
   const watchId = useRef<number | null>(null);
   const pending = useRef<TrackPoint[]>([]);
@@ -164,31 +169,53 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
 
     watchId.current = navigator.geolocation.watchPosition(
       (position) => {
+        // Filter out low accuracy fixes (> 35 meters)
+        if (position.coords.accuracy && position.coords.accuracy > 35) {
+          return;
+        }
+
         const point = toTrackPoint(position);
-        pending.current.push(point);
+
         setPoints((previous) => {
           if (previous.length > 0) {
             const prev = previous[previous.length - 1];
             const d = distanceBetween(prev.lat, prev.lon, point.lat, point.lon);
-            const dt = point.ts - prev.ts;
+            const dt = Math.max(0.1, point.ts - prev.ts);
+
+            // Filter out micro-jitter (< 1.2 meters unless time difference > 3 seconds)
+            if (d < 1.2 && dt < 3) {
+              return previous;
+            }
+
+            // Filter out extreme GPS teleport jumps (> 70 meters in < 3 seconds)
+            if (d > 70 && dt < 3) {
+              return previous;
+            }
+
             setDistanceM((cur) => cur + d);
+
             if (point.speed !== null && point.speed > 0) {
               setSpeedKmh(Math.round(point.speed * 3.6 * 10) / 10);
-            } else if (dt > 0 && d > 0.5) {
+            } else if (dt > 0) {
               const computedSpeedKmh = (d / dt) * 3.6;
               if (computedSpeedKmh < 45) {
                 setSpeedKmh(Math.round(computedSpeedKmh * 10) / 10);
               }
             }
+
+            // Calculate loop closure distance back to starting fix
+            const first = previous[0];
+            const gapToStart = distanceBetween(first.lat, first.lon, point.lat, point.lon);
+            setLoopGapM(Math.round(gapToStart));
+            setIsLoopReady(previous.length >= 3 && gapToStart <= 45);
           }
-          if (point.speed !== null && point.speed > 0) {
-            setSpeedKmh(Math.round(point.speed * 3.6 * 10) / 10);
-          }
+
+          pending.current.push(point);
           return [...previous, point];
         });
       },
       (positionError) => setError(positionError.message),
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 },
+      { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 },
     );
 
     flushTimer.current = window.setInterval(() => {
@@ -231,6 +258,8 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
     setDurationSeconds(0);
     setDistanceM(0);
     setSpeedKmh(0);
+    setLoopGapM(null);
+    setIsLoopReady(false);
   }, [stopWatching]);
 
   /** Release a run left active by a closed tab, then allow a new one. */
@@ -258,9 +287,12 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
     distanceM,
     speedKmh,
     screenLocked,
+    loopGapM,
+    isLoopReady,
     start,
     finish,
     reset,
     recover,
   };
 }
+
