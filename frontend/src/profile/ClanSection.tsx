@@ -55,41 +55,72 @@ export function ClanSection({ profile, prompt = false }: ClanSectionProps) {
   };
 
   if (clan) {
+    const roleBadges: Record<string, { icon: string; label: string }> = {
+      owner: { icon: '👑', label: t.clan.roles.owner },
+      officer: { icon: '⭐', label: t.clan.roles.officer },
+      member: { icon: '🏃', label: t.clan.roles.member },
+    };
+
     return (
       <section className="clan-block" aria-label={t.clan.title}>
         <p className="eyebrow">{t.clan.title}</p>
 
-        <div className="clan-identity">
-          <span className="clan-tag" style={{ background: clan.color_hex }}>
-            {clan.tag}
-          </span>
-          <div>
-            <p className="clan-name">{clan.name}</p>
-            <p className="clan-meta">
-              {t.clan.members(clan.member_count)} · {formatArea(clan.area_m2)}
-            </p>
+        <div className="clan-identity-card" style={{ borderColor: `${clan.color_hex}55` }}>
+          <div className="clan-header-row">
+            <span className="clan-tag-badge" style={{ background: clan.color_hex }}>
+              [{clan.tag}]
+            </span>
+            <div className="clan-titles">
+              <h3 className="clan-name">{clan.name}</h3>
+              <p className="clan-meta">
+                <span>👥 {t.clan.members(clan.member_count)}</span>
+                <span>•</span>
+                <span className="clan-area-badge">🗺️ {formatArea(clan.area_m2)}</span>
+              </p>
+            </div>
+          </div>
+
+          <div className="clan-member-progress-track">
+            <div
+              className="clan-member-progress-fill"
+              style={{ width: `${(clan.member_count / 10) * 100}%`, backgroundColor: clan.color_hex }}
+            />
           </div>
         </div>
 
         {clan.invite_code ? (
-          <p className="clan-code">
-            <span>{t.clan.inviteCode}</span>
-            <strong>{clan.invite_code}</strong>
-            <button type="button" className="link-button" onClick={() => void copyCode()}>
-              {copied ? t.profile.copied : t.profile.copy}
+          <div className="clan-code-box">
+            <div className="code-info">
+              <span className="code-label">{t.clan.inviteCode}:</span>
+              <strong className="code-val">{clan.invite_code}</strong>
+            </div>
+            <button type="button" className="code-copy-btn" onClick={() => void copyCode()}>
+              {copied ? `✓ ${t.profile.copied}` : t.profile.copy}
             </button>
-          </p>
+          </div>
         ) : null}
 
-        <ul className="clan-members">
-          {clan.members.map((member) => (
-            <li key={member.user_id}>
-              <span className="clan-member-name">{member.display_name}</span>
-              <span className="clan-member-id">{member.player_id}</span>
-              <span className="clan-member-role">{t.clan.roles[member.role] ?? member.role}</span>
-            </li>
-          ))}
-        </ul>
+        <div className="clan-members-section">
+          <p className="clan-section-label">AǴZALAR DIZIMI ({clan.member_count}/10)</p>
+          <ul className="clan-members-list">
+            {clan.members.map((member) => {
+              const badge = roleBadges[member.role] ?? { icon: '🏃', label: member.role };
+              return (
+                <li key={member.user_id} className="clan-member-item">
+                  <div className="member-info">
+                    <span className="member-role-icon" title={badge.label}>{badge.icon}</span>
+                    <span className="clan-member-name">{member.display_name}</span>
+                    <span className="clan-member-id">{member.player_id}</span>
+                  </div>
+
+                  <span className={`member-role-tag ${member.role}`}>
+                    {badge.label}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
 
         {error ? <p className="field-error">{error}</p> : null}
 
@@ -104,6 +135,7 @@ export function ClanSection({ profile, prompt = false }: ClanSectionProps) {
       </section>
     );
   }
+
 
   return (
     <section className="clan-block" aria-label={t.clan.title}>
