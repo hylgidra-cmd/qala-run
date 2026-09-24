@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Map, { Layer, Marker, type MapRef, NavigationControl, Popup, Source } from 'react-map-gl/maplibre';
-import { Check, Clock, Crosshair, Flame, Loader2, Moon, Shield, Sun, User, UserPlus, X } from 'lucide-react';
+import { Check, Clock, Crosshair, Loader2, Moon, Shield, Sun, User, UserPlus, X } from 'lucide-react';
+
 import { type LiveRunner, fetchLiveRunners } from '../admin/api';
 import { type TrackPoint, getTerritoryDecayInfo } from '../run/api';
 import { formatArea } from '../run/format';
@@ -259,11 +260,6 @@ export function MapView({
           </Source>
         )}
 
-        {/* Active City Event Banner */}
-        <div className="map-event-banner" role="status">
-          <Flame size={15} className="event-flame-icon" />
-          <span>{t.events.banner}</span>
-        </div>
 
         {/* Selected Territory Info Popup */}
         {selectedTerritory && (

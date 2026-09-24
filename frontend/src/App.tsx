@@ -483,7 +483,7 @@ export function App() {
                   <strong className="stat-val">
                     {profile.me && profile.me.stats.runs_accepted > 0
                       ? formatDistance(profile.me.stats.runs_accepted * 1500)
-                      : '12.4 km'}
+                      : '0 km'}
                   </strong>
                 </div>
                 <span className="stat-label">Júgirgen qashıqlıq</span>
@@ -494,12 +494,13 @@ export function App() {
                   <strong className="stat-val">
                     {profile.me && profile.me.stats.solo_area_m2 > 0
                       ? formatArea(profile.me.stats.solo_area_m2)
-                      : '2.8 km²'}
+                      : '0 m²'}
                   </strong>
                 </div>
                 <span className="stat-label">Basıp alınǵan aymaq</span>
               </div>
             </div>
+
           </aside>
         ) : null}
 
