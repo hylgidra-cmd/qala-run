@@ -3,6 +3,7 @@ import { uz } from './uz';
 import { kk } from './kk';
 import { tr } from './tr';
 import { en } from './en';
+import { setActiveDict } from './state';
 import type { TranslationDictionary } from './qq';
 
 export type LanguageCode = 'qq' | 'uz' | 'kk' | 'tr' | 'en';
@@ -37,6 +38,9 @@ let currentLang: LanguageCode = (() => {
   return 'qq';
 })();
 
+// Initialize initial active dictionary state
+setActiveDict(DICTIONARIES[currentLang]);
+
 const listeners = new Set<(lang: LanguageCode) => void>();
 
 export function getLanguage(): LanguageCode {
@@ -47,6 +51,7 @@ export function setLanguage(lang: LanguageCode) {
   if (lang in DICTIONARIES) {
     currentLang = lang;
     localStorage.setItem('dontstop.lang', lang);
+    setActiveDict(DICTIONARIES[currentLang]);
     listeners.forEach((listener) => listener(lang));
   }
 }

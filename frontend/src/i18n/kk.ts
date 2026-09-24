@@ -186,3 +186,4 @@ export const kk: TranslationDictionary = {
     dismiss: 'Jabý',
   },
 };
+

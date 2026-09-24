@@ -1,3 +1,5 @@
+import { getActiveDict } from './state';
+
 export interface TranslationDictionary {
   brand: {
     name: string;
@@ -330,11 +332,9 @@ export const qq: TranslationDictionary = {
 };
 
 // Proxy fallback export to ensure `import { t } from './qq'` continues to work seamlessly
-import { getActiveDictionary } from './index';
-
 export const t: TranslationDictionary = new Proxy(qq, {
   get(_target, prop: keyof TranslationDictionary) {
-    const dict = getActiveDictionary();
-    return dict[prop] ?? qq[prop];
+    const active = getActiveDict();
+    return active ? (active[prop] ?? qq[prop]) : qq[prop];
   },
 });

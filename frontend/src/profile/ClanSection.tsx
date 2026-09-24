@@ -18,8 +18,10 @@ export function getGuildEmblem(clanId?: string): string {
 }
 
 /**
+ * Create a clan, join one with a code, or manage the one you are in.
  * Create a Gildiya (guild), join one with a code, or manage the one you are in.
  *
+ * A clan holds ten players (TZ section 23.2) and its ground is its own: it is
  * A Gildiya holds ten players (TZ section 23.2) and its ground is its own: it is
  * a second map over the same city, not a filter on the solo one.
  */
@@ -84,6 +86,9 @@ export function ClanSection({ profile, prompt = false }: ClanSectionProps) {
 
         <div className="clan-identity-card" style={{ borderColor: `${clan.color_hex}55` }}>
           <div className="clan-header-row">
+            <span className="clan-tag-badge" style={{ background: clan.color_hex }}>
+              [{clan.tag}]
+            </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span className="guild-emblem-display" style={{ fontSize: '1.6rem' }} title={t.clan.emblemField}>
                 {currentEmblem}
@@ -157,6 +162,7 @@ export function ClanSection({ profile, prompt = false }: ClanSectionProps) {
       </section>
     );
   }
+
 
   return (
     <section className="clan-block" aria-label={t.clan.title}>
