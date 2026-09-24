@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { t } from '../i18n/qq';
 import { CITIES_LIST, getCity } from '../map/cities';
 import { getGuildEmblem } from '../profile/ClanSection';
+import { GuildEmblem } from '../profile/GuildEmblem';
 import { formatArea } from '../run/format';
 import { DefaultAvatar } from '../ui/DefaultAvatar';
 import {
@@ -156,9 +157,9 @@ export function LeaderboardModal({ initialCity = 'nukus', onClose }: Leaderboard
                     <div className="rank-col">{rankBadge}</div>
                     <div
                       className="clan-tag-col"
-                      style={{ borderColor: clan.color_hex, color: clan.color_hex, display: 'flex', alignItems: 'center', gap: '4px' }}
+                      style={{ borderColor: clan.color_hex, color: clan.color_hex, display: 'flex', alignItems: 'center', gap: '6px' }}
                     >
-                      <span>{emblem}</span>
+                      <GuildEmblem emblemId={emblem} size={16} />
                       <span>[{clan.tag}]</span>
                     </div>
                     <div className="info-col">

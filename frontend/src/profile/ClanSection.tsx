@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { t } from '../i18n/qq';
 import { formatArea } from '../run/format';
+import { GuildEmblem, GuildEmblemPicker, getGuildEmblem } from './GuildEmblem';
 import { type Profile, clanErrorText } from './useProfile';
 
 interface ClanSectionProps {
@@ -10,27 +11,18 @@ interface ClanSectionProps {
 }
 
 const DEFAULT_COLOR = '#c7ff4a';
-export const GUILD_EMBLEMS = ['🛡️', '⚔️', '👑', '⚡', '🦅', '🐺', '🦁', '🐉', '🔥', '🏆'] as const;
 
-export function getGuildEmblem(clanId?: string): string {
-  if (!clanId) return '🛡️';
-  return localStorage.getItem(`dontstop.emblem.${clanId}`) || '🛡️';
-}
+export { getGuildEmblem };
 
 /**
- * Create a clan, join one with a code, or manage the one you are in.
  * Create a Gildiya (guild), join one with a code, or manage the one you are in.
- *
- * A clan holds ten players (TZ section 23.2) and its ground is its own: it is
- * A Gildiya holds ten players (TZ section 23.2) and its ground is its own: it is
- * a second map over the same city, not a filter on the solo one.
  */
 export function ClanSection({ profile, prompt = false }: ClanSectionProps) {
   const { clan } = profile;
   const [name, setName] = useState('');
   const [tag, setTag] = useState('');
   const [color, setColor] = useState(DEFAULT_COLOR);
-  const [emblem, setEmblem] = useState<string>('🛡️');
+  const [emblem, setEmblem] = useState<string>('shield');
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState<'create' | 'join' | 'leave' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -86,13 +78,8 @@ export function ClanSection({ profile, prompt = false }: ClanSectionProps) {
 
         <div className="clan-identity-card" style={{ borderColor: `${clan.color_hex}55` }}>
           <div className="clan-header-row">
-            <span className="clan-tag-badge" style={{ background: clan.color_hex }}>
-              [{clan.tag}]
-            </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span className="guild-emblem-display" style={{ fontSize: '1.6rem' }} title={t.clan.emblemField}>
-                {currentEmblem}
-              </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <GuildEmblem emblemId={currentEmblem} size={22} />
               <span className="clan-tag-badge" style={{ background: clan.color_hex }}>
                 [{clan.tag}]
               </span>
@@ -163,7 +150,6 @@ export function ClanSection({ profile, prompt = false }: ClanSectionProps) {
     );
   }
 
-
   return (
     <section className="clan-block" aria-label={t.clan.title}>
       <p className="eyebrow">{t.clan.title}</p>
@@ -219,21 +205,10 @@ export function ClanSection({ profile, prompt = false }: ClanSectionProps) {
         </label>
       </div>
 
-      {/* Emblem selector grid */}
-      <div className="field" style={{ marginTop: '10px' }}>
+      {/* Vector Guild Emblem Selector */}
+      <div className="field" style={{ marginTop: '12px' }}>
         <span>{t.clan.emblemField}</span>
-        <div className="emblem-picker-grid">
-          {GUILD_EMBLEMS.map((e) => (
-            <button
-              key={e}
-              type="button"
-              className={`emblem-picker-btn ${emblem === e ? 'active' : ''}`}
-              onClick={() => setEmblem(e)}
-            >
-              {e}
-            </button>
-          ))}
-        </div>
+        <GuildEmblemPicker selectedId={emblem} onSelect={setEmblem} />
       </div>
 
       {error ? <p className="field-error">{error}</p> : null}
