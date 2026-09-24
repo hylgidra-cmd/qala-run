@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { t } from '../i18n/qq';
 import { CITIES_LIST, getCity } from '../map/cities';
+import { getGuildEmblem } from '../profile/ClanSection';
 import { formatArea } from '../run/format';
 import { DefaultAvatar } from '../ui/DefaultAvatar';
 import {
@@ -67,14 +69,14 @@ export function LeaderboardModal({ initialCity = 'nukus', onClose }: Leaderboard
               className={`leaderboard-tab ${tab === 'solo' ? 'active' : ''}`}
               onClick={() => setTab('solo')}
             >
-              🏃 Jeke (Solo)
+              🏃 {t.mode.solo}
             </button>
             <button
               type="button"
               className={`leaderboard-tab ${tab === 'clan' ? 'active' : ''}`}
               onClick={() => setTab('clan')}
             >
-              🛡️ Klanlar
+              🛡️ {t.mode.clan}
             </button>
           </div>
 
@@ -139,20 +141,25 @@ export function LeaderboardModal({ initialCity = 'nukus', onClose }: Leaderboard
               </div>
             )
           ) : clanList.length === 0 ? (
-            <div className="leaderboard-empty">Házirshe klanlar joq.</div>
+            <div className="leaderboard-empty">Házirshe gildiyalar joq.</div>
           ) : (
             <div className="leaderboard-list">
               {clanList.map((clan, index) => {
                 const rankBadge =
                   index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
+                const emblem = getGuildEmblem(clan.id);
                 return (
                   <div
                     key={clan.id}
                     className={`leaderboard-item ${index < 3 ? `top-${index + 1}` : ''}`}
                   >
                     <div className="rank-col">{rankBadge}</div>
-                    <div className="clan-tag-col" style={{ borderColor: clan.color_hex, color: clan.color_hex }}>
-                      [{clan.tag}]
+                    <div
+                      className="clan-tag-col"
+                      style={{ borderColor: clan.color_hex, color: clan.color_hex, display: 'flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      <span>{emblem}</span>
+                      <span>[{clan.tag}]</span>
                     </div>
                     <div className="info-col">
                       <div className="clan-name">{clan.name}</div>
@@ -171,4 +178,3 @@ export function LeaderboardModal({ initialCity = 'nukus', onClose }: Leaderboard
     </div>
   );
 }
-

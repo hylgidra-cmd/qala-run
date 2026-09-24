@@ -1,12 +1,146 @@
+export interface TranslationDictionary {
+  brand: {
+    name: string;
+    home: string;
+  };
+  mode: {
+    label: string;
+    solo: string;
+    clan: string;
+    clanNeeded: string;
+  };
+  map: {
+    label: string;
+    eyebrow: string;
+    headline: string;
+    lead: string;
+    ready: string;
+    offline: string;
+    dismiss: string;
+  };
+  geo: {
+    outOfBounds: string;
+    outsideCity: (city: string) => string;
+    denied: string;
+    unavailable: string;
+    timeout: string;
+    unknown: string;
+  };
+  cities: {
+    label: string;
+    select: string;
+    change: string;
+  };
+  run: {
+    start: string;
+    finish: string;
+    checking: string;
+    close: string;
+    release: string;
+    captured: string;
+    rejected: string;
+    excluded: (area: string) => string;
+    closedGap: (distance: string) => string;
+    takenFrom: (owners: string) => string;
+    tracking: (count: number) => string;
+    noApi: string;
+    couldNotStart: string;
+    couldNotFinish: string;
+    couldNotUpload: string;
+    couldNotRelease: string;
+    noGeolocation: string;
+  };
+  activity: Record<string, string>;
+  reasons: Record<string, string>;
+  legend: {
+    title: string;
+    hide: string;
+    show: string;
+    kinds: Record<string, string>;
+    count: (count: number) => string;
+    truncated: string;
+  };
+  qr: {
+    title: string;
+    label: string;
+    hide: string;
+    reopen: string;
+    preparing: string;
+    hint: string;
+    localhost: string;
+  };
+  profile: {
+    open: string;
+    title: string;
+    close: string;
+    playerId: string;
+    copy: string;
+    copied: string;
+    name: string;
+    save: string;
+    saving: string;
+    nameTooShort: string;
+    nameTooLong: string;
+    runs: string;
+    soloArea: string;
+    clanArea: string;
+    joined: string;
+    loading: string;
+    unavailable: string;
+    logout: string;
+    privacyZone: string;
+    privacyActive: string;
+  };
+  events: {
+    banner: string;
+    daysLeft: (days: number) => string;
+  };
+  friends: {
+    add: string;
+    sent: string;
+    received: (name: string) => string;
+    alreadySent: string;
+  };
+  clan: {
+    title: string;
+    none: string;
+    create: string;
+    creating: string;
+    join: string;
+    joining: string;
+    nameField: string;
+    tagField: string;
+    tagHint: string;
+    colorField: string;
+    emblemField: string;
+    codeField: string;
+    codeHint: string;
+    inviteCode: string;
+    members: (count: number) => string;
+    area: string;
+    leave: string;
+    leaving: string;
+    remove: string;
+    roles: Record<string, string>;
+    errors: {
+      alreadyInClan: string;
+      tagTaken: string;
+      full: string;
+      codeNotFound: string;
+      invalid: string;
+      generic: string;
+    };
+  };
+  notifications: {
+    territoryInvaded: (invader: string, area: number) => string;
+    dismiss: string;
+  };
+}
+
 /**
  * Every word the site says, in Karakalpak (Latin script).
- *
- * The demo is played in Nukus, so Karakalpak is the language of the product,
- * not a translation of it: there is no language switch and no English
- * fallback. Keeping the strings in one file is what makes the wording
- * reviewable by someone who speaks it - code elsewhere only ever reads `t`.
  */
-export const t = {
+export const qq: TranslationDictionary = {
   brand: {
     name: "Don't Stop",
     home: 'Bas bet',
@@ -15,8 +149,8 @@ export const t = {
   mode: {
     label: 'Aymaq rejimi',
     solo: 'Jeke',
-    clan: 'Klan',
-    clanNeeded: 'Klan rejimi ushın aldın klanǵa kiriw kerek.',
+    clan: 'Gildiya',
+    clanNeeded: 'Gildiya rejimi ushın aldın gildiyaǵa kiriw kerek.',
   },
 
   map: {
@@ -67,15 +201,13 @@ export const t = {
     noGeolocation: 'Bul brauzerde Geolocation API joq.',
   },
 
-  /** What the server decided the runner was doing (TZ section 20.4). */
   activity: {
     walk: 'júriw',
     run: 'juwırıw',
     bike: 'velosiped',
     vehicle: 'transport',
-  } as Record<string, string>,
+  },
 
-  /** The rejection reasons are a stable server enum (TZ section 19). */
   reasons: {
     LOOP_NOT_CLOSED: 'Shenber baslanǵan jerge qaytpadı. Baslaǵan jerińizde juwmaqlań.',
     TOO_SHORT: 'Shenber bul server ruxsat etken eń kishi uzınlıqtan qısqa.',
@@ -87,8 +219,8 @@ export const t = {
     OUTSIDE_REGION: 'Shenber Nókis pilot aymaǵınan tısqarıda.',
     NO_AWARDABLE_AREA: 'Qadaǵan aymaqlar alıp taslanǵannan keyin hesh nárse qalmadı.',
     DUPLICATE_RUN: 'Bul juwırıw aldın jiberilgen.',
-    NOT_IN_CLAN: 'Klan ushın juwırıw ushın aldın klanǵa kiriwińiz kerek.',
-  } as Record<string, string>,
+    NOT_IN_CLAN: 'Gildiya ushın juwırıw ushın aldın gildiyaǵa kiriwińiz kerek.',
+  },
 
   legend: {
     title: 'Esaplanbaytuǵın jer',
@@ -134,7 +266,7 @@ export const t = {
     nameTooLong: 'At eń kóbi 24 belgi.',
     runs: 'Juwırıwlar',
     soloArea: 'Jeke aymaq',
-    clanArea: 'Klan aymaǵı',
+    clanArea: 'Gildiya aymaǵı',
     joined: 'Qosılǵan',
     loading: 'Júklenbekte…',
     unavailable: 'Profil házirshe qoljetimsiz.',
@@ -155,35 +287,36 @@ export const t = {
     alreadySent: 'Usınıs aldın jiberilgen',
   },
 
-    clan: {
-    title: 'Klan',
-    none: 'Klanǵa qosılmaǵansız',
-    create: 'Klan dúziw',
+  clan: {
+    title: 'Gildiya',
+    none: 'Gildiyaǵa qosılmaǵansız',
+    create: 'Gildiya dúziw',
     creating: 'Dúzilmekte…',
-    join: 'Klanǵa qosılıw',
+    join: 'Gildiyaǵa qosılıw',
     joining: 'Qosılmaqta…',
-    nameField: 'Klan atı',
+    nameField: 'Gildiya atı',
     tagField: 'Teg',
     tagHint: '2–5 belgi: A–Z, 0–9',
     colorField: 'Reń',
+    emblemField: 'Gildiya gerbi',
     codeField: 'Shaqırıw kodı',
     codeHint: '6 belgili kod',
     inviteCode: 'Shaqırıw kodı',
     members: (count: number) => `Aǵzalar ${count}/10`,
-    area: 'Klan aymaǵı',
-    leave: 'Klannan shıǵıw',
+    area: 'Gildiya aymaǵı',
+    leave: 'Gildiyadan shıǵıw',
     leaving: 'Shıǵılmaqta…',
     remove: 'Shıǵarıw',
     roles: {
       owner: 'Basshı',
       officer: 'Járdemshi',
       member: 'Aǵza',
-    } as Record<string, string>,
+    },
     errors: {
-      alreadyInClan: 'Siz allaqashan klandasız.',
+      alreadyInClan: 'Siz allaqashan gildiyadasız.',
       tagTaken: 'Bul teg bánt, basqasın saylań.',
-      full: 'Klan tolı — 10 aǵza.',
-      codeNotFound: 'Bunday kod menen klan tabılmadı.',
+      full: 'Gildiya tolı — 10 aǵza.',
+      codeNotFound: 'Bunday kod menen gildiya tabılmadı.',
       invalid: 'Maǵlıwmatlar durıs emes. At 3–48 belgi, teg 2–5 belgi bolıwı kerek.',
       generic: 'Ámeldi orınlaw múmkin bolmadı.',
     },
@@ -194,4 +327,14 @@ export const t = {
       `⚔️ ${invader} seniń ${area} m² aymaqıńa kirdi!`,
     dismiss: 'Jabıw',
   },
-} as const;
+};
+
+// Proxy fallback export to ensure `import { t } from './qq'` continues to work seamlessly
+import { getActiveDictionary } from './index';
+
+export const t: TranslationDictionary = new Proxy(qq, {
+  get(_target, prop: keyof TranslationDictionary) {
+    const dict = getActiveDictionary();
+    return dict[prop] ?? qq[prop];
+  },
+});

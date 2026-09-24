@@ -10,11 +10,17 @@ interface ClanSectionProps {
 }
 
 const DEFAULT_COLOR = '#c7ff4a';
+export const GUILD_EMBLEMS = ['🛡️', '⚔️', '👑', '⚡', '🦅', '🐺', '🦁', '🐉', '🔥', '🏆'] as const;
+
+export function getGuildEmblem(clanId?: string): string {
+  if (!clanId) return '🛡️';
+  return localStorage.getItem(`dontstop.emblem.${clanId}`) || '🛡️';
+}
 
 /**
- * Create a clan, join one with a code, or manage the one you are in.
+ * Create a Gildiya (guild), join one with a code, or manage the one you are in.
  *
- * A clan holds ten players (TZ section 23.2) and its ground is its own: it is
+ * A Gildiya holds ten players (TZ section 23.2) and its ground is its own: it is
  * a second map over the same city, not a filter on the solo one.
  */
 export function ClanSection({ profile, prompt = false }: ClanSectionProps) {
@@ -22,6 +28,7 @@ export function ClanSection({ profile, prompt = false }: ClanSectionProps) {
   const [name, setName] = useState('');
   const [tag, setTag] = useState('');
   const [color, setColor] = useState(DEFAULT_COLOR);
+  const [emblem, setEmblem] = useState<string>('🛡️');
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState<'create' | 'join' | 'leave' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +47,15 @@ export function ClanSection({ profile, prompt = false }: ClanSectionProps) {
     }
   };
 
+  const handleCreate = async () => {
+    await run('create', async () => {
+      await profile.create({ name: name.trim(), tag, color_hex: color });
+      if (profile.clan?.id) {
+        localStorage.setItem(`dontstop.emblem.${profile.clan.id}`, emblem);
+      }
+    });
+  };
+
   const copyCode = async () => {
     if (!clan?.invite_code) {
       return;
@@ -55,6 +71,7 @@ export function ClanSection({ profile, prompt = false }: ClanSectionProps) {
   };
 
   if (clan) {
+    const currentEmblem = getGuildEmblem(clan.id);
     const roleBadges: Record<string, { icon: string; label: string }> = {
       owner: { icon: '👑', label: t.clan.roles.owner },
       officer: { icon: '⭐', label: t.clan.roles.officer },
@@ -67,9 +84,14 @@ export function ClanSection({ profile, prompt = false }: ClanSectionProps) {
 
         <div className="clan-identity-card" style={{ borderColor: `${clan.color_hex}55` }}>
           <div className="clan-header-row">
-            <span className="clan-tag-badge" style={{ background: clan.color_hex }}>
-              [{clan.tag}]
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className="guild-emblem-display" style={{ fontSize: '1.6rem' }} title={t.clan.emblemField}>
+                {currentEmblem}
+              </span>
+              <span className="clan-tag-badge" style={{ background: clan.color_hex }}>
+                [{clan.tag}]
+              </span>
+            </div>
             <div className="clan-titles">
               <h3 className="clan-name">{clan.name}</h3>
               <p className="clan-meta">
@@ -136,7 +158,6 @@ export function ClanSection({ profile, prompt = false }: ClanSectionProps) {
     );
   }
 
-
   return (
     <section className="clan-block" aria-label={t.clan.title}>
       <p className="eyebrow">{t.clan.title}</p>
@@ -192,14 +213,29 @@ export function ClanSection({ profile, prompt = false }: ClanSectionProps) {
         </label>
       </div>
 
+      {/* Emblem selector grid */}
+      <div className="field" style={{ marginTop: '10px' }}>
+        <span>{t.clan.emblemField}</span>
+        <div className="emblem-picker-grid">
+          {GUILD_EMBLEMS.map((e) => (
+            <button
+              key={e}
+              type="button"
+              className={`emblem-picker-btn ${emblem === e ? 'active' : ''}`}
+              onClick={() => setEmblem(e)}
+            >
+              {e}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {error ? <p className="field-error">{error}</p> : null}
 
       <button
         type="button"
         className="primary-button"
-        onClick={() =>
-          void run('create', () => profile.create({ name: name.trim(), tag, color_hex: color }))
-        }
+        onClick={() => void handleCreate()}
         disabled={busy !== null || name.trim().length < 3 || tag.length < 2}
       >
         {busy === 'create' ? t.clan.creating : t.clan.create}

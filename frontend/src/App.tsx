@@ -4,6 +4,7 @@ import {
   BarChart3,
   ChevronDown,
   Flag,
+  Globe,
   History,
   LogIn,
   MapPin,
@@ -21,6 +22,13 @@ import { useAuth } from './auth/useAuth';
 import { ChatPanel } from './chat/ChatPanel';
 import { HistoryModal } from './history/HistoryModal';
 import { t } from './i18n/qq';
+import {
+  SUPPORTED_LANGUAGES,
+  getLanguage,
+  setLanguage,
+  subscribeLanguageChange,
+  type LanguageCode,
+} from './i18n';
 import { LeaderboardModal } from './leaderboard/LeaderboardModal';
 import { MapView } from './map/MapView';
 import { CITIES_LIST, DEFAULT_CITY_ID, getCity } from './map/cities';
@@ -48,6 +56,11 @@ export function App() {
   const [chatOpen, setChatOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [clanPrompt, setClanPrompt] = useState(false);
+  const [currentLang, setCurrentLang] = useState(getLanguage());
+
+  useEffect(() => {
+    return subscribeLanguageChange((lang) => setCurrentLang(lang));
+  }, []);
 
   const [registerDismissed, setRegisterDismissed] = useState(false);
   const [isAdmin, setIsAdmin] = useState(() => window.location.hash === '#admin');
@@ -240,6 +253,25 @@ export function App() {
             <span className="nav-btn-text">Chat <span className="chat-unread-dot" aria-hidden="true">•</span></span>
           </button>
 
+          {/* Language Switcher */}
+          <div className="lang-switcher">
+            <Globe size={13} className="lang-icon" aria-hidden="true" style={{ color: '#21D8A0' }} />
+            <select
+              value={currentLang}
+              onChange={(e) => setLanguage(e.target.value as LanguageCode)}
+              className="topbar-lang-select"
+              aria-label="Til"
+              title="Tildi ózgertiw"
+            >
+              {SUPPORTED_LANGUAGES.map((l) => (
+                <option key={l.code} value={l.code}>
+                  {l.flag} {l.name}
+                </option>
+              ))}
+            </select>
+            <ChevronDown size={11} className="city-chevron" aria-hidden="true" />
+          </div>
+
           <button
             type="button"
             className="admin-toggle-btn"
@@ -336,6 +368,29 @@ export function App() {
                   {CITIES_LIST.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={13} className="city-chevron" aria-hidden="true" />
+              </div>
+            </div>
+
+            <div className="drawer-section">
+              <label className="drawer-label">TIL / LANGUAGE</label>
+              <div className="lang-switcher drawer-city" style={{ width: '100%', justifyContent: 'space-between' }}>
+                <Globe size={15} className="lang-icon" aria-hidden="true" style={{ color: '#21D8A0' }} />
+                <select
+                  value={currentLang}
+                  onChange={(e) => {
+                    setLanguage(e.target.value as LanguageCode);
+                  }}
+                  className="topbar-lang-select"
+                  style={{ flex: 1, fontSize: '0.88rem' }}
+                  aria-label="Til"
+                >
+                  {SUPPORTED_LANGUAGES.map((l) => (
+                    <option key={l.code} value={l.code}>
+                      {l.flag} {l.name}
                     </option>
                   ))}
                 </select>

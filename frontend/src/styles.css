@@ -1894,17 +1894,89 @@ a:focus-visible {
 
 .profile-modal-card {
   width: 100%;
-  max-width: 450px;
+  max-width: 460px;
   background: rgba(7, 16, 11, 0.95);
   border: 1px solid rgba(0, 255, 136, 0.3);
   border-radius: 24px;
-  padding: 26px;
+  padding: 22px 24px;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 35px rgba(0, 255, 136, 0.12);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  max-height: 90vh;
+  max-height: 85vh;
   overflow-y: auto;
+  overscroll-behavior: contain;
   animation: modalFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Emblem Picker Grid */
+.emblem-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.emblem-picker-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  padding: 8px 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.emblem-picker-btn:hover {
+  background: rgba(33, 216, 160, 0.15);
+  border-color: rgba(33, 216, 160, 0.4);
+  transform: scale(1.08);
+}
+
+.emblem-picker-btn.active {
+  background: rgba(33, 216, 160, 0.25);
+  border-color: #21D8A0;
+  box-shadow: 0 0 14px rgba(33, 216, 160, 0.4);
+}
+
+/* Language Switcher */
+.lang-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
+.topbar-lang-select {
+  background: transparent;
+  border: none;
+  border-radius: 999px;
+  color: #F7F9F6;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0 4px;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.topbar-lang-select:hover,
+.topbar-lang-select:focus {
+  color: #21D8A0;
+}
+
+.topbar-lang-select option {
+  background: #10251F;
+  color: #F7F9F6;
 }
 
 @keyframes modalFadeIn {
