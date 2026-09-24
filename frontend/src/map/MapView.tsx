@@ -154,7 +154,7 @@ export function MapView({
         latitude: e.lngLat.lat,
         ownerName: props.owner_name || 'Noma\'lum',
         ownerTag: props.owner_tag,
-        ownerPlayerId: props.owner_player_id || props.user_id,
+        ownerPlayerId: props.owner_player_id,
         areaM2: Number(props.area_m2) || 0,
         color: props.color || '#21D8A0',
         createdAt: props.created_at || '',
@@ -344,7 +344,7 @@ export function MapView({
               </div>
               <div className="runner-popup-titles">
                 <h3 className="runner-popup-name">{selectedRunner.display_name}</h3>
-                <span className="runner-popup-id">ID: {selectedRunner.user_id}</span>
+                <span className="runner-popup-id">ID: {selectedRunner.player_id || selectedRunner.user_id}</span>
               </div>
             </div>
 
@@ -394,7 +394,7 @@ export function MapView({
                 setSelectedRunner(r);
                 setSelectedTerritory(null);
               }}
-              title={`${r.display_name} (ID: ${r.user_id})`}
+              title={`${r.display_name} (ID: ${r.player_id || r.user_id})`}
             >
               <div className="runner-pin-dot" style={{ backgroundColor: color }}>
                 <span className="runner-pin-icon" aria-hidden="true">

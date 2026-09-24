@@ -9,3 +9,4 @@ export function setActiveDict(dict: TranslationDictionary) {
 export function getActiveDict(): TranslationDictionary | null {
   return activeDict;
 }
+
