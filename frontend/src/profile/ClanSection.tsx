@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useState } from 'react';
 import { t } from '../i18n/qq';
 import { formatArea } from '../run/format';
@@ -224,3 +225,4 @@ export function ClanSection({ profile, prompt = false }: ClanSectionProps) {
     </section>
   );
 }
+

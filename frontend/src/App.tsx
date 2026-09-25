@@ -451,19 +451,13 @@ export function App() {
 
               <button
                 type="button"
-                className="drawer-nav-item highlight-chat"
+                className="drawer-nav-item"
                 onClick={() => {
                   setChatOpen(true);
                   setMobileMenuOpen(false);
                 }}
-                style={{
-                  background: 'rgba(33, 216, 160, 0.15)',
-                  border: '1px solid #21D8A0',
-                  color: '#21D8A0',
-                  fontWeight: 800,
-                }}
               >
-                <MessageSquare size={16} /> <span>Chat (Global, Qala, Gildiya) 💬</span>
+                <MessageSquare size={16} /> <span>Chat</span>
               </button>
 
               <button
@@ -634,7 +628,7 @@ export function App() {
             cityName={currentCityObj.name}
             me={profile.me}
             onClose={() => setChatOpen(false)}
-            onFlyToLocation={(_lat, _lon) => {
+            onFlyToLocation={() => {
               // Smoothly fly or show location
             }}
           />

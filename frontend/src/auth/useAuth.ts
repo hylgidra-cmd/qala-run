@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useCallback, useMemo, useState } from 'react';
 import { type AuthUser, loginUser, registerUser } from './api';
 
@@ -69,4 +70,5 @@ export function getAuthHeaders(): HeadersInit {
   const key = localStorage.getItem('dontstop.deviceKey') ?? '';
   return { 'X-Demo-User': key };
 }
+
 

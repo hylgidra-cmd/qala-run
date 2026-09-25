@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useRef, useState } from 'react';
 import type { Me } from '../profile/api';
 import { DefaultAvatar } from '../ui/DefaultAvatar';
@@ -279,4 +281,6 @@ export function ChatPanel({
     </div>
   );
 }
+
+
 

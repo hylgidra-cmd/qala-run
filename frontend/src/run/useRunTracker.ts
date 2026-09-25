@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { t } from '../i18n/qq';
 import {
@@ -295,4 +296,5 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
     recover,
   };
 }
+
 

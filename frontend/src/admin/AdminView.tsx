@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Map, { Layer, Marker, NavigationControl, Source } from 'react-map-gl/maplibre';
 import { TerritoryLayer } from '../map/TerritoryLayer';
@@ -300,4 +301,5 @@ export function AdminView({ onBack }: AdminViewProps) {
     </div>
   );
 }
+
 

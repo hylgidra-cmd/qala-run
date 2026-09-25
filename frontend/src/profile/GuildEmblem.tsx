@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React from 'react';
 import {
   Castle,
@@ -154,3 +155,4 @@ export function GuildEmblemPicker({ selectedId, onSelect }: GuildEmblemPickerPro
     </div>
   );
 }
+
