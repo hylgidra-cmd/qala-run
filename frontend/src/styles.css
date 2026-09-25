@@ -1097,6 +1097,44 @@ a:focus-visible {
   gap: 8px;
 }
 
+.map-floating-chat-btn {
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: #10251F;
+  border: 1.5px solid #21D8A0;
+  color: #21D8A0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 800;
+  box-shadow: 0 4px 16px rgba(16, 37, 31, 0.25), 0 0 12px rgba(33, 216, 160, 0.2);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+.map-floating-chat-btn:hover,
+.map-floating-chat-btn:active {
+  background: #21D8A0;
+  color: #10251F;
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(33, 216, 160, 0.45);
+}
+
+.map-floating-chat-btn .chat-unread-dot {
+  color: #21D8A0;
+  font-weight: 900;
+  font-size: 1.2rem;
+  line-height: 0;
+}
+
+.map-floating-chat-btn:hover .chat-unread-dot {
+  color: #10251F;
+}
+
 .map-floating-theme-btn,
 .map-floating-geo-btn {
   width: 38px;
@@ -4221,7 +4259,8 @@ a:focus-visible {
     display: flex;
   }
 
-  .topbar-actions,
+  .topbar-actions > button:not(.mobile-menu-toggle):not(.profile-button),
+  .topbar-actions > .lang-switcher,
   .topbar .mode-switch {
     display: none !important;
   }

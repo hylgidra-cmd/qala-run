@@ -451,13 +451,19 @@ export function App() {
 
               <button
                 type="button"
-                className="drawer-nav-item"
+                className="drawer-nav-item highlight-chat"
                 onClick={() => {
                   setChatOpen(true);
                   setMobileMenuOpen(false);
                 }}
+                style={{
+                  background: 'rgba(33, 216, 160, 0.15)',
+                  border: '1px solid #21D8A0',
+                  color: '#21D8A0',
+                  fontWeight: 800,
+                }}
               >
-                <MessageSquare size={16} /> <span>Chat</span>
+                <MessageSquare size={16} /> <span>Chat (Global, Qala, Gildiya) 💬</span>
               </button>
 
               <button

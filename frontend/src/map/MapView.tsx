@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Map, { Layer, Marker, type MapRef, NavigationControl, Popup, Source } from 'react-map-gl/maplibre';
-import { Check, Clock, Crosshair, Loader2, Moon, Shield, Sun, User, UserPlus, X } from 'lucide-react';
+import { Check, Clock, Crosshair, Loader2, MessageSquare, Moon, Shield, Sun, User, UserPlus, X } from 'lucide-react';
 
 import { type LiveRunner, fetchLiveRunners } from '../admin/api';
 import { type TrackPoint, getTerritoryDecayInfo } from '../run/api';
@@ -24,6 +24,7 @@ interface MapViewProps {
   theme?: MapTheme;
   onToggleTheme?: () => void;
   onSendFriendRequest?: (runner: LiveRunner) => void;
+  onOpenChat?: () => void;
 }
 
 interface SelectedTerritory {
@@ -48,6 +49,7 @@ export function MapView({
   theme = 'day',
   onToggleTheme,
   onSendFriendRequest,
+  onOpenChat,
 }: MapViewProps) {
   const [notice, setNotice] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
@@ -420,8 +422,22 @@ export function MapView({
         ) : null}
       </Map>
 
-      {/* Floating Map Controls: Quick Theme Toggle & GPS location button */}
+      {/* Floating Map Controls: Quick Theme Toggle, GPS location button, & Quick Chat button */}
       <div className="map-floating-controls">
+        {onOpenChat && (
+          <button
+            type="button"
+            className="map-floating-chat-btn"
+            onClick={onOpenChat}
+            title="Chat"
+            aria-label="Chat"
+          >
+            <MessageSquare size={18} />
+            <span className="chat-btn-text">Chat</span>
+            <span className="chat-unread-dot" aria-hidden="true">•</span>
+          </button>
+        )}
+
         {onToggleTheme && (
           <button
             type="button"
