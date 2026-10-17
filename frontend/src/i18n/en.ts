@@ -57,6 +57,9 @@ export const en: TranslationDictionary = {
     couldNotUpload: 'Could not upload points.',
     couldNotRelease: 'Could not release run.',
     noGeolocation: 'No Geolocation API in browser.',
+    backgroundTitle: "🏃 Don't Stop",
+    backgroundMessage: 'Run in progress...',
+    backgroundActive: 'Recording in your pocket',
   },
 
   activity: {

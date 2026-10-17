@@ -201,6 +201,25 @@ Open the printed `https://*.trycloudflare.com` address on the phone, or scan
 the QR card the page shows. The dev server proxies `/api` to the backend, so
 the phone reaches the API through the same address.
 
+## Android APK
+
+The APK is the same web build inside a Capacitor shell, so the game is written
+once. The native layer adds background GPS through an Android foreground
+service, haptics, mock-GPS detection and a full-screen chrome; everything else
+is the React app unchanged.
+
+```bash
+cd frontend
+npm run cap:build     # web build + generate/patch android/ + cap sync
+npm run cap:apk       # ./gradlew assembleDebug
+```
+
+CI builds it on every push to `main`: **Actions → Build Android APK →
+`dontstop-debug-apk`**. The generated `android/` directory is build output and
+stays out of git; the files we own live in `frontend/android-overlay/`.
+
+See `docs/MOBILE_APK.md`.
+
 ## Development rules
 
 - The backend is authoritative for speed, area, activity, run status, conflicts, and ownership.

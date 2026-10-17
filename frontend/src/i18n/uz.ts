@@ -59,6 +59,9 @@ export const uz: TranslationDictionary = {
     couldNotUpload: "Nuqtalarni yuborib bo'lmadi.",
     couldNotRelease: "Yugurishni bo'shatib bo'lmadi.",
     noGeolocation: "Ushbu brauzerda Geolocation API yo'q.",
+    backgroundTitle: "🏃 Don't Stop",
+    backgroundMessage: 'Yugurish davom etmoqda...',
+    backgroundActive: 'Cho‘ntakda ham yoziladi',
   },
 
   activity: {

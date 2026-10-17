@@ -9,8 +9,9 @@ import {
   finishRun,
   sendPoints,
   startRun,
-  toTrackPoint,
 } from './api';
+import { type PositionWatch, haptic, isNativeApp, startPositionWatch } from './nativeBridge';
+import { clearBuffer, readBuffer, saveBuffer } from './offlineBuffer';
 
 export type RunPhase = 'idle' | 'starting' | 'tracking' | 'finishing' | 'done';
 
@@ -19,6 +20,14 @@ export type TerritoryMode = 'solo' | 'clan';
 
 /** The points endpoint allows 2 requests per second; 4 s stays well inside it. */
 const FLUSH_INTERVAL_MS = 4000;
+
+/**
+ * How hard the finish tries to deliver the queue before giving up. A run that
+ * ends in a dead spot is common; losing its tail is not acceptable, so the
+ * run stays open and buffered rather than being judged on half a track.
+ */
+const FLUSH_ATTEMPTS = 3;
+const FLUSH_RETRY_DELAY_MS = 800;
 
 function distanceBetween(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371000;
@@ -48,6 +57,8 @@ export interface RunTracker {
   isLoopReady?: boolean;
   anchorIndex?: number | null;
   effectiveLoopStartIdx?: number;
+  /** True when the APK's foreground service is recording with the screen off. */
+  backgroundTracking?: boolean;
 
   start: () => Promise<void>;
   finish: () => Promise<void>;
@@ -70,8 +81,9 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
   const [isLoopReady, setIsLoopReady] = useState(false);
   const [anchorIndex, setAnchorIndex] = useState<number | null>(null);
   const [effectiveLoopStartIdx, setEffectiveLoopStartIdx] = useState<number>(0);
+  const [backgroundTracking, setBackgroundTracking] = useState(false);
 
-  const watchId = useRef<number | null>(null);
+  const watchRef = useRef<PositionWatch | null>(null);
   const pending = useRef<TrackPoint[]>([]);
   const flushTimer = useRef<number | null>(null);
   const durationTimer = useRef<number | null>(null);
@@ -79,11 +91,14 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
   const wakeLockRef = useRef<any>(null);
   const anchorIndexRef = useRef<number | null>(null);
   const speedWindowRef = useRef<number[]>([]);
+  // The loop-ready buzz fires on the edge, not on every fix that stays closed.
+  const loopReadyRef = useRef(false);
 
   const stopWatching = useCallback(() => {
-    if (watchId.current !== null) {
-      navigator.geolocation.clearWatch(watchId.current);
-      watchId.current = null;
+    if (watchRef.current !== null) {
+      watchRef.current.stop();
+      watchRef.current = null;
+      setBackgroundTracking(false);
     }
 
     if (flushTimer.current !== null) {
@@ -107,10 +122,19 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
     }
   }, []);
 
+  /** Mirror the queue to disk so a lost connection cannot cost the track. */
+  const persistPending = useCallback(() => {
+    const id = activeRunId.current;
+    if (id) {
+      saveBuffer(id, pending.current);
+    }
+  }, []);
+
+  /** Returns true when the queue reached the server. */
   const flush = useCallback(async () => {
     const id = activeRunId.current;
     if (!id || pending.current.length === 0) {
-      return;
+      return true;
     }
 
     const batch = pending.current;
@@ -118,20 +142,48 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
 
     try {
       await sendPoints(id, batch);
+      persistPending();
+      return true;
     } catch (cause) {
       // Keep the batch so a dropped connection does not lose the track.
       pending.current = [...batch, ...pending.current];
+      persistPending();
       setError(cause instanceof Error ? cause.message : t.run.couldNotUpload);
+      return false;
     }
-  }, []);
+  }, [persistPending]);
+
+  const flushWithRetry = useCallback(async () => {
+    for (let attempt = 1; attempt <= FLUSH_ATTEMPTS; attempt += 1) {
+      if (await flush()) {
+        return true;
+      }
+
+      if (attempt < FLUSH_ATTEMPTS) {
+        await new Promise((resolve) => window.setTimeout(resolve, FLUSH_RETRY_DELAY_MS));
+      }
+    }
+
+    return false;
+  }, [flush]);
 
   useEffect(() => stopWatching, [stopWatching]);
+
+  /** Buzz once when the ring closes, never again while it stays closed. */
+  const applyLoopReady = useCallback((ready: boolean) => {
+    if (ready && !loopReadyRef.current) {
+      void haptic('loopReady');
+    }
+
+    loopReadyRef.current = ready;
+    setIsLoopReady(ready);
+  }, []);
 
   const recomputeLoopState = useCallback(
     (trackPts: TrackPoint[], manualAnchorIdx: number | null) => {
       if (trackPts.length < 3) {
         setLoopGapM(null);
-        setIsLoopReady(false);
+        applyLoopReady(false);
         setEffectiveLoopStartIdx(manualAnchorIdx ?? 0);
         return;
       }
@@ -143,7 +195,7 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
         const anchorPt = trackPts[manualAnchorIdx];
         const gap = distanceBetween(anchorPt.lat, anchorPt.lon, last.lat, last.lon);
         setLoopGapM(Math.round(gap));
-        setIsLoopReady(trackPts.length - manualAnchorIdx >= 4 && gap <= 45);
+        applyLoopReady(trackPts.length - manualAnchorIdx >= 4 && gap <= 45);
         setEffectiveLoopStartIdx(manualAnchorIdx);
         return;
       }
@@ -154,7 +206,7 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
 
       if (gap0 <= 45) {
         setLoopGapM(Math.round(gap0));
-        setIsLoopReady(trackPts.length >= 4 && gap0 <= 45);
+        applyLoopReady(trackPts.length >= 4 && gap0 <= 45);
         setEffectiveLoopStartIdx(0);
         return;
       }
@@ -184,10 +236,10 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
       }
 
       setLoopGapM(Math.round(bestGap));
-      setIsLoopReady(bestGap <= 45);
+      applyLoopReady(bestGap <= 45);
       setEffectiveLoopStartIdx(bestIdx);
     },
-    [],
+    [applyLoopReady],
   );
 
   const dropFlag = useCallback(() => {
@@ -198,9 +250,95 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
       anchorIndexRef.current = nextAnchor;
       setAnchorIndex(nextAnchor);
       recomputeLoopState(current, nextAnchor);
+      void haptic('flag');
       return current;
     });
   }, [recomputeLoopState]);
+
+  /**
+   * One fix, from whichever provider this platform uses. The filtering, the
+   * EMA smoothing and the loop detection below are the same in the browser
+   * and in the APK, so a run behaves identically on both.
+   */
+  const ingestPoint = useCallback(
+    (rawPoint: TrackPoint) => {
+      // Filter out low accuracy fixes (> 35 meters)
+      if (rawPoint.accuracy && rawPoint.accuracy > 35) {
+        return;
+      }
+
+      setPoints((previous) => {
+        let point = rawPoint;
+
+        if (previous.length > 0) {
+          const prev = previous[previous.length - 1];
+          const rawDist = distanceBetween(prev.lat, prev.lon, rawPoint.lat, rawPoint.lon);
+          const dt = Math.max(0.1, rawPoint.ts - prev.ts);
+
+          // Filter out micro-jitter (< 1.5 meters unless time difference > 4 seconds)
+          if (rawDist < 1.5 && dt < 4) {
+            return previous;
+          }
+
+          // Filter out extreme GPS teleport jumps (> 70 meters in < 3 seconds)
+          if (rawDist > 70 && dt < 3) {
+            return previous;
+          }
+
+          // Real-time accuracy-weighted EMA smoothing to eliminate chaotic zig-zags
+          const acc = rawPoint.accuracy ?? 12;
+          const alpha = acc <= 8 ? 0.78 : acc <= 18 ? 0.62 : 0.45;
+          point = {
+            ...rawPoint,
+            lat: prev.lat + alpha * (rawPoint.lat - prev.lat),
+            lon: prev.lon + alpha * (rawPoint.lon - prev.lon),
+          };
+
+          const d = distanceBetween(prev.lat, prev.lon, point.lat, point.lon);
+          setDistanceM((cur) => cur + d);
+
+          const instSpeedKmh =
+            point.speed !== null && point.speed > 0
+              ? point.speed * 3.6
+              : dt > 0
+                ? (d / dt) * 3.6
+                : 0;
+
+          if (instSpeedKmh < 45) {
+            const win = [...speedWindowRef.current.slice(-2), instSpeedKmh];
+            speedWindowRef.current = win;
+            const avgSpeed = win.reduce((a, b) => a + b, 0) / win.length;
+            setSpeedKmh(Math.round(avgSpeed * 10) / 10);
+          }
+        }
+
+        const updated = [...previous, point];
+        recomputeLoopState(updated, anchorIndexRef.current);
+        pending.current.push(point);
+        return updated;
+      });
+    },
+    [recomputeLoopState],
+  );
+
+  /**
+   * Replay whatever a previous session could not deliver. The old run may
+   * already be finished or abandoned, so this is best effort: the buffer is
+   * cleared either way and never blocks the new run.
+   */
+  const drainOrphanBuffer = useCallback(async () => {
+    const orphan = readBuffer();
+
+    if (orphan && orphan.runId !== activeRunId.current) {
+      try {
+        await sendPoints(orphan.runId, orphan.points);
+      } catch {
+        // That run is gone. Nothing here is worth stopping a new one for.
+      }
+    }
+
+    clearBuffer();
+  }, []);
 
   const start = useCallback(async () => {
     setError(null);
@@ -213,14 +351,19 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
     setEffectiveLoopStartIdx(0);
     anchorIndexRef.current = null;
     speedWindowRef.current = [];
+    loopReadyRef.current = false;
     pending.current = [];
 
-    if (!('geolocation' in navigator)) {
+    // The APK reaches GPS through the native plugin, so a WebView without the
+    // browser API is still perfectly able to record a run.
+    if (!isNativeApp() && !('geolocation' in navigator)) {
       setError(t.run.noGeolocation);
       return;
     }
 
     setPhase('starting');
+
+    await drainOrphanBuffer();
 
     try {
       const started = await startRun(mode);
@@ -238,8 +381,9 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
       return;
     }
 
-    // Acquire screen WakeLock so phone screen does not turn off
-    if ('wakeLock' in navigator) {
+    // In the APK the foreground service is what keeps the fixes coming, so
+    // forcing the screen on there would only burn battery for nothing.
+    if (!isNativeApp() && 'wakeLock' in navigator) {
       try {
         wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
         setScreenLocked(true);
@@ -249,81 +393,42 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
       }
     }
 
+    try {
+      watchRef.current = await startPositionWatch(
+        {
+          notificationTitle: t.run.backgroundTitle,
+          notificationMessage: t.run.backgroundMessage,
+        },
+        ingestPoint,
+        (message) => setError(message),
+      );
+      setBackgroundTracking(watchRef.current.background);
+    } catch (cause) {
+      // The server already has an active run; leaving it open would block the
+      // next attempt with a 409, so it is released before giving up.
+      const orphanRun = activeRunId.current;
+      activeRunId.current = null;
+      if (orphanRun) {
+        void abandonRun(orphanRun).catch(() => {});
+      }
+
+      setPhase('idle');
+      setError(cause instanceof Error ? cause.message : t.run.couldNotStart);
+      return;
+    }
+
     // Start live duration counter
     durationTimer.current = window.setInterval(() => {
       setDurationSeconds((sec) => sec + 1);
     }, 1000);
-
-    watchId.current = navigator.geolocation.watchPosition(
-      (position) => {
-        // Filter out low accuracy fixes (> 35 meters)
-        if (position.coords.accuracy && position.coords.accuracy > 35) {
-          return;
-        }
-
-        const rawPoint = toTrackPoint(position);
-
-        setPoints((previous) => {
-          let point = rawPoint;
-
-          if (previous.length > 0) {
-            const prev = previous[previous.length - 1];
-            const rawDist = distanceBetween(prev.lat, prev.lon, rawPoint.lat, rawPoint.lon);
-            const dt = Math.max(0.1, rawPoint.ts - prev.ts);
-
-            // Filter out micro-jitter (< 1.5 meters unless time difference > 4 seconds)
-            if (rawDist < 1.5 && dt < 4) {
-              return previous;
-            }
-
-            // Filter out extreme GPS teleport jumps (> 70 meters in < 3 seconds)
-            if (rawDist > 70 && dt < 3) {
-              return previous;
-            }
-
-            // Real-time accuracy-weighted EMA smoothing to eliminate chaotic zig-zags
-            const acc = rawPoint.accuracy ?? 12;
-            const alpha = acc <= 8 ? 0.78 : acc <= 18 ? 0.62 : 0.45;
-            point = {
-              ...rawPoint,
-              lat: prev.lat + alpha * (rawPoint.lat - prev.lat),
-              lon: prev.lon + alpha * (rawPoint.lon - prev.lon),
-            };
-
-            const d = distanceBetween(prev.lat, prev.lon, point.lat, point.lon);
-            setDistanceM((cur) => cur + d);
-
-            const instSpeedKmh =
-              point.speed !== null && point.speed > 0
-                ? point.speed * 3.6
-                : dt > 0
-                  ? (d / dt) * 3.6
-                  : 0;
-
-            if (instSpeedKmh < 45) {
-              const win = [...speedWindowRef.current.slice(-2), instSpeedKmh];
-              speedWindowRef.current = win;
-              const avgSpeed = win.reduce((a, b) => a + b, 0) / win.length;
-              setSpeedKmh(Math.round(avgSpeed * 10) / 10);
-            }
-          }
-
-          const updated = [...previous, point];
-          recomputeLoopState(updated, anchorIndexRef.current);
-          pending.current.push(point);
-          return updated;
-        });
-      },
-      (positionError) => setError(positionError.message),
-      { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 },
-    );
 
     flushTimer.current = window.setInterval(() => {
       void flush();
     }, FLUSH_INTERVAL_MS);
 
     setPhase('tracking');
-  }, [flush, mode, recomputeLoopState]);
+    void haptic('start');
+  }, [drainOrphanBuffer, flush, ingestPoint, mode]);
 
   const finish = useCallback(async () => {
     const id = activeRunId.current;
@@ -333,11 +438,25 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
 
     setPhase('finishing');
     stopWatching();
-    await flush();
+
+    // Pocket mode means a run can easily end somewhere with no signal. The
+    // server must judge the whole shape, so a queue that will not go through
+    // leaves the run open and buffered rather than losing its tail; pressing
+    // finish again retries from exactly where this left off.
+    if (!(await flushWithRetry())) {
+      setPhase('tracking');
+      return;
+    }
 
     try {
-      setResult(await finishRun(id, anchorIndexRef.current));
+      const outcome = await finishRun(id, anchorIndexRef.current);
+      setResult(outcome);
       setPhase('done');
+      clearBuffer();
+
+      if (outcome.status === 'accepted') {
+        void haptic('captured');
+      }
     } catch (cause) {
       setPhase('tracking');
       setError(cause instanceof Error ? cause.message : t.run.couldNotFinish);
@@ -345,7 +464,7 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
     }
 
     activeRunId.current = null;
-  }, [flush, stopWatching]);
+  }, [flushWithRetry, stopWatching]);
 
   const reset = useCallback(() => {
     stopWatching();
@@ -356,6 +475,9 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
     }
     anchorIndexRef.current = null;
     speedWindowRef.current = [];
+    loopReadyRef.current = false;
+    pending.current = [];
+    clearBuffer();
     setPhase('idle');
     setRunId(null);
     setPoints([]);
@@ -399,6 +521,7 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
     isLoopReady,
     anchorIndex,
     effectiveLoopStartIdx,
+    backgroundTracking,
     start,
     finish,
     reset,

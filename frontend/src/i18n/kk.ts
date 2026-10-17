@@ -59,6 +59,9 @@ export const kk: TranslationDictionary = {
     couldNotUpload: 'Jiberý múmkın bolmady.',
     couldNotRelease: 'Bosatý múmkın bolmady.',
     noGeolocation: 'Geolocation API joq.',
+    backgroundTitle: "🏃 Don't Stop",
+    backgroundMessage: 'Jügiris jalǵasuda...',
+    backgroundActive: 'Qalta rejiminde jazyladı',
   },
 
   activity: {

@@ -51,6 +51,10 @@ export interface TranslationDictionary {
     couldNotUpload: string;
     couldNotRelease: string;
     noGeolocation: string;
+    /** Android foreground-service notification: pocket mode. */
+    backgroundTitle: string;
+    backgroundMessage: string;
+    backgroundActive: string;
   };
   activity: Record<string, string>;
   reasons: Record<string, string>;
@@ -201,6 +205,9 @@ export const qq: TranslationDictionary = {
     couldNotUpload: 'Noqatlardı jiberiw múmkin bolmadı.',
     couldNotRelease: 'Juwırıwdı bosatıw múmkin bolmadı.',
     noGeolocation: 'Bul brauzerde Geolocation API joq.',
+    backgroundTitle: "🏃 Don't Stop",
+    backgroundMessage: 'Juwırıw dawam etpekte...',
+    backgroundActive: 'Qaltada da jazıladı',
   },
 
   activity: {

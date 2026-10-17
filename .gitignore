@@ -14,3 +14,6 @@ __pycache__/
 *.py[cod]
 *.pem
 backend/app/signal/models/*.pkl
+
+# Capacitor regenerates the native project; only android-overlay/ is source.
+frontend/android/

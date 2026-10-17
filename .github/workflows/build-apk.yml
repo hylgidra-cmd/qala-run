@@ -1,0 +1,84 @@
+name: Build Android APK
+
+# The APK is the same web build inside a Capacitor shell, so it is rebuilt
+# from the same commit the web demo deploys from
+# (docs/TZ-mobile-apk-v1.0.md section 5.3). Most changes need no new APK at
+# all: the shell loads the published web assets, so a push updates the game
+# without anyone reinstalling anything.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One build per branch; a newer push makes the older APK pointless.
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # Capacitor 6 ships Gradle 8.2.1, which cannot run on Java 21;
+      # scripts/prepare-android.mjs moves the wrapper and AGP to a pair
+      # that can, so this stays on the JDK the TZ asks for.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Test
+        working-directory: frontend
+        run: npm run test -- --run
+
+      - name: Build web assets
+        working-directory: frontend
+        env:
+          # The APK has no dev-server proxy, so the API has to be absolute.
+          VITE_API_URL: https://qalarun-api.onrender.com/api/v1
+          VITE_MAP_STYLE_URL: https://tiles.openfreemap.org/styles/positron
+        run: npm run build
+
+      - name: Generate and sync the Android project
+        working-directory: frontend
+        run: npm run cap:sync
+
+      - name: Assemble the debug APK
+        working-directory: frontend/android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon assembleDebug
+
+      - name: Name the APK after the product
+        working-directory: frontend/android
+        run: mv app/build/outputs/apk/debug/app-debug.apk dontstop-debug.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dontstop-debug-apk
+          path: frontend/android/dontstop-debug.apk
+          if-no-files-found: error
+          retention-days: 30

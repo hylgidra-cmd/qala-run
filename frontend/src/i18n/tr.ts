@@ -56,6 +56,9 @@ export const tr: TranslationDictionary = {
     couldNotUpload: 'Yüklenemedi.',
     couldNotRelease: 'Serbest bırakılamadı.',
     noGeolocation: 'Geolocation API yok.',
+    backgroundTitle: "🏃 Don't Stop",
+    backgroundMessage: 'Koşu devam ediyor...',
+    backgroundActive: 'Arka planda kaydediyor',
   },
 
   activity: {

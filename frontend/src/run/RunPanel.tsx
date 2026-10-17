@@ -138,6 +138,11 @@ export function RunPanel({ tracker, apiReachable }: RunPanelProps) {
                 <Smartphone size={12} className="inline-icon" /> Ekran oʻshpeydi
               </span>
             ) : null}
+            {tracker.backgroundTracking ? (
+              <span className="hud-wakelock-badge">
+                <Smartphone size={12} className="inline-icon" /> {t.run.backgroundActive}
+              </span>
+            ) : null}
           </div>
 
           <div className="hud-actions">
