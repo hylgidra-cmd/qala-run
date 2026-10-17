@@ -47,6 +47,18 @@ local experiment, but the next clean build throws it away.
 The script also moves the Gradle wrapper to 8.11.1 and AGP to 8.7.3, because
 Capacitor 6 ships Gradle 8.2.1 and that refuses to start on Java 21.
 
+## The APK's origin, and why CORS has to know about it
+
+The WebView serves the app from `https://localhost` (`androidScheme` in
+`capacitor.config.ts`), so to the API the APK is simply another browser origin.
+It has to appear in `CORS_ORIGINS` or every request from the app is blocked
+before it leaves the device — the symptom is an app that opens fine, shows the
+map, and then fails every call with no useful error.
+
+`render.yaml` already lists it. **A running backend only picks it up on the
+next deploy**, and if `CORS_ORIGINS` was ever set by hand in the Render
+dashboard, that value wins over the blueprint and has to be edited there too.
+
 ## Permissions, and what each is for
 
 | Permission | Why |

@@ -16,6 +16,13 @@ const config: CapacitorConfig = {
     allowMixedContent: false,
     backgroundColor: '#10251F',
   },
+  server: {
+    // The WebView serves the app from this scheme, which makes the APK's
+    // origin `https://localhost`. The API has to allow that origin or every
+    // request from the APK fails CORS, so it is pinned here rather than left
+    // to a Capacitor default that could change under us.
+    androidScheme: 'https',
+  },
   plugins: {
     SplashScreen: {
       backgroundColor: '#10251F',

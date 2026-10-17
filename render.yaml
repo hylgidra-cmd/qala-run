@@ -50,7 +50,9 @@ services:
         generateValue: true
       # The static site is a different origin, so it has to be allowed here.
       - key: CORS_ORIGINS
-        value: https://dontstop-web.onrender.com,https://qalarun-web.onrender.com,https://hylgidra-cmd.github.io
+        # https://localhost is the Android WebView origin: without it every
+        # request from the APK is blocked by CORS (docs/MOBILE_APK.md).
+        value: https://dontstop-web.onrender.com,https://qalarun-web.onrender.com,https://hylgidra-cmd.github.io,https://localhost
 
   - type: web
     name: dontstop-web
