@@ -64,6 +64,7 @@ class TestRunLifecycle:
         assert body["type"] == "FeatureCollection"
 
         me = (await client.get("/api/v1/me", headers=headers)).json()
+        assert me["stats"]["total_distance_m"] > 400.0
         mine = [
             feature
             for feature in body["features"]
@@ -72,6 +73,31 @@ class TestRunLifecycle:
         assert len(mine) == 1
         assert mine[0]["geometry"]["type"] == "MultiPolygon"
         assert mine[0]["properties"]["mode"] == "solo"
+
+        runs_hist = (await client.get("/api/v1/me/runs", headers=headers)).json()
+        assert len(runs_hist) >= 1
+        assert runs_hist[0]["distance_m"] is not None
+        assert runs_hist[0]["distance_m"] > 400.0
+
+    async def test_expired_territories_are_hidden_from_map_and_stats(
+        self, client, headers, connection
+    ) -> None:
+        _, finished = await run_track(client, headers, square_points(side_m=100.0))
+        territory_id = finished.json()["territory_id"]
+
+        await connection.execute(
+            text("UPDATE territories SET expires_at = now() - interval '1 hour' WHERE id = :tid"),
+            {"tid": territory_id},
+        )
+
+        me = (await client.get("/api/v1/me", headers=headers)).json()
+        assert me["stats"]["solo_area_m2"] == 0.0
+
+        response = await client.get(
+            "/api/v1/territories", params={"bbox": "59.58,42.43,59.64,42.48", "mode": "solo"}
+        )
+        ids = [f["id"] for f in response.json()["features"]]
+        assert territory_id not in ids
 
     async def test_an_exclusion_zone_is_subtracted_from_the_award(
         self, client, headers, connection

@@ -250,7 +250,11 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
 
   const reset = useCallback(() => {
     stopWatching();
+    const id = activeRunId.current;
     activeRunId.current = null;
+    if (id) {
+      void abandonRun(id).catch(() => {});
+    }
     setPhase('idle');
     setRunId(null);
     setPoints([]);

@@ -73,7 +73,9 @@ async def load_clan(connection: AsyncConnection, clan_id: str, viewer_id: str) -
                        COALESCE(
                            (SELECT sum(t.area_m2)
                               FROM territories t
-                             WHERE t.mode = 'clan' AND t.owner_clan_id = c.id),
+                             WHERE t.mode = 'clan'
+                               AND t.owner_clan_id = c.id
+                               AND (t.expires_at IS NULL OR t.expires_at > now())),
                            0
                        ) AS area_m2
                   FROM clans c
@@ -232,7 +234,9 @@ async def leaderboard(
                        COALESCE(
                            (SELECT sum(t.area_m2)
                               FROM territories t
-                             WHERE t.mode = 'clan' AND t.owner_clan_id = c.id),
+                             WHERE t.mode = 'clan'
+                               AND t.owner_clan_id = c.id
+                               AND (t.expires_at IS NULL OR t.expires_at > now())),
                            0
                        ) AS area_m2
                   FROM clans c

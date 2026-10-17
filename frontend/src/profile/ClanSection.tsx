@@ -44,9 +44,13 @@ export function ClanSection({ profile, prompt = false }: ClanSectionProps) {
 
   const handleCreate = async () => {
     await run('create', async () => {
-      await profile.create({ name: name.trim(), tag, color_hex: color });
-      if (profile.clan?.id) {
-        localStorage.setItem(`dontstop.emblem.${profile.clan.id}`, emblem);
+      const created = await profile.create({ name: name.trim(), tag, color_hex: color });
+      const clanId = created?.id ?? profile.clan?.id;
+      if (clanId) {
+        localStorage.setItem(`dontstop.emblem.${clanId}`, emblem);
+      }
+      if (tag) {
+        localStorage.setItem(`dontstop.emblem.tag.${tag.toUpperCase()}`, emblem);
       }
     });
   };
@@ -66,7 +70,9 @@ export function ClanSection({ profile, prompt = false }: ClanSectionProps) {
   };
 
   if (clan) {
-    const currentEmblem = getGuildEmblem(clan.id);
+    const currentEmblem = getGuildEmblem(clan.id, clan.tag);
+    const myRole = profile.me?.clan?.role;
+    const canManageMembers = myRole === 'owner' || myRole === 'officer';
     const roleBadges: Record<string, { icon: string; label: string }> = {
       owner: { icon: '👑', label: t.clan.roles.owner },
       officer: { icon: '⭐', label: t.clan.roles.officer },
@@ -120,6 +126,11 @@ export function ClanSection({ profile, prompt = false }: ClanSectionProps) {
           <ul className="clan-members-list">
             {clan.members.map((member) => {
               const badge = roleBadges[member.role] ?? { icon: '🏃', label: member.role };
+              const canRemove =
+                canManageMembers &&
+                member.user_id !== profile.me?.user_id &&
+                member.role !== 'owner' &&
+                (myRole === 'owner' || member.role === 'member');
               return (
                 <li key={member.user_id} className="clan-member-item">
                   <div className="member-info">
@@ -128,9 +139,22 @@ export function ClanSection({ profile, prompt = false }: ClanSectionProps) {
                     <span className="clan-member-id">{member.player_id}</span>
                   </div>
 
-                  <span className={`member-role-tag ${member.role}`}>
-                    {badge.label}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className={`member-role-tag ${member.role}`}>
+                      {badge.label}
+                    </span>
+                    {canRemove ? (
+                      <button
+                        type="button"
+                        className="danger-button"
+                        style={{ padding: '3px 8px', fontSize: '0.72rem' }}
+                        onClick={() => void run('leave', () => profile.remove(member.user_id))}
+                        disabled={busy !== null}
+                      >
+                        {t.clan.remove}
+                      </button>
+                    ) : null}
+                  </div>
                 </li>
               );
             })}

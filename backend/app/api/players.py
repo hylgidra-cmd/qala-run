@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 from app.api.clans import clan_of
 from app.api.deps import get_connection, get_demo_user
 from app.api.schemas import DisplayNameIn, MeOut, PlayerStanding, PlayerStats, RunHistoryOut
+from app.geo.cities import CITIES
 
 router = APIRouter(prefix="/api/v1", tags=["players"])
 
@@ -32,8 +33,15 @@ async def load_me(connection: AsyncConnection, user_id: str) -> MeOut:
                        (SELECT count(*) FROM runs r
                          WHERE r.user_id = u.id AND r.status = 'accepted') AS runs_accepted,
                        COALESCE(
+                           (SELECT sum(r.distance_m) FROM runs r
+                             WHERE r.user_id = u.id AND r.status = 'accepted'),
+                           0
+                       ) AS total_distance_m,
+                       COALESCE(
                            (SELECT sum(t.area_m2) FROM territories t
-                             WHERE t.mode = 'solo' AND t.owner_user_id = u.id),
+                             WHERE t.mode = 'solo'
+                               AND t.owner_user_id = u.id
+                               AND (t.expires_at IS NULL OR t.expires_at > now())),
                            0
                        ) AS solo_area_m2
                   FROM demo_users u
@@ -58,7 +66,9 @@ async def load_me(connection: AsyncConnection, user_id: str) -> MeOut:
                 text(
                     """
                     SELECT COALESCE(sum(area_m2), 0) FROM territories
-                     WHERE mode = 'clan' AND owner_clan_id = :clan_id
+                     WHERE mode = 'clan'
+                       AND owner_clan_id = :clan_id
+                       AND (expires_at IS NULL OR expires_at > now())
                     """
                 ),
                 {"clan_id": clan.id},
@@ -77,6 +87,7 @@ async def load_me(connection: AsyncConnection, user_id: str) -> MeOut:
             runs_accepted=int(player.runs_accepted),
             solo_area_m2=float(player.solo_area_m2),
             clan_area_m2=clan_area,
+            total_distance_m=float(player.total_distance_m),
         ),
         clan=clan,
     )
@@ -114,8 +125,11 @@ async def rename_me(
         params["color_hex"] = body.color_hex
 
     if body.city is not None:
+        city_clean = body.city.strip().lower()
+        if city_clean not in CITIES:
+            raise HTTPException(422, f"Unsupported city: {body.city}")
         updates.append("city = :city")
-        params["city"] = body.city.lower()
+        params["city"] = city_clean
 
     if body.avatar_data is not None:
         updates.append("avatar_data = :avatar_data")
@@ -152,7 +166,9 @@ async def players_leaderboard(
                (SELECT count(*) FROM runs r WHERE r.user_id = u.id AND r.status = 'accepted') AS runs_count,
                COALESCE(
                    (SELECT sum(t.area_m2) FROM territories t
-                     WHERE t.mode = 'solo' AND t.owner_user_id = u.id),
+                     WHERE t.mode = 'solo'
+                       AND t.owner_user_id = u.id
+                       AND (t.expires_at IS NULL OR t.expires_at > now())),
                    0
                ) AS total_area_m2
           FROM demo_users u

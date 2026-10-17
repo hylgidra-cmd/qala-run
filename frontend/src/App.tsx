@@ -20,6 +20,7 @@ import { AdminView } from './admin/AdminView';
 import { AuthPage } from './auth/AuthPage';
 import { useAuth } from './auth/useAuth';
 import { ChatPanel } from './chat/ChatPanel';
+import { fetchUnreadChatCount } from './chat/api';
 import { HistoryModal } from './history/HistoryModal';
 import { t } from './i18n/qq';
 import {
@@ -54,6 +55,8 @@ export function App() {
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
+  const [flyToTarget, setFlyToTarget] = useState<{ lat: number; lon: number; ts: number } | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [clanPrompt, setClanPrompt] = useState(false);
   const [currentLang, setCurrentLang] = useState(getLanguage());
@@ -61,6 +64,33 @@ export function App() {
   useEffect(() => {
     return subscribeLanguageChange((lang) => setCurrentLang(lang));
   }, []);
+
+  // Poll unread chat count
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setUnreadChatCount(0);
+      return;
+    }
+
+    let active = true;
+    const pollUnread = async () => {
+      try {
+        const res = await fetchUnreadChatCount();
+        if (active && typeof res?.unread === 'number') {
+          setUnreadChatCount(res.unread);
+        }
+      } catch {
+        // Ignore offline/test environment errors
+      }
+    };
+
+    void pollUnread();
+    const timer = window.setInterval(() => void pollUnread(), 15000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [isAuthenticated]);
 
   const [registerDismissed, setRegisterDismissed] = useState(false);
   const [isAdmin, setIsAdmin] = useState(() => window.location.hash === '#admin');
@@ -242,7 +272,10 @@ export function App() {
             type="button"
             className={`topbar-nav-btn ${chatOpen ? 'active' : ''}`}
             onClick={() => {
-              setChatOpen((o) => !o);
+              setChatOpen((o) => {
+                if (!o) setUnreadChatCount(0);
+                return !o;
+              });
               setLeaderboardOpen(false);
               setHistoryOpen(false);
             }}
@@ -250,7 +283,9 @@ export function App() {
             aria-label="Chat"
           >
             <MessageSquare size={15} className="nav-btn-icon" />
-            <span className="nav-btn-text">Chat <span className="chat-unread-dot" aria-hidden="true">•</span></span>
+            <span className="nav-btn-text">
+              Chat {unreadChatCount > 0 && <span className="chat-unread-dot" aria-hidden="true">•</span>}
+            </span>
           </button>
 
           {/* Language Switcher */}
@@ -511,7 +546,8 @@ export function App() {
           onApiReachable={handleApiReachable}
           theme={theme}
           onToggleTheme={() => handleSetTheme(theme === 'day' ? 'night' : 'day')}
-          onSendFriendRequest={(runner) => setFriendToast(t.friends.received(runner.display_name))}
+          onSendFriendRequest={(runner) => setFriendToast(`${runner.display_name}: ${t.friends.sent}`)}
+          flyToTarget={flyToTarget}
         />
 
         {tracker.phase === 'idle' && !tracker.result ? (
@@ -536,9 +572,9 @@ export function App() {
                 <div className="quick-stat-top">
                   <Activity size={16} className="quick-stat-icon" aria-hidden="true" />
                   <strong className="stat-val">
-                    {profile.me && profile.me.stats.runs_accepted > 0
-                      ? formatDistance(profile.me.stats.runs_accepted * 1500)
-                      : '0 km'}
+                    {profile.me && (profile.me.stats.total_distance_m ?? 0) > 0
+                      ? formatDistance(profile.me.stats.total_distance_m!)
+                      : '0 m'}
                   </strong>
                 </div>
                 <span className="stat-label">Júgirgen qashıqlıq</span>
@@ -576,6 +612,7 @@ export function App() {
             onLogout={() => {
               logout();
               setPanelOpen(false);
+              void profile.reload();
             }}
           />
         ) : null}
@@ -628,8 +665,9 @@ export function App() {
             cityName={currentCityObj.name}
             me={profile.me}
             onClose={() => setChatOpen(false)}
-            onFlyToLocation={() => {
-              // Smoothly fly or show location
+            onFlyToLocation={(lat, lon) => {
+              setChatOpen(false);
+              setFlyToTarget({ lat, lon, ts: Date.now() });
             }}
           />
         )}

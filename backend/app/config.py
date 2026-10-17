@@ -1,7 +1,10 @@
+import logging
 from functools import lru_cache
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
@@ -18,6 +21,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://dontstop:change_me@localhost:5432/dontstop"
     redis_url: str = "redis://localhost:6379/0"
     jwt_secret: str = "development-only-change-me"
+    admin_key: str = Field(default="dontstop-admin-2026", alias="ADMIN_KEY")
     cors_origins: str = "http://localhost:5173"
 
     # --- Pilot region (docs/PROJECT_DECISIONS.md) ---
@@ -65,6 +69,12 @@ class Settings(BaseSettings):
                 return "postgresql+asyncpg://" + value[len(prefix) :]
 
         return value
+
+    @model_validator(mode="after")
+    def warn_weak_secrets_in_prod(self) -> "Settings":
+        if self.environment.lower() == "production" and self.jwt_secret == "development-only-change-me":
+            logger.warning("JWT_SECRET is using the development default in production! Set JWT_SECRET env var.")
+        return self
 
     @property
     def pilot_bbox(self) -> tuple[float, float, float, float]:

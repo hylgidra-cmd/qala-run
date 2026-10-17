@@ -36,12 +36,21 @@ async def get_demo_user(
         token = authorization[len("Bearer "):]
         user_id = decode_token(token)  # raises 401 if invalid
 
-        # Touch last_seen_at so the admin view stays fresh
-        await connection.execute(
-            text("UPDATE demo_users SET last_seen_at = now() WHERE id = :uid"),
-            {"uid": user_id},
-        )
-        return user_id
+        # Touch last_seen_at and verify user still exists in demo_users
+        try:
+            found = await connection.scalar(
+                text("UPDATE demo_users SET last_seen_at = now() WHERE id = :uid RETURNING id"),
+                {"uid": user_id},
+            )
+        except Exception:
+            found = None
+
+        if found is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Foydalanuvchi topilmadi, qaytadan kiring",
+            )
+        return str(found)
 
     # ── 2. X-Demo-User device key (legacy QR / backward compat) ──────────────
     if x_demo_user and DEVICE_KEY_PATTERN.match(x_demo_user):

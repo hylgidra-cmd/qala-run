@@ -28,10 +28,16 @@ def drop_bad_points(points: list[RawPoint], settings: Settings) -> CleanedTrack:
     dropped = 0
     seen_ts: set[float] = set()
 
+    is_prod = settings.environment.lower() == "production"
+
     for point in ordered:
         if point.ts in seen_ts:
             continue
         seen_ts.add(point.ts)
+
+        if is_prod and point.mocked:
+            dropped += 1
+            continue
 
         if point.accuracy_m and point.accuracy_m > settings.max_accuracy_m:
             dropped += 1

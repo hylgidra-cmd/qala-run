@@ -46,6 +46,7 @@ async def list_territories(
               FROM territories t
               JOIN clans c ON c.id = t.owner_clan_id
              WHERE t.mode = 'clan'
+               AND (t.expires_at IS NULL OR t.expires_at > now())
                AND t.geom && ST_MakeEnvelope(:west, :south, :east, :north, 4326)
              ORDER BY t.created_at
         """
@@ -65,6 +66,7 @@ async def list_territories(
               FROM territories t
               JOIN demo_users u ON u.id = t.owner_user_id
              WHERE t.mode = 'solo'
+               AND (t.expires_at IS NULL OR t.expires_at > now())
                AND t.geom && ST_MakeEnvelope(:west, :south, :east, :north, 4326)
              ORDER BY t.created_at
         """

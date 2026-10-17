@@ -257,6 +257,24 @@ class TestAntiCheat:
     def test_a_normal_run_is_allowed(self) -> None:
         assert check_activity("run", 3.2, settings()) is None
 
+    def test_mocked_points_are_dropped_in_production(self) -> None:
+        points = straight_track(1.4, 10)
+        points.append(
+            RawPoint(
+                lat=NUKUS_LAT,
+                lon=NUKUS_LON,
+                ts=1_780_000_100.0,
+                accuracy_m=5.0,
+                mocked=True,
+            )
+        )
+
+        prod_settings = Settings(_env_file=None, ENV="production")
+        cleaned = drop_bad_points(points, prod_settings)
+
+        assert cleaned.dropped_low_accuracy == 1
+        assert len(cleaned.points) == 10
+
 
 def square_loop(
     side_m: float,

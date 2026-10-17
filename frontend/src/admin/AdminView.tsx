@@ -5,13 +5,24 @@ import { TerritoryLayer } from '../map/TerritoryLayer';
 import { CITIES_LIST, DEFAULT_CITY_ID, getCity } from '../map/cities';
 import { DEV_MAP_STYLE } from '../map/style';
 import { formatArea } from '../run/format';
-import { type AdminStats, type LiveRunner, fetchAdminStats, fetchLiveRunners } from './api';
+import {
+  type AdminStats,
+  type LiveRunner,
+  fetchAdminStats,
+  fetchLiveRunners,
+  getAdminKey,
+  resetMap,
+  setAdminKey,
+} from './api';
 
 interface AdminViewProps {
   onBack: () => void;
 }
 
 export function AdminView({ onBack }: AdminViewProps) {
+  const [adminKey, setAdminKeyState] = useState<string>(() => getAdminKey());
+  const [keyInput, setKeyInput] = useState<string>('');
+  const [authError, setAuthError] = useState<string | null>(null);
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [runners, setRunners] = useState<LiveRunner[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -21,25 +32,27 @@ export function AdminView({ onBack }: AdminViewProps) {
   const currentCity = getCity(selectedCityId);
 
   const loadData = useCallback(async () => {
+    if (!adminKey) return;
     try {
       const [newStats, newRunners] = await Promise.all([
         fetchAdminStats(),
-        fetchLiveRunners(),
+        fetchLiveRunners(adminKey),
       ]);
       setStats(newStats);
       setRunners(newRunners);
     } catch {
       // Backend might be warming up
     }
-  }, []);
+  }, [adminKey]);
 
   useEffect(() => {
+    if (!adminKey) return;
     void loadData();
     const interval = window.setInterval(() => {
       void loadData();
     }, 3000);
     return () => window.clearInterval(interval);
-  }, [loadData]);
+  }, [adminKey, loadData]);
 
   // When city changes, fly the map to the city
   useEffect(() => {
@@ -88,6 +101,105 @@ export function AdminView({ onBack }: AdminViewProps) {
     }
   };
 
+  if (!adminKey) {
+    return (
+      <div
+        className="admin-shell"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '100vh',
+          background: '#0b1410',
+          color: '#effff5',
+          padding: '20px',
+        }}
+      >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const trimmed = keyInput.trim();
+            if (!trimmed) {
+              setAuthError('Admin kalitini kiriting');
+              return;
+            }
+            setAuthError(null);
+            setAdminKey(trimmed);
+            setAdminKeyState(trimmed);
+          }}
+          style={{
+            background: '#12211b',
+            border: '1px solid rgba(0, 255, 136, 0.25)',
+            borderRadius: '16px',
+            padding: '28px',
+            width: '100%',
+            maxWidth: '380px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '14px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span className="brand-mark">DS</span>
+            <strong>Admin Baqlaw Orayı</strong>
+          </div>
+          <p style={{ margin: 0, fontSize: '0.88rem', opacity: 0.8 }}>
+            Admin panelga kirish uchun maxfiy kalitni (ADMIN_KEY) kiriting:
+          </p>
+          <input
+            type="password"
+            value={keyInput}
+            onChange={(e) => setKeyInput(e.target.value)}
+            placeholder="Admin kaliti..."
+            autoFocus
+            style={{
+              padding: '10px 12px',
+              borderRadius: '8px',
+              border: '1px solid rgba(255,255,255,0.2)',
+              background: 'rgba(0,0,0,0.35)',
+              color: '#fff',
+              fontSize: '0.95rem',
+            }}
+          />
+          {authError ? (
+            <span style={{ color: '#ff6b6b', fontSize: '0.82rem' }}>{authError}</span>
+          ) : null}
+          <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+            <button
+              type="submit"
+              style={{
+                flex: 1,
+                background: '#00ff88',
+                color: '#062015',
+                border: 'none',
+                padding: '10px',
+                borderRadius: '8px',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              Kirish
+            </button>
+            <button
+              type="button"
+              onClick={onBack}
+              style={{
+                background: 'rgba(255,255,255,0.08)',
+                color: '#effff5',
+                border: '1px solid rgba(255,255,255,0.15)',
+                padding: '10px 14px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+              }}
+            >
+              ← Qaytıw
+            </button>
+          </div>
+        </form>
+      </div>
+    );
+  }
+
   return (
     <div className="admin-shell">
       <header className="admin-header">
@@ -121,12 +233,13 @@ export function AdminView({ onBack }: AdminViewProps) {
             onClick={async () => {
               if (window.confirm("Barlıq sızıqlar hám iyelengen jerlerdi kartadan óshiriwdi qáleysiz be?")) {
                 try {
-                  const { resetMap } = await import('./api');
-                  await resetMap();
+                  await resetMap(adminKey);
                   alert("Karta tolıq tazalandı!");
                   window.location.reload();
                 } catch {
-                  alert("Tazalawda qátelik júz berdi.");
+                  alert("Admin kaliti noto'g'ri yoki tazalawda qátelik júz berdi.");
+                  setAdminKey('');
+                  setAdminKeyState('');
                 }
               }
             }}

@@ -98,4 +98,29 @@ async def test_authenticated_request_with_jwt(client: AsyncClient) -> None:
     assert updated["city"] == "almaty"
     assert updated["avatar_data"] == "data:image/png;base64,updated"
 
+    # Also verify /api/v1/auth/me returns the current user
+    auth_me_res = await client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert auth_me_res.status_code == 200
+    assert auth_me_res.json()["city"] == "almaty"
+
+
+@pytest.mark.asyncio
+async def test_admin_destructive_endpoints_require_admin_key(client: AsyncClient) -> None:
+    reset_res = await client.post("/api/v1/admin/reset-map")
+    assert reset_res.status_code == 403
+
+    cleanup_res = await client.post("/api/v1/admin/cleanup")
+    assert cleanup_res.status_code == 403
+
+    valid_cleanup = await client.post(
+        "/api/v1/admin/cleanup",
+        headers={"X-Admin-Key": "dontstop-admin-2026"},
+    )
+    assert valid_cleanup.status_code == 200
+    assert "abandoned_runs_closed" in valid_cleanup.json()
+
+
 

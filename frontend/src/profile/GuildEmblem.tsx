@@ -54,9 +54,16 @@ export function findEmblem(idOrEmoji?: string): EmblemDef {
   return GUILD_EMBLEMS_LIST.find((e) => e.id === normalizedId) || GUILD_EMBLEMS_LIST[0];
 }
 
-export function getGuildEmblem(clanId?: string): string {
-  if (!clanId) return 'shield';
-  return localStorage.getItem(`dontstop.emblem.${clanId}`) || 'shield';
+export function getGuildEmblem(clanId?: string, clanTag?: string): string {
+  if (clanId) {
+    const byId = localStorage.getItem(`dontstop.emblem.${clanId}`);
+    if (byId) return byId;
+  }
+  if (clanTag) {
+    const byTag = localStorage.getItem(`dontstop.emblem.tag.${clanTag.toUpperCase()}`);
+    if (byTag) return byTag;
+  }
+  return 'shield';
 }
 
 interface GuildEmblemProps {

@@ -9,7 +9,7 @@ from fastapi import HTTPException
 HTTP_422 = 422
 
 # A bbox wider than this would scan the whole table and defeat the GiST index.
-MAX_BBOX_SPAN_DEG = 0.5
+MAX_BBOX_SPAN_DEG = 1.0
 
 
 def parse_bbox(bbox: str) -> tuple[float, float, float, float]:

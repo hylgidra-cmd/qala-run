@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Me } from '../profile/api';
 import { DefaultAvatar } from '../ui/DefaultAvatar';
-import { type ChatMessage, fetchChatMessages, sendChatMessage } from './api';
+import { type ChatMessage, fetchChatMessages, markChatRead, sendChatMessage } from './api';
 
 interface ChatPanelProps {
   currentCityId: string;
@@ -43,6 +43,7 @@ export function ChatPanel({
     try {
       const list = await fetchChatMessages(activeChannelType, activeChannelId);
       setMessages(list);
+      void markChatRead(activeChannelId).catch(() => {});
     } catch {
       // API warming up or network glitch
     }

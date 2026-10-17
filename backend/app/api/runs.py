@@ -22,7 +22,7 @@ from app.api.schemas import (
 )
 from app.config import get_settings
 from app.geo.cities import is_inside_city_bbox
-from app.geo.loop import close_ring, closing_gap_m, is_inside_bbox, perimeter_m
+from app.geo.loop import close_ring, closing_gap_m, is_inside_bbox, path_length_m, perimeter_m
 from app.geo.reasons import RejectionReason
 from app.signal.activity import get_classifier
 from app.signal.features import extract_features
@@ -52,6 +52,7 @@ async def _reject(
     activity: ActivityOut | None = None,
     warnings: list[str] | None = None,
     gap_m: float | None = None,
+    distance_m: float | None = None,
 ) -> RunResult:
     await connection.execute(
         text(
@@ -62,7 +63,8 @@ async def _reject(
                    finished_at = now(),
                    activity_type = :activity_type,
                    activity_confidence = :confidence,
-                   avg_speed_ms = :avg_speed
+                   avg_speed_ms = :avg_speed,
+                   distance_m = :distance_m
              WHERE id = :run_id
             """
         ),
@@ -72,6 +74,7 @@ async def _reject(
             "activity_type": activity.type if activity else None,
             "confidence": activity.confidence if activity else None,
             "avg_speed": activity.avg_speed_ms if activity else None,
+            "distance_m": distance_m,
         },
     )
 
@@ -296,19 +299,47 @@ async def finish_run(
 
     # --- 4, 5: Kalman speed, then features and activity ---
     smoothed = smooth_track(cleaned.points)
+    if smoothed:
+        await connection.execute(
+            text(
+                """
+                UPDATE track_points
+                   SET kalman_speed_ms = :speed
+                 WHERE run_id = :run_id AND ts = to_timestamp(:ts)
+                """
+            ),
+            [
+                {
+                    "run_id": run_id,
+                    "ts": pt.raw.ts,
+                    "speed": float(pt.kalman_speed_ms),
+                }
+                for pt in smoothed
+            ],
+        )
+
     features = extract_features(smoothed)
     activity_type, confidence = get_classifier().predict(features)
     activity = ActivityOut(
         type=activity_type, confidence=confidence, avg_speed_ms=features.mean_speed
     )
 
+    coordinates = [(point.raw.lon, point.raw.lat) for point in smoothed]
+    track_distance_m = path_length_m(coordinates)
+
     # --- 6, 7: speed ceiling and allowed activity ---
     max_speed = max(point.kalman_speed_ms for point in smoothed)
     activity_problem = check_activity(activity_type, max_speed, settings)
     if activity_problem is not None:
-        return await _reject(connection, run_id, mode, activity_problem, activity, warnings)
-
-    coordinates = [(point.raw.lon, point.raw.lat) for point in smoothed]
+        return await _reject(
+            connection,
+            run_id,
+            mode,
+            activity_problem,
+            activity,
+            warnings,
+            distance_m=track_distance_m,
+        )
 
     # --- 8: inside the selected city's region ---
     user_city = await connection.scalar(
@@ -317,7 +348,13 @@ async def finish_run(
     )
     if not is_inside_city_bbox(coordinates, user_city):
         return await _reject(
-            connection, run_id, mode, RejectionReason.OUTSIDE_REGION, activity, warnings
+            connection,
+            run_id,
+            mode,
+            RejectionReason.OUTSIDE_REGION,
+            activity,
+            warnings,
+            distance_m=track_distance_m,
         )
 
     # --- 9: closing the loop ---
@@ -331,7 +368,14 @@ async def finish_run(
         and gap_m > settings.loop_close_tolerance_m
     ):
         return await _reject(
-            connection, run_id, mode, RejectionReason.LOOP_NOT_CLOSED, activity, warnings, gap_m
+            connection,
+            run_id,
+            mode,
+            RejectionReason.LOOP_NOT_CLOSED,
+            activity,
+            warnings,
+            gap_m,
+            distance_m=track_distance_m,
         )
 
     if gap_m > settings.loop_close_warning_m:
@@ -340,7 +384,14 @@ async def finish_run(
     # --- 12a: perimeter, checked separately from area (TZ section 19) ---
     if perimeter_m(coordinates) < settings.min_loop_perimeter_m:
         return await _reject(
-            connection, run_id, mode, RejectionReason.TOO_SHORT, activity, warnings, gap_m
+            connection,
+            run_id,
+            mode,
+            RejectionReason.TOO_SHORT,
+            activity,
+            warnings,
+            gap_m,
+            distance_m=track_distance_m,
         )
 
     # Solo and clan take separate locks so they never block each other.
@@ -387,7 +438,14 @@ async def finish_run(
 
     if measured is None or measured.usable_wkt is None:
         return await _reject(
-            connection, run_id, mode, RejectionReason.BAD_SHAPE, activity, warnings, gap_m
+            connection,
+            run_id,
+            mode,
+            RejectionReason.BAD_SHAPE,
+            activity,
+            warnings,
+            gap_m,
+            distance_m=track_distance_m,
         )
 
     raw_area = float(measured.raw_area_m2 or 0.0)
@@ -396,41 +454,73 @@ async def finish_run(
     # --- 12b: minimum area, separate from the perimeter check ---
     if raw_area < settings.min_area_m2:
         return await _reject(
-            connection, run_id, mode, RejectionReason.AREA_TOO_SMALL, activity, warnings, gap_m
+            connection,
+            run_id,
+            mode,
+            RejectionReason.AREA_TOO_SMALL,
+            activity,
+            warnings,
+            gap_m,
+            distance_m=track_distance_m,
         )
 
     if usable_area <= 0:
         return await _reject(
-            connection, run_id, mode, RejectionReason.NO_AWARDABLE_AREA, activity, warnings, gap_m
+            connection,
+            run_id,
+            mode,
+            RejectionReason.NO_AWARDABLE_AREA,
+            activity,
+            warnings,
+            gap_m,
+            distance_m=track_distance_m,
         )
+
+    # Purge any expired territories in this area before measuring overlap.
+    await connection.execute(
+        text(
+            """
+            DELETE FROM territories
+             WHERE mode = :mode
+               AND expires_at IS NOT NULL
+               AND expires_at <= now()
+               AND ST_Intersects(geom, ST_SetSRID(ST_GeomFromText(:wkt), 4326))
+            """
+        ),
+        {"mode": mode, "wkt": measured.usable_wkt},
+    )
 
     # --- 14: take the overlap from whoever holds it now ---
     if mode == "clan":
         captured_sql = """
             SELECT t.owner_clan_id AS owner_id,
                    c.name AS owner_name,
-                   ST_Area(ST_Intersection(
+                   SUM(ST_Area(ST_Intersection(
                        t.geom, ST_SetSRID(ST_GeomFromText(:wkt), 4326)
-                   )::geography) AS area_lost_m2
+                   )::geography)) AS area_lost_m2
               FROM territories t
               JOIN clans c ON c.id = t.owner_clan_id
              WHERE t.mode = 'clan'
                AND t.owner_clan_id <> :owner_clan_id
+               AND (t.expires_at IS NULL OR t.expires_at > now())
                AND ST_Intersects(t.geom, ST_SetSRID(ST_GeomFromText(:wkt), 4326))
+             GROUP BY t.owner_clan_id, c.name
         """
         captured_params = {"wkt": measured.usable_wkt, "owner_clan_id": owner_clan_id}
     else:
         captured_sql = """
             SELECT t.owner_user_id AS owner_id,
                    u.display_name AS owner_name,
-                   ST_Area(ST_Intersection(
+                   SUM(ST_Area(ST_Intersection(
                        t.geom, ST_SetSRID(ST_GeomFromText(:wkt), 4326)
-                   )::geography) AS area_lost_m2
+                   )::geography)) AS area_lost_m2
               FROM territories t
               JOIN demo_users u ON u.id = t.owner_user_id
              WHERE t.mode = 'solo'
                AND t.owner_user_id <> :user_id
+               AND (t.expires_at IS NULL OR t.expires_at > now())
                AND ST_Intersects(t.geom, ST_SetSRID(ST_GeomFromText(:wkt), 4326))
+             GROUP BY t.owner_user_id, u.display_name
         """
         captured_params = {"wkt": measured.usable_wkt, "user_id": user_id}
 
@@ -442,31 +532,35 @@ async def finish_run(
     ) or "Belgisiz"
 
     # Trimming every overlapping territory, including the runner's own older
-    # ones, is what stops the same ground being counted twice.
+    # ones, is what stops the same ground being counted twice. Only recompute
+    # area_m2 on the intersecting rows rather than scanning the whole table.
     await connection.execute(
         text(
             """
-            UPDATE territories
-               SET geom = ST_Multi(ST_CollectionExtract(ST_MakeValid(ST_Difference(
-                       geom, ST_SetSRID(ST_GeomFromText(:wkt), 4326)
-                   )), 3)),
+            WITH trimmed AS (
+                SELECT id,
+                       ST_Multi(ST_CollectionExtract(ST_MakeValid(ST_Difference(
+                           geom, ST_SetSRID(ST_GeomFromText(:wkt), 4326)
+                       )), 3)) AS new_geom
+                  FROM territories
+                 WHERE mode = :mode
+                   AND ST_Intersects(geom, ST_SetSRID(ST_GeomFromText(:wkt), 4326))
+            )
+            UPDATE territories t
+               SET geom = tr.new_geom,
+                   area_m2 = COALESCE(ST_Area(tr.new_geom::geography), 0),
                    updated_at = now()
-             WHERE mode = :mode
-               AND ST_Intersects(geom, ST_SetSRID(ST_GeomFromText(:wkt), 4326))
+              FROM trimmed tr
+             WHERE t.id = tr.id
             """
         ),
         {"wkt": measured.usable_wkt, "mode": mode},
     )
     await connection.execute(
-        text("DELETE FROM territories WHERE geom IS NULL OR ST_IsEmpty(geom)")
-    )
-    await connection.execute(
-        text("UPDATE territories SET area_m2 = ST_Area(geom::geography) WHERE mode = :mode"),
-        {"mode": mode},
+        text("DELETE FROM territories WHERE geom IS NULL OR ST_IsEmpty(geom) OR area_m2 <= 0")
     )
 
     # --- 14b: notify every displaced owner about the invasion ---
-    # Only solo mode has per-user owner_id; clan mode notifies clan members (skipped for now).
     if mode == "solo" and captured:
         notif_params = [
             {
@@ -475,7 +569,7 @@ async def finish_run(
                 "area": round(float(row.area_lost_m2)),
             }
             for row in captured
-            if str(row.owner_id) != user_id  # don't notify yourself
+            if str(row.owner_id) != user_id and round(float(row.area_lost_m2 or 0)) > 0
         ]
         if notif_params:
             await connection.execute(
@@ -488,6 +582,28 @@ async def finish_run(
                 ),
                 notif_params,
             )
+    elif mode == "clan" and captured:
+        invader_clan_name = clan.name if clan is not None else invader_name
+        for row in captured:
+            lost = round(float(row.area_lost_m2 or 0))
+            if lost > 0:
+                await connection.execute(
+                    text(
+                        """
+                        INSERT INTO notifications (user_id, type, payload)
+                        SELECT m.user_id,
+                               'territory_invaded',
+                               jsonb_build_object('invader', :invader, 'area_m2', :area)
+                          FROM clan_members m
+                         WHERE m.clan_id = :clan_id
+                        """
+                    ),
+                    {
+                        "clan_id": row.owner_id,
+                        "invader": invader_clan_name,
+                        "area": lost,
+                    },
+                )
 
     # --- 15, 16: store the new territory and close the run ---
     territory_id = await connection.scalar(
@@ -523,6 +639,7 @@ async def finish_run(
                    activity_type = :activity_type,
                    activity_confidence = :confidence,
                    avg_speed_ms = :avg_speed,
+                   distance_m = :distance_m,
                    raw_area_m2 = :raw_area,
                    excluded_area_m2 = :excluded_area,
                    awarded_area_m2 = :awarded_area,
@@ -534,6 +651,7 @@ async def finish_run(
             "activity_type": activity_type,
             "confidence": confidence,
             "avg_speed": features.mean_speed,
+            "distance_m": track_distance_m,
             "raw_area": raw_area,
             "excluded_area": raw_area - usable_area,
             "awarded_area": usable_area,

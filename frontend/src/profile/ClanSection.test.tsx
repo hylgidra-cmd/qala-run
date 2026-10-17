@@ -163,4 +163,31 @@ describe('ClanSection with a clan', () => {
 
     await waitFor(() => expect(state.leave).toHaveBeenCalledOnce());
   });
+
+  it('allows the clan owner to remove a member', async () => {
+    const state = profile({
+      clan: clan(),
+      me: {
+        user_id: 'u1',
+        player_id: '84920155',
+        display_name: 'Aydos',
+        color_hex: '#c7ff4a',
+        joined_at: '2026-09-19T10:00:00+00:00',
+        stats: { runs_accepted: 0, solo_area_m2: 0, clan_area_m2: 0 },
+        clan: {
+          id: 'c1',
+          name: 'Nókis juwırıwshıları',
+          tag: 'NKS',
+          color_hex: '#c7ff4a',
+          role: 'owner',
+          member_count: 2,
+        },
+      },
+    });
+    render(<ClanSection profile={state} />);
+
+    fireEvent.click(screen.getByRole('button', { name: t.clan.remove }));
+
+    await waitFor(() => expect(state.remove).toHaveBeenCalledWith('u2'));
+  });
 });

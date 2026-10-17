@@ -48,6 +48,7 @@ export interface Me {
     runs_accepted: number;
     solo_area_m2: number;
     clan_area_m2: number;
+    total_distance_m?: number;
   };
   clan: ClanBrief | null;
 }

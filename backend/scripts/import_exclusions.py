@@ -20,6 +20,7 @@ from sqlalchemy import text
 
 from app.config import get_settings
 from app.db import get_engine
+from app.geo.cities import CITIES, get_city
 from app.geo.osm import overpass_query, parse_elements
 
 # The public instances rate-limit and time out under load, so the import
@@ -116,6 +117,12 @@ async def store(rows: list[dict]) -> int:
 
 async def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--city",
+        choices=sorted(CITIES.keys()),
+        default=None,
+        help="City to import exclusion zones for (defaults to pilot_bbox / nukus)",
+    )
     parser.add_argument("--timeout", type=int, default=300, help="Overpass timeout in seconds")
     parser.add_argument(
         "--dry-run", action="store_true", help="Print the counts without writing"
@@ -123,9 +130,10 @@ async def main() -> int:
     arguments = parser.parse_args()
 
     settings = get_settings()
-    query = overpass_query(settings.pilot_bbox, timeout_s=arguments.timeout)
+    target_bbox = get_city(arguments.city).bbox if arguments.city else settings.pilot_bbox
+    query = overpass_query(target_bbox, timeout_s=arguments.timeout)
 
-    print(f"Querying Overpass for bbox {settings.pilot_bbox} ...", flush=True)
+    print(f"Querying Overpass for bbox {target_bbox} ...", flush=True)
     try:
         payload = fetch(query, timeout_s=arguments.timeout + 30)
     except Exception as exc:  # noqa: BLE001 - every mirror refused

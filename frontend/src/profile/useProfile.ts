@@ -59,7 +59,7 @@ export interface Profile {
     city?: string;
     avatarData?: string | null;
   }) => Promise<void>;
-  create: (input: { name: string; tag: string; color_hex: string }) => Promise<void>;
+  create: (input: { name: string; tag: string; color_hex: string }) => Promise<Clan | void>;
   join: (inviteCode: string) => Promise<void>;
   leave: () => Promise<void>;
   remove: (memberId: string) => Promise<void>;
@@ -113,8 +113,10 @@ export function useProfile(): Profile {
 
   const create = useCallback(
     async (input: { name: string; tag: string; color_hex: string }) => {
-      setClan(await createClanRequest(input));
+      const created = await createClanRequest(input);
+      setClan(created);
       setMe(await fetchMe());
+      return created;
     },
     [],
   );

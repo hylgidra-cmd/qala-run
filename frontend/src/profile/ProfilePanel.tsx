@@ -57,6 +57,11 @@ export function ProfilePanel({ profile, onClose, onLogout, clanPrompt = false }:
   const handleAvatarUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      setNameError('Súwret kólemi 2 MB dan aspawı kerek');
+      return;
+    }
+    setNameError(null);
 
     const reader = new FileReader();
     reader.onload = () => {

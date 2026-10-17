@@ -58,3 +58,10 @@ class TestSizeFloors:
 
         assert settings.min_loop_perimeter_m == 300.0
         assert settings.min_area_m2 == 2000.0
+
+
+class TestAdminKey:
+    def test_admin_key_has_default_and_can_be_overridden(self) -> None:
+        assert Settings(_env_file=None).admin_key == "dontstop-admin-2026"
+        assert Settings(_env_file=None, ADMIN_KEY="custom-secret").admin_key == "custom-secret"
+

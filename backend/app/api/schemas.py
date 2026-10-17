@@ -148,6 +148,7 @@ class PlayerStats(BaseModel):
     runs_accepted: int
     solo_area_m2: float
     clan_area_m2: float
+    total_distance_m: float = 0.0
 
 
 class MeOut(BaseModel):
@@ -169,4 +170,4 @@ class DisplayNameIn(BaseModel):
     display_name: str | None = Field(default=None, min_length=2, max_length=24)
     color_hex: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
     city: str | None = Field(default=None, max_length=32)
-    avatar_data: str | None = None
+    avatar_data: str | None = Field(default=None, max_length=150_000)

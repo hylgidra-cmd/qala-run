@@ -4,6 +4,7 @@ POST /api/v1/auth/register  — create account, get JWT
 POST /api/v1/auth/login     — verify credentials, get JWT
 GET  /api/v1/auth/me        — decode token, return current user info
 """
+import asyncio
 import re
 import uuid
 from datetime import UTC, datetime, timedelta
@@ -12,12 +13,13 @@ from typing import Annotated
 import bcrypt
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from app.api.deps import get_connection
+from app.api.deps import enforce_rate_limit, get_connection, get_demo_user
 from app.config import get_settings
+from app.geo.cities import CITIES, DEFAULT_CITY_ID
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
@@ -25,6 +27,7 @@ router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 _USERNAME_RE = re.compile(r"^[A-Za-z0-9_]{3,32}$")
 # Password: at least 6 characters
 _MIN_PASSWORD_LEN = 6
+_MAX_AVATAR_LEN = 150_000
 
 TOKEN_EXPIRE_DAYS = 30
 
@@ -55,20 +58,10 @@ def decode_token(token: str) -> str:
     try:
         data = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
         return str(data["sub"])
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Token muddati o'tgan")
-    except jwt.PyJWTError:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Noto'g'ri token")
-
-
-def _next_player_id(existing: set[str]) -> str:
-    """8-digit ID, never starts with 0."""
-    import random
-    for _ in range(1000):
-        pid = str(random.randint(10_000_000, 99_999_999))
-        if pid not in existing:
-            return pid
-    raise RuntimeError("player_id pool exhausted")
+    except jwt.ExpiredSignatureError as err:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Token muddati o'tgan") from err
+    except jwt.PyJWTError as err:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Noto'g'ri token") from err
 
 
 # ── schemas ───────────────────────────────────────────────────────────────────
@@ -76,9 +69,9 @@ def _next_player_id(existing: set[str]) -> str:
 class RegisterIn(BaseModel):
     username: str
     password: str
-    display_name: str = ""
-    city: str = "nukus"
-    avatar_data: str | None = None
+    display_name: str = Field(default="", max_length=32)
+    city: str = DEFAULT_CITY_ID
+    avatar_data: str | None = Field(default=None, max_length=_MAX_AVATAR_LEN)
 
     @field_validator("username")
     @classmethod
@@ -94,6 +87,12 @@ class RegisterIn(BaseModel):
             raise ValueError(f"Parol kamida {_MIN_PASSWORD_LEN} ta belgi bo'lishi kerak")
         return v
 
+    @field_validator("city")
+    @classmethod
+    def validate_city(cls, v: str) -> str:
+        cleaned = (v or DEFAULT_CITY_ID).strip().lower()
+        return cleaned if cleaned in CITIES else DEFAULT_CITY_ID
+
 
 class LoginIn(BaseModel):
     username: str
@@ -106,7 +105,7 @@ class AuthOut(BaseModel):
     player_id: str
     display_name: str
     color_hex: str
-    city: str = "nukus"
+    city: str = DEFAULT_CITY_ID
     avatar_data: str | None = None
 
 
@@ -118,6 +117,8 @@ async def register(
     connection: Annotated[AsyncConnection, Depends(get_connection)],
 ) -> AuthOut:
     """Create a new account. Returns a JWT token on success."""
+    await enforce_rate_limit(f"auth:register:{body.username.lower()}", limit=5, window_s=60)
+
     # Check username taken
     taken = await connection.scalar(
         text("SELECT id FROM demo_users WHERE lower(username) = lower(:u)"),
@@ -126,17 +127,9 @@ async def register(
     if taken is not None:
         raise HTTPException(status.HTTP_409_CONFLICT, "Bu username band, boshqasini tanlang")
 
-    # Generate unique 8-digit player_id
-    existing_ids = {
-        str(row[0])
-        for row in (await connection.execute(text("SELECT player_id FROM demo_users"))).all()
-        if row[0] is not None
-    }
-    player_id = _next_player_id(existing_ids)
-
     display_name = body.display_name.strip() or body.username
-    password_hash = _hash_password(body.password)
-    city = body.city.lower() if body.city else "nukus"
+    password_hash = await asyncio.to_thread(_hash_password, body.password)
+    city = body.city
     # Use a deterministic device_key so we don't leave a null
     device_key = f"usr_{uuid.uuid4().hex}"
 
@@ -144,14 +137,13 @@ async def register(
         text(
             """
             INSERT INTO demo_users
-                (device_key, player_id, display_name, username, password_hash, city, avatar_data)
-            VALUES (:dk, :pid, :dn, :un, :ph, :city, :avatar)
-            RETURNING id, color_hex
+                (device_key, display_name, username, password_hash, city, avatar_data)
+            VALUES (:dk, :dn, :un, :ph, :city, :avatar)
+            RETURNING id, player_id, color_hex
             """
         ),
         {
             "dk": device_key,
-            "pid": player_id,
             "dn": display_name,
             "un": body.username,
             "ph": password_hash,
@@ -166,7 +158,7 @@ async def register(
     return AuthOut(
         token=token,
         user_id=user_id,
-        player_id=str(player_id),
+        player_id=str(created.player_id),
         display_name=display_name,
         color_hex=created.color_hex or "#00ff88",
         city=city,
@@ -180,6 +172,8 @@ async def login(
     connection: Annotated[AsyncConnection, Depends(get_connection)],
 ) -> AuthOut:
     """Verify username+password, return JWT."""
+    await enforce_rate_limit(f"auth:login:{body.username.lower()}", limit=10, window_s=60)
+
     row = (
         await connection.execute(
             text(
@@ -196,7 +190,8 @@ async def login(
     if row is None or row.password_hash is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Username yoki parol noto'g'ri")
 
-    if not _verify_password(body.password, row.password_hash):
+    valid_pw = await asyncio.to_thread(_verify_password, body.password, row.password_hash)
+    if not valid_pw:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Username yoki parol noto'g'ri")
 
     user_id = str(row.id)
@@ -208,7 +203,40 @@ async def login(
         player_id=str(row.player_id),
         display_name=row.display_name,
         color_hex=row.color_hex or "#00ff88",
-        city=getattr(row, "city", "nukus") or "nukus",
+        city=getattr(row, "city", DEFAULT_CITY_ID) or DEFAULT_CITY_ID,
+        avatar_data=getattr(row, "avatar_data", None),
+    )
+
+
+@router.get("/me", response_model=AuthOut)
+async def auth_me(
+    user_id: Annotated[str, Depends(get_demo_user)],
+    connection: Annotated[AsyncConnection, Depends(get_connection)],
+) -> AuthOut:
+    """Decode token and return current user info."""
+    row = (
+        await connection.execute(
+            text(
+                """
+                SELECT id, player_id, display_name, color_hex, city, avatar_data
+                  FROM demo_users
+                 WHERE id = :uid
+                """
+            ),
+            {"uid": user_id},
+        )
+    ).one_or_none()
+
+    if row is None:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Foydalanuvchi topilmadi")
+
+    return AuthOut(
+        token=_make_token(str(row.id)),
+        user_id=str(row.id),
+        player_id=str(row.player_id),
+        display_name=row.display_name,
+        color_hex=row.color_hex or "#00ff88",
+        city=getattr(row, "city", DEFAULT_CITY_ID) or DEFAULT_CITY_ID,
         avatar_data=getattr(row, "avatar_data", None),
     )
 

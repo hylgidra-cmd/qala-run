@@ -9,7 +9,7 @@ export function describeReason(reason: string | null): string {
     return '';
   }
 
-  return REASON_TEXT[reason] ?? reason;
+  return t.reasons[reason] ?? REASON_TEXT[reason] ?? reason;
 }
 
 /** The server's activity enum, in the player's language. */

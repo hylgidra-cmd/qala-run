@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Map, { Layer, Marker, type MapRef, NavigationControl, Popup, Source } from 'react-map-gl/maplibre';
 import { Check, Clock, Crosshair, Loader2, Moon, Shield, Sun, User, UserPlus, X } from 'lucide-react';
 
@@ -7,6 +7,8 @@ import { type LiveRunner, fetchLiveRunners } from '../admin/api';
 import { type TrackPoint, getTerritoryDecayInfo } from '../run/api';
 import { formatArea } from '../run/format';
 import { t } from '../i18n/qq';
+import { ExclusionLayer } from './ExclusionLayer';
+import { ExclusionLegend } from './ExclusionLegend';
 import { TerritoryLayer } from './TerritoryLayer';
 import { getCity } from './cities';
 import { geolocationNotice, isInsideCityBounds, outOfCityNotice } from './geolocation';
@@ -25,6 +27,7 @@ interface MapViewProps {
   theme?: MapTheme;
   onToggleTheme?: () => void;
   onSendFriendRequest?: (runner: LiveRunner) => void;
+  flyToTarget?: { lat: number; lon: number; ts: number } | null;
 }
 
 interface SelectedTerritory {
@@ -49,6 +52,7 @@ export function MapView({
   theme = 'day',
   onToggleTheme,
   onSendFriendRequest,
+  flyToTarget,
 }: MapViewProps) {
   const [notice, setNotice] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
@@ -56,8 +60,37 @@ export function MapView({
   const [selectedTerritory, setSelectedTerritory] = useState<SelectedTerritory | null>(null);
   const [selectedRunner, setSelectedRunner] = useState<LiveRunner | null>(null);
   const [sentFriendRequests, setSentFriendRequests] = useState<Record<string, boolean>>({});
+  const [exclusionsVisible, setExclusionsVisible] = useState(false);
+  const [exclusionCount, setExclusionCount] = useState(0);
+  const [exclusionTruncated, setExclusionTruncated] = useState(false);
   const mapRef = useRef<MapRef | null>(null);
   const city = getCity(cityId);
+
+  const handleExclusionsLoaded = useCallback((count: number, truncated: boolean) => {
+    setExclusionCount(count);
+    setExclusionTruncated(truncated);
+  }, []);
+
+  // Fly map camera when the active city changes
+  useEffect(() => {
+    mapRef.current?.flyTo({
+      center: [city.center.longitude, city.center.latitude],
+      zoom: city.zoom,
+      duration: 1200,
+      essential: true,
+    });
+  }, [city.center.longitude, city.center.latitude, city.zoom]);
+
+  // Fly map camera when user clicks a shared location in chat
+  useEffect(() => {
+    if (!flyToTarget) return;
+    mapRef.current?.flyTo({
+      center: [flyToTarget.lon, flyToTarget.lat],
+      zoom: 16,
+      duration: 1200,
+      essential: true,
+    });
+  }, [flyToTarget]);
 
   const activeMapStyle = theme === 'night' ? MAP_STYLES.night : MAP_STYLES.day;
 
@@ -216,6 +249,11 @@ export function MapView({
         style={{ width: '100%', height: '100%' }}
       >
         <NavigationControl position="top-right" />
+
+        <ExclusionLayer
+          visible={exclusionsVisible}
+          onLoaded={handleExclusionsLoaded}
+        />
 
         <TerritoryLayer
           mode={mode}
@@ -448,6 +486,12 @@ export function MapView({
         </button>
       </div>
 
+      <ExclusionLegend
+        visible={exclusionsVisible}
+        onToggle={() => setExclusionsVisible((v) => !v)}
+        count={exclusionCount}
+        truncated={exclusionTruncated}
+      />
     </div>
   );
 }
