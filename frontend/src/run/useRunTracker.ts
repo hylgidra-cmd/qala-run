@@ -46,11 +46,14 @@ export interface RunTracker {
   screenLocked: boolean;
   loopGapM?: number | null;
   isLoopReady?: boolean;
+  anchorIndex?: number | null;
+  effectiveLoopStartIdx?: number;
 
   start: () => Promise<void>;
   finish: () => Promise<void>;
   reset: () => void;
   recover: () => Promise<void>;
+  dropFlag?: () => void;
 }
 
 export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
@@ -65,6 +68,8 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
   const [screenLocked, setScreenLocked] = useState(false);
   const [loopGapM, setLoopGapM] = useState<number | null>(null);
   const [isLoopReady, setIsLoopReady] = useState(false);
+  const [anchorIndex, setAnchorIndex] = useState<number | null>(null);
+  const [effectiveLoopStartIdx, setEffectiveLoopStartIdx] = useState<number>(0);
 
   const watchId = useRef<number | null>(null);
   const pending = useRef<TrackPoint[]>([]);
@@ -72,6 +77,8 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
   const durationTimer = useRef<number | null>(null);
   const activeRunId = useRef<string | null>(null);
   const wakeLockRef = useRef<any>(null);
+  const anchorIndexRef = useRef<number | null>(null);
+  const speedWindowRef = useRef<number[]>([]);
 
   const stopWatching = useCallback(() => {
     if (watchId.current !== null) {
@@ -120,6 +127,81 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
 
   useEffect(() => stopWatching, [stopWatching]);
 
+  const recomputeLoopState = useCallback(
+    (trackPts: TrackPoint[], manualAnchorIdx: number | null) => {
+      if (trackPts.length < 3) {
+        setLoopGapM(null);
+        setIsLoopReady(false);
+        setEffectiveLoopStartIdx(manualAnchorIdx ?? 0);
+        return;
+      }
+
+      const last = trackPts[trackPts.length - 1];
+
+      // 1. If the user explicitly dropped a Flag (Anchor), measure closure to that Flag
+      if (manualAnchorIdx !== null && manualAnchorIdx >= 0 && manualAnchorIdx < trackPts.length - 2) {
+        const anchorPt = trackPts[manualAnchorIdx];
+        const gap = distanceBetween(anchorPt.lat, anchorPt.lon, last.lat, last.lon);
+        setLoopGapM(Math.round(gap));
+        setIsLoopReady(trackPts.length - manualAnchorIdx >= 4 && gap <= 45);
+        setEffectiveLoopStartIdx(manualAnchorIdx);
+        return;
+      }
+
+      // 2. Otherwise measure closure to start (0), OR detect a Lollipop self-intersection
+      const first = trackPts[0];
+      const gap0 = distanceBetween(first.lat, first.lon, last.lat, last.lon);
+
+      if (gap0 <= 45) {
+        setLoopGapM(Math.round(gap0));
+        setIsLoopReady(trackPts.length >= 4 && gap0 <= 45);
+        setEffectiveLoopStartIdx(0);
+        return;
+      }
+
+      // Check if the runner closed a sub-loop of >= 100m perimeter back to an earlier point
+      let bestIdx = 0;
+      let bestGap = gap0;
+      let cumulativeTailLen = 0;
+      const totalLen = trackPts.reduce((acc, pt, idx) => {
+        if (idx === 0) return 0;
+        const p = trackPts[idx - 1];
+        return acc + distanceBetween(p.lat, p.lon, pt.lat, pt.lon);
+      }, 0);
+
+      for (let i = 1; i < trackPts.length - 3; i++) {
+        const pPrev = trackPts[i - 1];
+        const pCur = trackPts[i];
+        cumulativeTailLen += distanceBetween(pPrev.lat, pPrev.lon, pCur.lat, pCur.lon);
+        const subLoopLen = totalLen - cumulativeTailLen;
+        if (subLoopLen < 90) break;
+
+        const g = distanceBetween(pCur.lat, pCur.lon, last.lat, last.lon);
+        if (g <= 45 && g < bestGap) {
+          bestGap = g;
+          bestIdx = i;
+        }
+      }
+
+      setLoopGapM(Math.round(bestGap));
+      setIsLoopReady(bestGap <= 45);
+      setEffectiveLoopStartIdx(bestIdx);
+    },
+    [],
+  );
+
+  const dropFlag = useCallback(() => {
+    setPoints((current) => {
+      if (current.length === 0) return current;
+      const targetIdx = current.length - 1;
+      const nextAnchor = anchorIndexRef.current === targetIdx ? null : targetIdx;
+      anchorIndexRef.current = nextAnchor;
+      setAnchorIndex(nextAnchor);
+      recomputeLoopState(current, nextAnchor);
+      return current;
+    });
+  }, [recomputeLoopState]);
+
   const start = useCallback(async () => {
     setError(null);
     setResult(null);
@@ -127,6 +209,10 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
     setDistanceM(0);
     setSpeedKmh(0);
     setDurationSeconds(0);
+    setAnchorIndex(null);
+    setEffectiveLoopStartIdx(0);
+    anchorIndexRef.current = null;
+    speedWindowRef.current = [];
     pending.current = [];
 
     if (!('geolocation' in navigator)) {
@@ -175,44 +261,57 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
           return;
         }
 
-        const point = toTrackPoint(position);
+        const rawPoint = toTrackPoint(position);
 
         setPoints((previous) => {
+          let point = rawPoint;
+
           if (previous.length > 0) {
             const prev = previous[previous.length - 1];
-            const d = distanceBetween(prev.lat, prev.lon, point.lat, point.lon);
-            const dt = Math.max(0.1, point.ts - prev.ts);
+            const rawDist = distanceBetween(prev.lat, prev.lon, rawPoint.lat, rawPoint.lon);
+            const dt = Math.max(0.1, rawPoint.ts - prev.ts);
 
-            // Filter out micro-jitter (< 1.2 meters unless time difference > 3 seconds)
-            if (d < 1.2 && dt < 3) {
+            // Filter out micro-jitter (< 1.5 meters unless time difference > 4 seconds)
+            if (rawDist < 1.5 && dt < 4) {
               return previous;
             }
 
             // Filter out extreme GPS teleport jumps (> 70 meters in < 3 seconds)
-            if (d > 70 && dt < 3) {
+            if (rawDist > 70 && dt < 3) {
               return previous;
             }
 
+            // Real-time accuracy-weighted EMA smoothing to eliminate chaotic zig-zags
+            const acc = rawPoint.accuracy ?? 12;
+            const alpha = acc <= 8 ? 0.78 : acc <= 18 ? 0.62 : 0.45;
+            point = {
+              ...rawPoint,
+              lat: prev.lat + alpha * (rawPoint.lat - prev.lat),
+              lon: prev.lon + alpha * (rawPoint.lon - prev.lon),
+            };
+
+            const d = distanceBetween(prev.lat, prev.lon, point.lat, point.lon);
             setDistanceM((cur) => cur + d);
 
-            if (point.speed !== null && point.speed > 0) {
-              setSpeedKmh(Math.round(point.speed * 3.6 * 10) / 10);
-            } else if (dt > 0) {
-              const computedSpeedKmh = (d / dt) * 3.6;
-              if (computedSpeedKmh < 45) {
-                setSpeedKmh(Math.round(computedSpeedKmh * 10) / 10);
-              }
-            }
+            const instSpeedKmh =
+              point.speed !== null && point.speed > 0
+                ? point.speed * 3.6
+                : dt > 0
+                  ? (d / dt) * 3.6
+                  : 0;
 
-            // Calculate loop closure distance back to starting fix
-            const first = previous[0];
-            const gapToStart = distanceBetween(first.lat, first.lon, point.lat, point.lon);
-            setLoopGapM(Math.round(gapToStart));
-            setIsLoopReady(previous.length >= 3 && gapToStart <= 45);
+            if (instSpeedKmh < 45) {
+              const win = [...speedWindowRef.current.slice(-2), instSpeedKmh];
+              speedWindowRef.current = win;
+              const avgSpeed = win.reduce((a, b) => a + b, 0) / win.length;
+              setSpeedKmh(Math.round(avgSpeed * 10) / 10);
+            }
           }
 
+          const updated = [...previous, point];
+          recomputeLoopState(updated, anchorIndexRef.current);
           pending.current.push(point);
-          return [...previous, point];
+          return updated;
         });
       },
       (positionError) => setError(positionError.message),
@@ -224,7 +323,7 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
     }, FLUSH_INTERVAL_MS);
 
     setPhase('tracking');
-  }, [flush, mode]);
+  }, [flush, mode, recomputeLoopState]);
 
   const finish = useCallback(async () => {
     const id = activeRunId.current;
@@ -237,7 +336,7 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
     await flush();
 
     try {
-      setResult(await finishRun(id));
+      setResult(await finishRun(id, anchorIndexRef.current));
       setPhase('done');
     } catch (cause) {
       setPhase('tracking');
@@ -255,6 +354,8 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
     if (id) {
       void abandonRun(id).catch(() => {});
     }
+    anchorIndexRef.current = null;
+    speedWindowRef.current = [];
     setPhase('idle');
     setRunId(null);
     setPoints([]);
@@ -265,6 +366,8 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
     setSpeedKmh(0);
     setLoopGapM(null);
     setIsLoopReady(false);
+    setAnchorIndex(null);
+    setEffectiveLoopStartIdx(0);
   }, [stopWatching]);
 
   /** Release a run left active by a closed tab, then allow a new one. */
@@ -294,10 +397,13 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
     screenLocked,
     loopGapM,
     isLoopReady,
+    anchorIndex,
+    effectiveLoopStartIdx,
     start,
     finish,
     reset,
     recover,
+    dropFlag,
   };
 }
 

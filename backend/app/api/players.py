@@ -216,6 +216,25 @@ async def my_runs(
         )
     ).all()
 
+    run_ids = [row.id for row in rows]
+    tracks_by_run: dict[str, list[list[float]]] = {str(rid): [] for rid in run_ids}
+    if run_ids:
+        pt_rows = (
+            await connection.execute(
+                text(
+                    """
+                    SELECT run_id, ST_X(geom) AS lon, ST_Y(geom) AS lat
+                      FROM track_points
+                     WHERE run_id = ANY(:run_ids)
+                     ORDER BY run_id, ts
+                    """
+                ),
+                {"run_ids": run_ids},
+            )
+        ).all()
+        for pt in pt_rows:
+            tracks_by_run.setdefault(str(pt.run_id), []).append([float(pt.lon), float(pt.lat)])
+
     return [
         RunHistoryOut(
             id=str(row.id),
@@ -227,6 +246,7 @@ async def my_runs(
             distance_m=float(row.distance_m) if row.distance_m is not None else None,
             awarded_area_m2=float(row.awarded_area_m2) if row.awarded_area_m2 is not None else None,
             activity_type=row.activity_type,
+            track=tracks_by_run.get(str(row.id), []),
         )
         for row in rows
     ]

@@ -126,6 +126,7 @@ export interface RunHistoryItem {
   distance_m: number | null;
   awarded_area_m2: number | null;
   activity_type: string | null;
+  track?: number[][];
 }
 
 export function fetchPlayerLeaderboard(city?: string | null) {

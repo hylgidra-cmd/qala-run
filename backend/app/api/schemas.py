@@ -142,6 +142,7 @@ class RunHistoryOut(BaseModel):
     distance_m: float | None = None
     awarded_area_m2: float | None = None
     activity_type: str | None = None
+    track: list[list[float]] = Field(default_factory=list)
 
 
 class PlayerStats(BaseModel):

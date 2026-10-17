@@ -22,6 +22,10 @@ interface MapViewProps {
   /** Which of the two territory layers is on screen. */
   mode?: string;
   trackPoints?: TrackPoint[];
+  anchorIndex?: number | null;
+  effectiveLoopStartIdx?: number;
+  viewingTrack?: number[][] | null;
+  onClearViewingTrack?: () => void;
   territoryRefreshKey?: string;
   onApiReachable?: (reachable: boolean) => void;
   theme?: MapTheme;
@@ -47,6 +51,10 @@ export function MapView({
   currentUserId,
   mode = 'solo',
   trackPoints = [],
+  anchorIndex = null,
+  effectiveLoopStartIdx = 0,
+  viewingTrack = null,
+  onClearViewingTrack,
   territoryRefreshKey = '',
   onApiReachable,
   theme = 'day',
@@ -165,9 +173,22 @@ export function MapView({
     };
   }, [currentUserId, onApiReachable]);
 
-  // Transform trackPoints into a GeoJSON Feature
-  const track = useMemo(() => {
-    const coordinates = (trackPoints ?? []).map((p) => [p.lon, p.lat]);
+  const loopStartIdx = useMemo(() => {
+    const pts = trackPoints ?? [];
+    if (anchorIndex !== null && anchorIndex >= 0 && anchorIndex < pts.length) {
+      return anchorIndex;
+    }
+    if (effectiveLoopStartIdx >= 0 && effectiveLoopStartIdx < pts.length) {
+      return effectiveLoopStartIdx;
+    }
+    return 0;
+  }, [trackPoints, anchorIndex, effectiveLoopStartIdx]);
+
+  // Initial stem / trail before the Flag or Lollipop loop start (kept as a line!)
+  const stemTrack = useMemo(() => {
+    const pts = trackPoints ?? [];
+    if (loopStartIdx <= 0 || pts.length < 2) return null;
+    const coordinates = pts.slice(0, loopStartIdx + 1).map((p) => [p.lon, p.lat]);
     return {
       type: 'Feature' as const,
       geometry: {
@@ -176,7 +197,35 @@ export function MapView({
       },
       properties: {},
     };
-  }, [trackPoints]);
+  }, [trackPoints, loopStartIdx]);
+
+  // Active loop track (from Flag / loopStartIdx onwards)
+  const track = useMemo(() => {
+    const pts = trackPoints ?? [];
+    const slice = loopStartIdx > 0 && loopStartIdx < pts.length - 1 ? pts.slice(loopStartIdx) : pts;
+    const coordinates = slice.map((p) => [p.lon, p.lat]);
+    return {
+      type: 'Feature' as const,
+      geometry: {
+        type: 'LineString' as const,
+        coordinates,
+      },
+      properties: {},
+    };
+  }, [trackPoints, loopStartIdx]);
+
+  // Historical / GPS Art trail being viewed from HistoryModal
+  const viewingTrackGeoJson = useMemo(() => {
+    if (!viewingTrack || viewingTrack.length < 2) return null;
+    return {
+      type: 'Feature' as const,
+      geometry: {
+        type: 'LineString' as const,
+        coordinates: viewingTrack,
+      },
+      properties: {},
+    };
+  }, [viewingTrack]);
 
   const handleMapClick = (e: any) => {
     // Look for territory fill click
@@ -205,10 +254,12 @@ export function MapView({
     onSendFriendRequest?.(runner);
   };
 
-  // Construct closed loop polygon preview when user has >= 3 track points
+  // Construct closed loop polygon preview when loop slice has >= 4 track points
   const loopPreviewPolygon = useMemo(() => {
-    const rawCoords = (trackPoints ?? []).map((p) => [p.lon, p.lat]);
-    if (rawCoords.length < 3) return null;
+    const pts = trackPoints ?? [];
+    const slice = pts.slice(loopStartIdx);
+    const rawCoords = slice.map((p) => [p.lon, p.lat]);
+    if (rawCoords.length < 4) return null;
     return {
       type: 'Feature' as const,
       geometry: {
@@ -217,12 +268,14 @@ export function MapView({
       },
       properties: {},
     };
-  }, [trackPoints]);
+  }, [trackPoints, loopStartIdx]);
 
-  // Construct closing dashed line connecting current position back to starting point
+  // Construct closing dashed line connecting current position back to Flag / loop start
   const loopClosingLine = useMemo(() => {
-    const rawCoords = (trackPoints ?? []).map((p) => [p.lon, p.lat]);
-    if (rawCoords.length < 3) return null;
+    const pts = trackPoints ?? [];
+    const slice = pts.slice(loopStartIdx);
+    const rawCoords = slice.map((p) => [p.lon, p.lat]);
+    if (rawCoords.length < 4) return null;
     const first = rawCoords[0];
     const last = rawCoords[rawCoords.length - 1];
     return {
@@ -233,7 +286,15 @@ export function MapView({
       },
       properties: {},
     };
-  }, [trackPoints]);
+  }, [trackPoints, loopStartIdx]);
+
+  const startPoint = trackPoints && trackPoints.length > 0 ? trackPoints[0] : null;
+  const flagPoint =
+    anchorIndex !== null && trackPoints && trackPoints[anchorIndex]
+      ? trackPoints[anchorIndex]
+      : loopStartIdx > 0 && trackPoints && trackPoints[loopStartIdx]
+        ? trackPoints[loopStartIdx]
+        : null;
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -261,6 +322,24 @@ export function MapView({
           onApiReachable={onApiReachable}
         />
 
+        {/* Historical / GPS Art Trail Layer */}
+        {viewingTrackGeoJson && (
+          <Source id="history-art-track" type="geojson" data={viewingTrackGeoJson}>
+            <Layer
+              id="history-art-track-glow"
+              type="line"
+              layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+              paint={{ 'line-color': '#00e5ff', 'line-width': 10, 'line-opacity': 0.28 }}
+            />
+            <Layer
+              id="history-art-track-line"
+              type="line"
+              layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+              paint={{ 'line-color': '#00e5ff', 'line-width': 4.5, 'line-opacity': 0.95 }}
+            />
+          </Source>
+        )}
+
         {/* Closed Loop Polygon Preview (INTVL Style Fill) */}
         {loopPreviewPolygon && (
           <Source id="loop-preview-fill" type="geojson" data={loopPreviewPolygon}>
@@ -268,6 +347,23 @@ export function MapView({
               id="loop-preview-polygon-layer"
               type="fill"
               paint={{ 'fill-color': '#00ff88', 'fill-opacity': 0.15 }}
+            />
+          </Source>
+        )}
+
+        {/* Stem / Initial Trail Line before Flag (stays as a line!) */}
+        {stemTrack && (
+          <Source id="stem-track" type="geojson" data={stemTrack}>
+            <Layer
+              id="stem-track-line"
+              type="line"
+              layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+              paint={{
+                'line-color': '#00e5ff',
+                'line-width': 4,
+                'line-dasharray': [2, 1.5],
+                'line-opacity': 0.9,
+              }}
             />
           </Source>
         )}
@@ -282,7 +378,7 @@ export function MapView({
           />
         </Source>
 
-        {/* Loop Closure Connector (Dashed Line back to Start Fix) */}
+        {/* Loop Closure Connector (Dashed Line back to Flag / Start Fix) */}
         {loopClosingLine && (
           <Source id="loop-closing-line" type="geojson" data={loopClosingLine}>
             <Layer
@@ -297,6 +393,48 @@ export function MapView({
               }}
             />
           </Source>
+        )}
+
+        {/* Start Point Marker */}
+        {startPoint && (
+          <Marker longitude={startPoint.lon} latitude={startPoint.lat} anchor="center">
+            <div
+              title="Start noqatı"
+              style={{
+                width: '14px',
+                height: '14px',
+                borderRadius: '50%',
+                background: '#00ff88',
+                border: '2.5px solid #10251F',
+                boxShadow: '0 0 10px rgba(0, 255, 136, 0.8)',
+              }}
+            />
+          </Marker>
+        )}
+
+        {/* Anchor Flag Marker (when runner dropped a Flag or Lollipop loop detected) */}
+        {flagPoint && (
+          <Marker longitude={flagPoint.lon} latitude={flagPoint.lat} anchor="bottom">
+            <div
+              title="Bayraq (Aylana baslanıw noqatı)"
+              style={{
+                background: '#ffea00',
+                color: '#10251F',
+                fontWeight: 800,
+                fontSize: '0.72rem',
+                padding: '2px 7px',
+                borderRadius: '999px',
+                border: '2px solid #10251F',
+                boxShadow: '0 2px 12px rgba(255, 234, 0, 0.7)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+              }}
+            >
+              <span>🚩</span>
+              <span>BAYRAQ</span>
+            </div>
+          </Marker>
         )}
 
 
@@ -458,6 +596,47 @@ export function MapView({
           </div>
         ) : null}
       </Map>
+
+      {viewingTrack && viewingTrack.length >= 2 && onClearViewingTrack ? (
+        <div
+          style={{
+            position: 'absolute',
+            top: '76px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 25,
+            background: 'rgba(10, 24, 18, 0.92)',
+            border: '1px solid #00e5ff',
+            borderRadius: '999px',
+            padding: '6px 14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            color: '#00e5ff',
+            fontWeight: 700,
+            fontSize: '0.82rem',
+            boxShadow: '0 4px 18px rgba(0, 229, 255, 0.35)',
+          }}
+        >
+          <span>🎨 GPS Iz / Sızıq ({viewingTrack.length} noqat)</span>
+          <button
+            type="button"
+            onClick={onClearViewingTrack}
+            style={{
+              background: 'rgba(0, 229, 255, 0.2)',
+              border: 'none',
+              color: '#ffffff',
+              borderRadius: '999px',
+              padding: '2px 8px',
+              cursor: 'pointer',
+              fontWeight: 700,
+              fontSize: '0.75rem',
+            }}
+          >
+            Jabıw ✕
+          </button>
+        </div>
+      ) : null}
 
       {/* Floating Map Controls: Quick Theme Toggle & GPS location button */}
       <div className="map-floating-controls">

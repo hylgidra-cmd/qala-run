@@ -73,6 +73,51 @@ def perimeter_m(coordinates: list[tuple[float, float]]) -> float:
     return path_length_m(close_ring(coordinates))
 
 
+def extract_closed_loop(
+    coordinates: list[tuple[float, float]],
+    tolerance_m: float | None,
+    min_perimeter_m: float = 100.0,
+    anchor_index: int | None = None,
+) -> tuple[list[tuple[float, float]], float, bool]:
+    """Extract the closed loop portion of a track.
+
+    Supports:
+    1. Explicit anchor flag (`anchor_index`) dropped by the runner after a stem/tail.
+    2. Standard start-to-finish loop (`coordinates[0]` to `coordinates[-1]`).
+    3. Lollipop / self-intersecting loop where the runner starts with a straight
+       stem (e.g. 100m from home), loops around an area, and finishes back at the
+       stem's junction rather than returning all the way to `coordinates[0]`.
+
+    Returns `(loop_coordinates, closing_gap_m, trimmed_tail)`.
+    """
+    if len(coordinates) < 3:
+        return coordinates, closing_gap_m(coordinates), False
+
+    if anchor_index is not None and 0 < anchor_index <= len(coordinates) - 3:
+        sub = coordinates[anchor_index:]
+        return sub, closing_gap_m(sub), True
+
+    gap0 = closing_gap_m(coordinates)
+    if tolerance_m is None or gap0 <= tolerance_m:
+        return coordinates, gap0, False
+
+    best_idx: int | None = None
+    best_gap = gap0
+
+    for idx in range(1, len(coordinates) - 2):
+        sub = coordinates[idx:]
+        gap = closing_gap_m(sub)
+        if gap <= tolerance_m and gap < best_gap:
+            if perimeter_m(sub) >= min_perimeter_m:
+                best_gap = gap
+                best_idx = idx
+
+    if best_idx is not None:
+        return coordinates[best_idx:], best_gap, True
+
+    return coordinates, gap0, False
+
+
 def is_inside_bbox(
     coordinates: list[tuple[float, float]], bbox: tuple[float, float, float, float]
 ) -> bool:

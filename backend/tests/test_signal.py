@@ -7,6 +7,7 @@ from app.config import Settings
 from app.geo.loop import (
     close_ring,
     closing_gap_m,
+    extract_closed_loop,
     haversine_m,
     is_closed_loop,
     is_inside_bbox,
@@ -184,6 +185,31 @@ class TestGeometry:
 
         assert is_inside_bbox([(NUKUS_LON, NUKUS_LAT)], bbox) is True
         assert is_inside_bbox([(69.24, 41.29)], bbox) is False
+
+    def test_extract_closed_loop_with_anchor_and_lollipop(self) -> None:
+        # 120m straight stem South-to-North up to (NUKUS_LON, NUKUS_LAT), then 100m square loop
+        stem = [
+            (NUKUS_LON, NUKUS_LAT - (120 - d) / M_PER_DEG_LAT)
+            for d in range(0, 120, 10)
+        ]
+        loop = square_loop(side_m=100.0)
+        lollipop = stem + loop
+
+        # 1. Explicit anchor flag at the end of the stem
+        extracted_flag, gap_flag, trimmed_flag = extract_closed_loop(
+            lollipop, tolerance_m=50.0, min_perimeter_m=100.0, anchor_index=len(stem)
+        )
+        assert trimmed_flag is True
+        assert gap_flag < 1.0
+        assert len(extracted_flag) == len(loop)
+
+        # 2. Automatic lollipop detection without anchor_index
+        extracted_auto, gap_auto, trimmed_auto = extract_closed_loop(
+            lollipop, tolerance_m=50.0, min_perimeter_m=100.0
+        )
+        assert trimmed_auto is True
+        assert gap_auto < 15.0
+        assert perimeter_m(extracted_auto) >= 380.0
 
 
 class TestAntiCheat:

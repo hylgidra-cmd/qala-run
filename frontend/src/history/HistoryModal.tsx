@@ -4,9 +4,10 @@ import { type RunHistoryItem, fetchMyRuns } from '../profile/api';
 
 interface HistoryModalProps {
   onClose: () => void;
+  onViewTrack?: (track: number[][]) => void;
 }
 
-export function HistoryModal({ onClose }: HistoryModalProps) {
+export function HistoryModal({ onClose, onViewTrack }: HistoryModalProps) {
   const [runs, setRuns] = useState<RunHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -49,7 +50,7 @@ export function HistoryModal({ onClose }: HistoryModalProps) {
               ✕
             </button>
           </div>
-          <p className="history-sub">Barlıq o'tkerilgen juwırıwlar hám nátiyjeler</p>
+          <p className="history-sub">Barlıq o'tkerilgen juwırıwlar, sızıqlar (GPS Art) hám nátiyjeler</p>
         </div>
 
         <div className="history-body">
@@ -63,6 +64,7 @@ export function HistoryModal({ onClose }: HistoryModalProps) {
             <div className="history-list">
               {runs.map((r) => {
                 const isAccepted = r.status === 'accepted';
+                const hasTrack = Array.isArray(r.track) && r.track.length >= 2;
                 return (
                   <div key={r.id} className={`history-card ${isAccepted ? 'accepted' : 'rejected'}`}>
                     <div className="history-card-top">
@@ -71,7 +73,7 @@ export function HistoryModal({ onClose }: HistoryModalProps) {
                         <span className="history-mode-tag">[{r.mode.toUpperCase()}]</span>
                       </div>
                       <span className={`history-status-badge ${isAccepted ? 'badge-ok' : 'badge-fail'}`}>
-                        {isAccepted ? '✅ Qabıllandı' : '❌ Qabıllanbadı'}
+                        {isAccepted ? '✅ Qabıllandı' : '🎨 Iz / Sızıq'}
                       </span>
                     </div>
 
@@ -104,6 +106,27 @@ export function HistoryModal({ onClose }: HistoryModalProps) {
                         </div>
                       ) : null}
                     </div>
+
+                    {hasTrack && onViewTrack ? (
+                      <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'flex-end' }}>
+                        <button
+                          type="button"
+                          onClick={() => onViewTrack(r.track!)}
+                          style={{
+                            background: 'rgba(33, 216, 160, 0.14)',
+                            border: '1px solid rgba(33, 216, 160, 0.45)',
+                            color: '#21D8A0',
+                            borderRadius: '8px',
+                            padding: '5px 12px',
+                            fontSize: '0.78rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          🗺️ Kartada izdi kóriw ({r.track!.length} noqat)
+                        </button>
+                      </div>
+                    ) : null}
                   </div>
                 );
               })}

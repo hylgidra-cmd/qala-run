@@ -1,4 +1,4 @@
-import { Play, Square, X, MapPin, Smartphone } from 'lucide-react';
+import { Flag, Play, Square, X, MapPin, Smartphone } from 'lucide-react';
 import { t } from '../i18n/qq';
 import {
   describeActivity,
@@ -31,6 +31,7 @@ export function RunPanel({ tracker, apiReachable }: RunPanelProps) {
     distanceM,
     speedKmh,
     screenLocked,
+    anchorIndex,
   } = tracker;
 
   if (!apiReachable) {
@@ -70,6 +71,9 @@ export function RunPanel({ tracker, apiReachable }: RunPanelProps) {
                 ) : null}
                 {result.warnings.includes('LOOP_CLOSED_BY_SERVER') ? (
                   <span><span aria-hidden="true">🔄 </span><span>{t.run.closedGap(formatDistance(result.closing_gap_m))}</span></span>
+                ) : null}
+                {result.warnings.includes('TAIL_TRIMMED_TO_LOOP') ? (
+                  <span><span aria-hidden="true">🚩 </span><span>Baslanǵısh sızıq saqlandı, aylana aymaqqa aylandı!</span></span>
                 ) : null}
                 {result.captured_from.length > 0 ? (
                   <span><span aria-hidden="true">⚔️ </span><span>{t.run.takenFrom(result.captured_from.map((o) => o.username).join(', '))}</span></span>
@@ -116,12 +120,17 @@ export function RunPanel({ tracker, apiReachable }: RunPanelProps) {
             <span className="hud-points-badge">
               <MapPin size={12} className="inline-icon" /> {points.length} noqat
             </span>
-            {tracker.loopGapM !== null && points.length >= 3 ? (
+            {anchorIndex != null ? (
+              <span className="hud-points-badge" style={{ color: '#ffea00', borderColor: 'rgba(255, 234, 0, 0.4)' }}>
+                🚩 Bayraq #{anchorIndex + 1}
+              </span>
+            ) : null}
+            {tracker.loopGapM !== null && tracker.loopGapM !== undefined && points.length >= 3 ? (
               <span className={`hud-loop-badge ${tracker.isLoopReady ? 'ready' : ''}`}>
-                <span aria-hidden="true">🔄 </span>
+                <span aria-hidden="true">{anchorIndex != null ? '🚩 ' : '🔄 '}</span>
                 {tracker.isLoopReady
                   ? `Aylana tayyor! (${tracker.loopGapM}m)`
-                  : `Basa kiyiwge: ${tracker.loopGapM}m`}
+                  : `${anchorIndex != null ? 'Bayraqqa' : 'Basa kiyiwge'}: ${tracker.loopGapM}m`}
               </span>
             ) : null}
             {screenLocked ? (
@@ -131,8 +140,31 @@ export function RunPanel({ tracker, apiReachable }: RunPanelProps) {
             ) : null}
           </div>
 
-
           <div className="hud-actions">
+            {tracker.dropFlag && points.length >= 1 ? (
+              <button
+                className="run-abandon-btn"
+                type="button"
+                onClick={tracker.dropFlag}
+                disabled={phase === 'finishing'}
+                title="Bayraq qadaw (shu noqattan aylana baslanadı, aldınǵı jol sızıq bolıp qaladı)"
+                style={{
+                  width: 'auto',
+                  padding: '0 12px',
+                  gap: '6px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  color: anchorIndex != null ? '#10251F' : '#ffea00',
+                  background: anchorIndex != null ? '#ffea00' : 'rgba(255, 234, 0, 0.14)',
+                  borderColor: 'rgba(255, 234, 0, 0.45)',
+                  fontWeight: 700,
+                  fontSize: '0.8rem',
+                }}
+              >
+                <Flag size={15} fill={anchorIndex != null ? '#10251F' : 'none'} />
+                <span>{anchorIndex != null ? 'Bayraq ornatıldı' : 'Bayraq'}</span>
+              </button>
+            ) : null}
             <button
               className="run-button stop"
               type="button"

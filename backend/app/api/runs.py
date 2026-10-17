@@ -6,7 +6,7 @@ area, activity and ownership are all decided here.
 import time
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
@@ -22,7 +22,14 @@ from app.api.schemas import (
 )
 from app.config import get_settings
 from app.geo.cities import is_inside_city_bbox
-from app.geo.loop import close_ring, closing_gap_m, is_inside_bbox, path_length_m, perimeter_m
+from app.geo.loop import (
+    close_ring,
+    closing_gap_m,
+    extract_closed_loop,
+    is_inside_bbox,
+    path_length_m,
+    perimeter_m,
+)
 from app.geo.reasons import RejectionReason
 from app.signal.activity import get_classifier
 from app.signal.features import extract_features
@@ -231,6 +238,7 @@ async def finish_run(
     run_id: str,
     user_id: Annotated[str, Depends(get_demo_user)],
     connection: Annotated[AsyncConnection, Depends(get_connection)],
+    anchor_index: Annotated[int | None, Query(ge=0)] = None,
 ) -> RunResult:
     settings = get_settings()
 
@@ -357,11 +365,15 @@ async def finish_run(
             distance_m=track_distance_m,
         )
 
-    # --- 9: closing the loop ---
-    # The runner decides when the loop is done, so there is no minimum or
-    # maximum gap by default; the server joins the last fix back to the first
-    # and reports how far apart they were.
-    gap_m = closing_gap_m(coordinates)
+    # --- 9: closing the loop (supports start-to-finish, Anchor Flag, or Lollipop loop) ---
+    loop_coordinates, gap_m, trimmed_tail = extract_closed_loop(
+        coordinates,
+        settings.loop_close_tolerance_m,
+        settings.min_loop_perimeter_m,
+        anchor_index=anchor_index,
+    )
+    if trimmed_tail:
+        warnings.append("TAIL_TRIMMED_TO_LOOP")
 
     if (
         settings.loop_close_tolerance_m is not None
@@ -382,7 +394,7 @@ async def finish_run(
         warnings.append("LOOP_CLOSED_BY_SERVER")
 
     # --- 12a: perimeter, checked separately from area (TZ section 19) ---
-    if perimeter_m(coordinates) < settings.min_loop_perimeter_m:
+    if perimeter_m(loop_coordinates) < settings.min_loop_perimeter_m:
         return await _reject(
             connection,
             run_id,
@@ -432,7 +444,7 @@ async def finish_run(
                   FROM valid v, usable u
                 """
             ),
-            {"wkt": ring_wkt(coordinates)},
+            {"wkt": ring_wkt(loop_coordinates)},
         )
     ).one_or_none()
 

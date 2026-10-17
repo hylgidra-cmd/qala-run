@@ -57,6 +57,7 @@ export function App() {
   const [chatOpen, setChatOpen] = useState(false);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
   const [flyToTarget, setFlyToTarget] = useState<{ lat: number; lon: number; ts: number } | null>(null);
+  const [viewingTrack, setViewingTrack] = useState<number[][] | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [clanPrompt, setClanPrompt] = useState(false);
   const [currentLang, setCurrentLang] = useState(getLanguage());
@@ -542,6 +543,10 @@ export function App() {
           currentUserId={profile.me?.user_id}
           mode={mode}
           trackPoints={tracker.points}
+          anchorIndex={tracker.anchorIndex}
+          effectiveLoopStartIdx={tracker.effectiveLoopStartIdx}
+          viewingTrack={viewingTrack}
+          onClearViewingTrack={() => setViewingTrack(null)}
           territoryRefreshKey={tracker.result?.territory_id ?? ''}
           onApiReachable={handleApiReachable}
           theme={theme}
@@ -656,6 +661,14 @@ export function App() {
         {historyOpen && (
           <HistoryModal
             onClose={() => setHistoryOpen(false)}
+            onViewTrack={(track) => {
+              setHistoryOpen(false);
+              setViewingTrack(track);
+              if (track.length > 0) {
+                const mid = track[Math.floor(track.length / 2)];
+                setFlyToTarget({ lon: mid[0], lat: mid[1], ts: Date.now() });
+              }
+            }}
           />
         )}
 

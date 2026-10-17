@@ -146,8 +146,9 @@ export function sendPoints(runId: string, points: TrackPoint[]) {
   });
 }
 
-export function finishRun(runId: string) {
-  return request<RunResult>(`/runs/${runId}/finish`, { method: 'POST' });
+export function finishRun(runId: string, anchorIndex?: number | null) {
+  const query = anchorIndex != null && anchorIndex > 0 ? `?anchor_index=${anchorIndex}` : '';
+  return request<RunResult>(`/runs/${runId}/finish${query}`, { method: 'POST' });
 }
 
 export function abandonRun(runId: string) {
