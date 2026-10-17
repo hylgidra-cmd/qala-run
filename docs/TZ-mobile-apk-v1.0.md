@@ -11,7 +11,7 @@
 | :--- | :--- | :--- |
 | **GitHub Repozitoriy** | **[https://github.com/hylgidra-cmd/qala-run](https://github.com/hylgidra-cmd/qala-run)** | Asosiy kod bazasi (`main` branch) |
 | **Jonli Web Ilova (Frontend)** | **[https://qalarun-web.onrender.com](https://qalarun-web.onrender.com)** | React 19 + MapLibre GL + Vite |
-| **Admin Boshqaruv Markazi** | **[https://qalarun-web.onrender.com/#admin](https://qalarun-web.onrender.com/#admin)** | Admin kalit: `dontstop-admin-2026` |
+| **Admin Boshqaruv Markazi** | **[https://qalarun-web.onrender.com/#admin](https://qalarun-web.onrender.com/#admin)** | `X-Admin-Key` (`ADMIN_KEY` muhit o'zgaruvchisi orqali) |
 | **Backend API (FastAPI)** | **[https://qalarun-api.onrender.com](https://qalarun-api.onrender.com)** | `/api/v1` (PostGIS + Redis + Kalman) |
 | **API Health Check** | **[https://qalarun-api.onrender.com/health](https://qalarun-api.onrender.com/health)** | PostgreSQL, PostGIS va Redis holati |
 

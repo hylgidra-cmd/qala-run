@@ -26,7 +26,6 @@ from app.geo.loop import (
     close_ring,
     closing_gap_m,
     extract_closed_loop,
-    is_inside_bbox,
     path_length_m,
     perimeter_m,
 )

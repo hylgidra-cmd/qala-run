@@ -150,9 +150,9 @@ own colour.
 
 ## Exclusion zones
 
-Buildings, schools, hospitals, military and industrial land, water and
-access-restricted areas are subtracted from every captured territory. Import
-them for the pilot bbox from Overpass:
+Schools, hospitals, military and industrial land, water and access-restricted
+areas are subtracted from every captured territory (buildings inside a captured
+city block are included in the award). Import them for a city bbox from Overpass:
 
 ```bash
 docker compose exec api python -m scripts.import_exclusions --dry-run

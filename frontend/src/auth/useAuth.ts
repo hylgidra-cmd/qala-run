@@ -2,12 +2,24 @@
 import { useCallback, useMemo, useState } from 'react';
 import { type AuthUser, loginUser, registerUser } from './api';
 
-const TOKEN_KEY = 'qalarun.token';
-const USER_KEY = 'qalarun.user';
+const TOKEN_KEY = 'dontstop.token';
+const USER_KEY = 'dontstop.user';
+const LEGACY_TOKEN_KEY = 'qalarun.token';
+const LEGACY_USER_KEY = 'qalarun.user';
 
 function loadStored(): AuthUser | null {
   try {
-    const raw = localStorage.getItem(USER_KEY);
+    let raw = localStorage.getItem(USER_KEY);
+    if (!raw) {
+      raw = localStorage.getItem(LEGACY_USER_KEY);
+      if (raw) {
+        localStorage.setItem(USER_KEY, raw);
+      }
+    }
+    const legacyToken = localStorage.getItem(LEGACY_TOKEN_KEY);
+    if (legacyToken && !localStorage.getItem(TOKEN_KEY)) {
+      localStorage.setItem(TOKEN_KEY, legacyToken);
+    }
     return raw ? (JSON.parse(raw) as AuthUser) : null;
   } catch {
     return null;
@@ -50,10 +62,15 @@ export function useAuth() {
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(LEGACY_TOKEN_KEY);
+    localStorage.removeItem(LEGACY_USER_KEY);
     setUser(null);
   }, []);
 
-  const token = useMemo(() => localStorage.getItem(TOKEN_KEY), [user]);
+  const token = useMemo(
+    () => localStorage.getItem(TOKEN_KEY) ?? localStorage.getItem(LEGACY_TOKEN_KEY),
+    [user],
+  );
   const isAuthenticated = user !== null;
 
   return { user, token, isAuthenticated, login, register, logout };
@@ -62,12 +79,12 @@ export function useAuth() {
 /** Returns the Authorization header value for API calls.
  *  Falls back to X-Demo-User device key for backward compat. */
 export function getAuthHeaders(): HeadersInit {
-  const token = localStorage.getItem(TOKEN_KEY);
+  const token = localStorage.getItem(TOKEN_KEY) ?? localStorage.getItem(LEGACY_TOKEN_KEY);
   if (token) {
     return { Authorization: `Bearer ${token}` };
   }
   // Legacy device-key fallback
-  const key = localStorage.getItem('dontstop.deviceKey') ?? '';
+  const key = localStorage.getItem('dontstop.device') ?? '';
   return { 'X-Demo-User': key };
 }
 

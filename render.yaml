@@ -46,9 +46,11 @@ services:
           property: connectionString
       - key: JWT_SECRET
         generateValue: true
+      - key: ADMIN_KEY
+        generateValue: true
       # The static site is a different origin, so it has to be allowed here.
       - key: CORS_ORIGINS
-        value: https://dontstop-web.onrender.com,https://hylgidra-cmd.github.io
+        value: https://dontstop-web.onrender.com,https://qalarun-web.onrender.com,https://hylgidra-cmd.github.io
 
   - type: web
     name: dontstop-web

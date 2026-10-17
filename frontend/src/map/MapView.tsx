@@ -476,7 +476,7 @@ export function MapView({
               </div>
 
               {(() => {
-                const decay = getTerritoryDecayInfo(selectedTerritory.createdAt);
+                const decay = getTerritoryDecayInfo(selectedTerritory.createdAt, selectedTerritory.mode);
                 return (
                   <div className="popup-decay-section">
                     <div className="decay-header">
@@ -488,7 +488,7 @@ export function MapView({
                         className="decay-bar-fill"
                         style={{
                           width: `${decay.percentRemaining}%`,
-                          backgroundColor: decay.daysLeft < 10 ? '#ff5e6d' : selectedTerritory.color,
+                          backgroundColor: decay.daysLeft <= 2 ? '#ff5e6d' : selectedTerritory.color,
                         }}
                       />
                     </div>

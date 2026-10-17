@@ -66,6 +66,7 @@ class AdminStats(BaseModel):
 @router.get("/stats", response_model=AdminStats)
 async def get_admin_stats(
     connection: Annotated[AsyncConnection, Depends(get_connection)],
+    _admin: Annotated[None, Depends(verify_admin_key)],
 ) -> AdminStats:
     total_players = await connection.scalar(text("SELECT count(*) FROM demo_users")) or 0
     online_players = (

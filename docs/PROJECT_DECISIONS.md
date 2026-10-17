@@ -54,7 +54,7 @@ This does not replace authentication - `X-Demo-User` is still a demo stand-in.
 ## MVP
 
 - Web demo first; Android APK is a later phase.
-- Pilot area: Nukus center, bbox `59.58,42.43,59.64,42.48`.
+- Pilot area: Nukus (`59.45,42.36,59.75,42.55`), plus multi-city support (`tashkent`, `almaty`, `istanbul`).
 - Solo, clan, and coarse-presence chat are inside the web-demo MVP.
 - Browser GPS requires the screen and run page to remain active.
 - ML is not part of MVP. Kalman filtering and rule-based activity detection are allowed.
