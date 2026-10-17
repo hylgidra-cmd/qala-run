@@ -1,10 +1,14 @@
+import { Capacitor } from '@capacitor/core';
+
 /**
  * Client for the run API.
  *
  * The server is authoritative: this module sends coordinates and timestamps and
  * reads back the decision. It never computes area, speed or ownership itself.
  */
-export const API_BASE = import.meta.env.VITE_API_URL ?? '/api/v1';
+export const API_BASE =
+  import.meta.env.VITE_API_URL ??
+  (Capacitor.isNativePlatform() ? 'https://qalarun-api.onrender.com/api/v1' : '/api/v1');
 
 const DEVICE_KEY_STORAGE = 'dontstop.device';
 /** Pre-rename key. Read once so an existing browser keeps the territories it owns. */

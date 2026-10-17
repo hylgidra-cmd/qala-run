@@ -82,7 +82,12 @@ class Settings(BaseSettings):
 
     @property
     def cors_origin_list(self) -> list[str]:
-        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+        configured = [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+        # Capacitor Android/iOS WebViews Always originate from localhost schemes
+        for cap_origin in ("https://localhost", "capacitor://localhost", "http://localhost"):
+            if cap_origin not in configured:
+                configured.append(cap_origin)
+        return configured
 
 
 @lru_cache
