@@ -63,7 +63,7 @@ services:
     autoDeployTrigger: commit
     envVars:
       - key: VITE_MAP_STYLE_URL
-        value: https://tiles.openfreemap.org/styles/liberty
+        value: https://tiles.openfreemap.org/styles/positron
       # Absolute, because there is no dev-server proxy in a static build.
       - key: VITE_API_URL
         value: https://qalarun-api.onrender.com/api/v1
