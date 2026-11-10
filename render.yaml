@@ -66,7 +66,7 @@ services:
         value: https://tiles.openfreemap.org/styles/positron
       # Absolute, because there is no dev-server proxy in a static build.
       - key: VITE_API_URL
-        value: https://dontstop-api.onrender.com/api/v1
+        value: https://qalarun-api.onrender.com/api/v1
     routes:
       # Single-page app: unknown paths must still load index.html.
       - type: rewrite

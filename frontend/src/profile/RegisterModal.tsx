@@ -14,17 +14,21 @@ const COLOR_PALETTE = [
   '#c7ff4a', // Lime Green
 ];
 
+const GMAIL_REGEX = /^[A-Za-z0-9._%+-]+@gmail\.com$/i;
+
 interface RegisterModalProps {
   profile: Profile;
   onComplete: () => void;
+  onOpenAuth?: () => void;
 }
 
-export function RegisterModal({ profile, onComplete }: RegisterModalProps) {
+export function RegisterModal({ profile, onComplete, onOpenAuth }: RegisterModalProps) {
   const defaultName =
     profile.me?.display_name && !profile.me.display_name.startsWith('Oyınshı ')
       ? profile.me.display_name
       : '';
   const [name, setName] = useState(defaultName);
+  const [email, setEmail] = useState(profile.me?.email ?? '');
   const [color, setColor] = useState(profile.me?.color_hex || COLOR_PALETTE[0]);
   const [copied, setCopied] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -44,8 +48,15 @@ export function RegisterModal({ profile, onComplete }: RegisterModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = name.trim();
+    const trimmedEmail = email.trim().toLowerCase();
+
     if (trimmed.length < 2) {
       setError('Atıńız keminde 2 belgiden ibarat bolıwı kerek');
+      return;
+    }
+
+    if (!GMAIL_REGEX.test(trimmedEmail)) {
+      setError('Faqat @gmail.com pochta manzilini kiriting (masalan: ali@gmail.com)');
       return;
     }
 
@@ -54,6 +65,7 @@ export function RegisterModal({ profile, onComplete }: RegisterModalProps) {
     try {
       await profile.updateProfile({
         displayName: trimmed,
+        email: trimmedEmail,
         colorHex: color,
       });
       localStorage.setItem('dontstop.registered', 'true');
@@ -74,9 +86,25 @@ export function RegisterModal({ profile, onComplete }: RegisterModalProps) {
           </div>
           <h2 id="reg-title">Qala Run-ǵa xosh keldińiz!</h2>
           <p className="register-subtitle">
-            Oyındı baslaw ushın óz atıńızdı kiritiń hám oyın reńińizdi saylań.
+            Oyındı baslaw ushın Google akkaunt yamasa Gmail manzilińiz benen dizimnen ótiń.
           </p>
         </div>
+
+        {onOpenAuth ? (
+          <>
+            <button
+              type="button"
+              className="auth-google-btn"
+              onClick={onOpenAuth}
+              style={{ marginTop: '14px' }}
+            >
+              <span>🌐 Google akkaunt yamasa Parol orqali kirish</span>
+            </button>
+            <div className="auth-divider">
+              <span>yoki tezkor ro&apos;yxatdan o&apos;tish</span>
+            </div>
+          </>
+        ) : null}
 
         {profile.me ? (
           <div className="register-id-box">
@@ -107,6 +135,21 @@ export function RegisterModal({ profile, onComplete }: RegisterModalProps) {
               placeholder="Atıńızdı kiritiń (mısaly: Madiyar)"
               maxLength={24}
               autoFocus
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="reg-email">Gmail manzilińiz (@gmail.com shárt)</label>
+            <input
+              id="reg-email"
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              className="register-input"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Gmail kiritiń (mısaly: madiyar@gmail.com)"
               required
             />
           </div>
@@ -151,3 +194,4 @@ export function RegisterModal({ profile, onComplete }: RegisterModalProps) {
     </div>
   );
 }
+

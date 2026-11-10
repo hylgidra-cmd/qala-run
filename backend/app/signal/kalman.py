@@ -38,6 +38,8 @@ class SmoothPoint:
     x_m: float
     y_m: float
     kalman_speed_ms: float
+    lat: float = 0.0
+    lon: float = 0.0
 
 
 def to_local_enu(
@@ -54,6 +56,14 @@ def to_local_enu(
         ((point.lon - base.lon) * lon_scale, (point.lat - base.lat) * METRES_PER_DEGREE_LAT)
         for point in points
     ]
+
+
+def from_local_enu(x_m: float, y_m: float, origin: RawPoint) -> tuple[float, float]:
+    """Back-project local ENU metres to (lat, lon)."""
+    lon_scale = METRES_PER_DEGREE_LON * cos(radians(origin.lat))
+    lat = origin.lat + y_m / METRES_PER_DEGREE_LAT
+    lon = origin.lon + (x_m / lon_scale if lon_scale else 0.0)
+    return (lat, lon)
 
 
 def build_kf(dt: float, accuracy_m: float) -> KalmanFilter:
@@ -76,7 +86,7 @@ def build_kf(dt: float, accuracy_m: float) -> KalmanFilter:
 
 
 def smooth_track(points: list[RawPoint]) -> list[SmoothPoint]:
-    """Return every point with a filtered speed attached."""
+    """Return every point with a filtered speed and smoothed coordinates attached."""
     if not points:
         return []
 
@@ -89,7 +99,16 @@ def smooth_track(points: list[RawPoint]) -> list[SmoothPoint]:
     # Position starts as well known as the fix; velocity starts unknown.
     kf.P = np.diag([accuracy**2, accuracy**2, 25.0, 25.0])
 
-    smoothed = [SmoothPoint(raw=first, x_m=enu[0][0], y_m=enu[0][1], kalman_speed_ms=0.0)]
+    smoothed = [
+        SmoothPoint(
+            raw=first,
+            x_m=enu[0][0],
+            y_m=enu[0][1],
+            kalman_speed_ms=0.0,
+            lat=first.lat,
+            lon=first.lon,
+        )
+    ]
 
     for index in range(1, len(points)):
         point = points[index]
@@ -105,8 +124,18 @@ def smooth_track(points: list[RawPoint]) -> list[SmoothPoint]:
         kf.update(np.array(enu[index], dtype=float))
 
         speed = float(np.hypot(kf.x[2], kf.x[3]))
+        x_m = float(kf.x[0])
+        y_m = float(kf.x[1])
+        smooth_lat, smooth_lon = from_local_enu(x_m, y_m, first)
         smoothed.append(
-            SmoothPoint(raw=point, x_m=float(kf.x[0]), y_m=float(kf.x[1]), kalman_speed_ms=speed)
+            SmoothPoint(
+                raw=point,
+                x_m=x_m,
+                y_m=y_m,
+                kalman_speed_ms=speed,
+                lat=smooth_lat,
+                lon=smooth_lon,
+            )
         )
 
     return smoothed

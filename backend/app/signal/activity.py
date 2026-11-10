@@ -19,13 +19,18 @@ class RuleBasedClassifier:
     """MVP. Not ML - thresholds and statistics."""
 
     def predict(self, f: Features) -> tuple[str, float]:
-        # A vehicle is fast (> ~40 km/h average). No human can sustain >11 m/s.
-        if f.mean_speed > 11.0:
+        # A vehicle is fast (> ~40 km/h average or > ~45 km/h 95th percentile).
+        if f.mean_speed > 11.0 or f.p95_speed > 12.5:
             return ("vehicle", 0.90)
 
-        # A bike sits at running speed but stays smooth and rarely stops.
+        # A bike sits at running/cycling speed but stays smooth and rarely stops.
         if 4.0 < f.mean_speed <= 11.0 and f.std_accel < 1.2 and f.stop_ratio < 0.05:
             return ("bike", 0.70)
+
+        # Slow city vehicle / scooter in traffic (sustained > 6.0 m/s = 21.6 km/h
+        # average, or p75 > 6.8 m/s, or motor-like acceleration with high top speed).
+        if f.mean_speed > 6.0 or f.p75_speed > 6.8 or (f.p95_speed > 7.5 and f.max_abs_accel > 4.5):
+            return ("vehicle", 0.85)
 
         if f.mean_speed < 2.2:
             return ("walk", 0.85)

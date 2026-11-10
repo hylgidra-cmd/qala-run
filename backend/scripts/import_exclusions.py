@@ -115,29 +115,19 @@ async def store(rows: list[dict]) -> int:
     return written
 
 
-async def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--city",
-        choices=sorted(CITIES.keys()),
-        default=None,
-        help="City to import exclusion zones for (defaults to pilot_bbox / nukus)",
-    )
-    parser.add_argument("--timeout", type=int, default=300, help="Overpass timeout in seconds")
-    parser.add_argument(
-        "--dry-run", action="store_true", help="Print the counts without writing"
-    )
-    arguments = parser.parse_args()
+async def import_bbox(
+    label: str,
+    target_bbox: tuple[float, float, float, float],
+    timeout_s: int,
+    dry_run: bool,
+) -> int:
+    query = overpass_query(target_bbox, timeout_s=timeout_s)
 
-    settings = get_settings()
-    target_bbox = get_city(arguments.city).bbox if arguments.city else settings.pilot_bbox
-    query = overpass_query(target_bbox, timeout_s=arguments.timeout)
-
-    print(f"Querying Overpass for bbox {target_bbox} ...", flush=True)
+    print(f"[{label}] Querying Overpass for bbox {target_bbox} ...", flush=True)
     try:
-        payload = fetch(query, timeout_s=arguments.timeout + 30)
+        payload = fetch(query, timeout_s=timeout_s + 30)
     except Exception as exc:  # noqa: BLE001 - every mirror refused
-        print(f"Overpass request failed: {exc}", file=sys.stderr)
+        print(f"[{label}] Overpass request failed: {exc}", file=sys.stderr)
         return 1
 
     elements = payload.get("elements", [])
@@ -147,20 +137,51 @@ async def main() -> int:
     for row in rows:
         by_kind[row["kind"]] = by_kind.get(row["kind"], 0) + 1
 
-    print(f"Elements returned: {len(elements)}", flush=True)
-    print(f"Usable polygons:   {len(rows)}")
+    print(f"[{label}] Elements returned: {len(elements)}", flush=True)
+    print(f"[{label}] Usable polygons:   {len(rows)}")
     for kind, count in sorted(by_kind.items()):
         print(f"  {kind:<11} {count}")
 
-    if arguments.dry_run:
-        print("Dry run: nothing written.")
+    if dry_run:
+        print(f"[{label}] Dry run: nothing written.")
         return 0
 
     written = await store(rows)
-    print(f"Upserted {written} exclusion zones.")
-    print("OSM coverage in Nukus is incomplete; this is never a full picture.")
-
+    print(f"[{label}] Upserted {written} exclusion zones.")
     return 0
+
+
+async def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--city",
+        choices=sorted(CITIES.keys()),
+        default=None,
+        help="City to import exclusion zones for (defaults to pilot_bbox / nukus)",
+    )
+    parser.add_argument(
+        "--all-cities",
+        action="store_true",
+        help="Import exclusion zones for all configured cities (nukus, tashkent, almaty, istanbul)",
+    )
+    parser.add_argument("--timeout", type=int, default=300, help="Overpass timeout in seconds")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Print the counts without writing"
+    )
+    arguments = parser.parse_args()
+
+    if arguments.all_cities:
+        status_code = 0
+        for city_id, city in CITIES.items():
+            rc = await import_bbox(city_id, city.bbox, arguments.timeout, arguments.dry_run)
+            if rc != 0:
+                status_code = rc
+        return status_code
+
+    settings = get_settings()
+    target_bbox = get_city(arguments.city).bbox if arguments.city else settings.pilot_bbox
+    label = arguments.city or "nukus"
+    return await import_bbox(label, target_bbox, arguments.timeout, arguments.dry_run)
 
 
 if __name__ == "__main__":

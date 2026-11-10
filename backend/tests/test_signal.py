@@ -100,6 +100,22 @@ class TestKalman:
 
         assert kalman_spread < raw_spread
 
+    def test_kalman_smoothed_coordinates_reduce_lateral_jitter(self) -> None:
+        noisy = [
+            RawPoint(
+                lat=point.lat,
+                lon=point.lon + ((-1) ** idx) * 1.2e-4,
+                ts=point.ts,
+                accuracy_m=20.0,
+            )
+            for idx, point in enumerate(straight_track(1.4, 40))
+        ]
+        smoothed = smooth_track(noisy)
+        raw_lon_dev = max(abs(p.lon - NUKUS_LON) for p in noisy[5:])
+        smooth_lon_dev = max(abs(p.lon - NUKUS_LON) for p in smoothed[5:])
+
+        assert smooth_lon_dev < raw_lon_dev
+
 
 class TestFeatures:
     def test_duration_covers_the_whole_track(self) -> None:
@@ -139,6 +155,30 @@ class TestActivity:
 
     def test_a_car_is_fast_and_smooth(self) -> None:
         features = extract_features(smooth_track(straight_track(15.0, 120)))
+
+        assert self.classifier.predict(features)[0] == "vehicle"
+
+    def test_slow_city_vehicle_with_stops_is_detected_as_vehicle(self) -> None:
+        """A car or scooter averaging 6.5 m/s (23.4 km/h) with stops must not pass as a run."""
+        stopped = [
+            RawPoint(
+                lat=NUKUS_LAT,
+                lon=NUKUS_LON,
+                ts=1_780_000_000.0 + i,
+                accuracy_m=8.0,
+            )
+            for i in range(15)
+        ]
+        moving = [
+            RawPoint(
+                lat=NUKUS_LAT + (7.2 * idx) / M_PER_DEG_LAT,
+                lon=NUKUS_LON,
+                ts=1_780_000_015.0 + idx,
+                accuracy_m=8.0,
+            )
+            for idx in range(100)
+        ]
+        features = extract_features(smooth_track(stopped + moving))
 
         assert self.classifier.predict(features)[0] == "vehicle"
 
@@ -210,6 +250,31 @@ class TestGeometry:
         assert trimmed_auto is True
         assert gap_auto < 15.0
         assert perimeter_m(extracted_auto) >= 380.0
+
+        # 3. Automatic lollipop detection even when tolerance_m is None (default setting)
+        extracted_none, gap_none, trimmed_none = extract_closed_loop(
+            lollipop, tolerance_m=None, min_perimeter_m=1.0
+        )
+        assert trimmed_none is True
+        assert gap_none < 15.0
+        assert perimeter_m(extracted_none) >= 380.0
+
+    def test_extract_closed_loop_with_out_and_back_retraced_stem(self) -> None:
+        # Runner walks 100m stem, runs 100m square loop, then walks 100m stem back home
+        stem_in = [
+            (NUKUS_LON, NUKUS_LAT - (100 - d) / M_PER_DEG_LAT)
+            for d in range(0, 100, 10)
+        ]
+        loop = square_loop(side_m=100.0)
+        stem_out = list(reversed(stem_in))
+        keyhole = stem_in + loop + stem_out
+
+        extracted, gap, trimmed = extract_closed_loop(
+            keyhole, tolerance_m=None, min_perimeter_m=1.0
+        )
+        assert trimmed is True
+        assert gap < 15.0
+        assert 380.0 <= perimeter_m(extracted) <= 425.0
 
 
 class TestAntiCheat:

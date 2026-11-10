@@ -147,4 +147,29 @@ describe('RunPanel', () => {
 
     expect(screen.getByText(t.run.closedGap('64 m'))).toBeVisible();
   });
+
+  it('explains when a concurrent runner finished first and claimed the ground', () => {
+    const result = {
+      run_id: 'r2',
+      status: 'rejected' as const,
+      reason: 'NO_AWARDABLE_AREA',
+      mode: 'solo',
+      closing_gap_m: 1,
+      raw_area_m2: 14400,
+      excluded_area_m2: 14400,
+      awarded_area_m2: 0,
+      territory_id: null,
+      activity: { type: 'walk', confidence: 0.85, avg_speed_ms: 1.4 },
+      captured_from: [],
+      warnings: ['FIRST_FINISHER_PRIORITY'],
+    };
+
+    render(<RunPanel tracker={tracker({ phase: 'done', result })} apiReachable />);
+
+    expect(
+      screen.getByText(
+        'Bul aymaqtı siz benen bir waqıtta juwırǵan basqa oyınshı birinshi bolıp iyelep úlgerdi!',
+      ),
+    ).toBeVisible();
+  });
 });

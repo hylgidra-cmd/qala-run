@@ -36,13 +36,16 @@ describe('RegisterModal', () => {
     expect(screen.getByText('84920155')).toBeVisible();
   });
 
-  it('allows entering a name, picking a color and submitting', async () => {
+  it('allows entering a name, a Gmail address, picking a color and submitting', async () => {
     const profile = mockProfile();
     const onComplete = vi.fn();
     render(<RegisterModal profile={profile} onComplete={onComplete} />);
 
     const input = screen.getByPlaceholderText('Atıńızdı kiritiń (mısaly: Madiyar)');
     fireEvent.change(input, { target: { value: 'Madiyar' } });
+
+    const emailInput = screen.getByPlaceholderText('Gmail kiritiń (mısaly: madiyar@gmail.com)');
+    fireEvent.change(emailInput, { target: { value: 'madiyar@gmail.com' } });
 
     // Pick a different color
     const cyanPill = screen.getByRole('button', { name: 'Color #00e5ff' });
@@ -54,10 +57,28 @@ describe('RegisterModal', () => {
     await waitFor(() => {
       expect(profile.updateProfile).toHaveBeenCalledWith({
         displayName: 'Madiyar',
+        email: 'madiyar@gmail.com',
         colorHex: '#00e5ff',
       });
       expect(onComplete).toHaveBeenCalled();
     });
+  });
+
+  it('rejects non-Gmail email addresses', async () => {
+    const profile = mockProfile();
+    render(<RegisterModal profile={profile} onComplete={vi.fn()} />);
+
+    const input = screen.getByPlaceholderText('Atıńızdı kiritiń (mısaly: Madiyar)');
+    fireEvent.change(input, { target: { value: 'Madiyar' } });
+
+    const emailInput = screen.getByPlaceholderText('Gmail kiritiń (mısaly: madiyar@gmail.com)');
+    fireEvent.change(emailInput, { target: { value: 'madiyar@mail.ru' } });
+
+    const submitBtn = screen.getByRole('button', { name: /Dizimnen ótiw & Baslaw/i });
+    fireEvent.click(submitBtn);
+
+    expect(await screen.findByText(/Faqat @gmail\.com/i)).toBeVisible();
+    expect(profile.updateProfile).not.toHaveBeenCalled();
   });
 
   it('rejects names shorter than 2 characters', async () => {
@@ -67,6 +88,9 @@ describe('RegisterModal', () => {
     const input = screen.getByPlaceholderText('Atıńızdı kiritiń (mısaly: Madiyar)');
     fireEvent.change(input, { target: { value: 'A' } });
 
+    const emailInput = screen.getByPlaceholderText('Gmail kiritiń (mısaly: madiyar@gmail.com)');
+    fireEvent.change(emailInput, { target: { value: 'madiyar@gmail.com' } });
+
     const submitBtn = screen.getByRole('button', { name: /Dizimnen ótiw & Baslaw/i });
     fireEvent.click(submitBtn);
 
@@ -74,4 +98,5 @@ describe('RegisterModal', () => {
     expect(profile.updateProfile).not.toHaveBeenCalled();
   });
 });
+
 

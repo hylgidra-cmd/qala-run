@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useCallback, useMemo, useState } from 'react';
-import { type AuthUser, loginUser, registerUser } from './api';
+import { type AuthUser, googleAuthUser, loginUser, registerUser } from './api';
 
 const TOKEN_KEY = 'dontstop.token';
 const USER_KEY = 'dontstop.user';
@@ -32,12 +32,13 @@ export function useAuth() {
   const persist = useCallback((u: AuthUser) => {
     localStorage.setItem(TOKEN_KEY, u.token);
     localStorage.setItem(USER_KEY, JSON.stringify(u));
+    localStorage.setItem('dontstop.registered', 'true');
     setUser(u);
   }, []);
 
   const login = useCallback(
-    async (username: string, password: string) => {
-      const u = await loginUser(username, password);
+    async (usernameOrEmail: string, password: string) => {
+      const u = await loginUser(usernameOrEmail, password);
       persist(u);
       return u;
     },
@@ -47,12 +48,38 @@ export function useAuth() {
   const register = useCallback(
     async (
       username: string,
+      email: string,
       password: string,
       displayName?: string,
       city?: string,
       avatarData?: string | null,
+      colorHex?: string,
     ) => {
-      const u = await registerUser(username, password, displayName, city, avatarData);
+      const u = await registerUser(
+        username,
+        email,
+        password,
+        displayName,
+        city,
+        avatarData,
+        colorHex,
+      );
+      persist(u);
+      return u;
+    },
+    [persist],
+  );
+
+  const loginWithGoogle = useCallback(
+    async (input: {
+      id_token?: string;
+      email?: string;
+      display_name?: string;
+      city?: string;
+      color_hex?: string;
+      avatar_data?: string | null;
+    }) => {
+      const u = await googleAuthUser(input);
       persist(u);
       return u;
     },
@@ -73,7 +100,7 @@ export function useAuth() {
   );
   const isAuthenticated = user !== null;
 
-  return { user, token, isAuthenticated, login, register, logout };
+  return { user, token, isAuthenticated, login, register, loginWithGoogle, logout };
 }
 
 /** Returns the Authorization header value for API calls.
@@ -87,5 +114,6 @@ export function getAuthHeaders(): HeadersInit {
   const key = localStorage.getItem('dontstop.device') ?? '';
   return { 'X-Demo-User': key };
 }
+
 
 

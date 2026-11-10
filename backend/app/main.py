@@ -34,9 +34,9 @@ app.add_middleware(
     allow_origins=settings.cors_origin_list,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    # X-Demo-User is a custom header, so it must be allowed or the browser
-    # preflight fails when the frontend and API are on different origins.
-    allow_headers=["Authorization", "Content-Type", "X-Demo-User"],
+    # X-Demo-User and X-Admin-Key are custom headers, so they must be allowed
+    # or the browser/WebView preflight fails across origins.
+    allow_headers=["Authorization", "Content-Type", "X-Demo-User", "X-Admin-Key"],
 )
 
 

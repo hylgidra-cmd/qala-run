@@ -75,6 +75,9 @@ export function RunPanel({ tracker, apiReachable }: RunPanelProps) {
                 {result.warnings.includes('TAIL_TRIMMED_TO_LOOP') ? (
                   <span><span aria-hidden="true">🚩 </span><span>Baslanǵısh sızıq saqlandı, aylana aymaqqa aylandı!</span></span>
                 ) : null}
+                {result.warnings.includes('FIRST_FINISHER_PRIORITY') ? (
+                  <span><span aria-hidden="true">🏁 </span><span>Birinshi kelgen oyınshı iyelegen jer saqlanıp qaldı!</span></span>
+                ) : null}
                 {result.captured_from.length > 0 ? (
                   <span><span aria-hidden="true">⚔️ </span><span>{t.run.takenFrom(result.captured_from.map((o) => o.username).join(', '))}</span></span>
                 ) : null}
@@ -85,7 +88,11 @@ export function RunPanel({ tracker, apiReachable }: RunPanelProps) {
               <span className="rejection-badge">
                 <span aria-hidden="true">⚠️</span> {t.run.rejected}
               </span>
-              <p className="rejection-reason">{describeReason(result.reason)}</p>
+              <p className="rejection-reason">
+                {result.warnings.includes('FIRST_FINISHER_PRIORITY')
+                  ? 'Bul aymaqtı siz benen bir waqıtta juwırǵan basqa oyınshı birinshi bolıp iyelep úlgerdi!'
+                  : describeReason(result.reason)}
+              </p>
             </div>
           )}
           <button type="button" className="result-close-btn" onClick={tracker.reset}>

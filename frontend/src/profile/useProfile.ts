@@ -55,6 +55,7 @@ export interface Profile {
   rename: (displayName: string) => Promise<void>;
   updateProfile: (input: {
     displayName?: string;
+    email?: string;
     colorHex?: string;
     city?: string;
     avatarData?: string | null;
@@ -96,12 +97,14 @@ export function useProfile(): Profile {
   const updateProfile = useCallback(
     async (input: {
       displayName?: string;
+      email?: string;
       colorHex?: string;
       city?: string;
       avatarData?: string | null;
     }) => {
       const updated = await updateMe({
         display_name: input.displayName,
+        email: input.email,
         color_hex: input.colorHex,
         city: input.city,
         avatar_data: input.avatarData,

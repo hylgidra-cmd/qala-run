@@ -109,4 +109,31 @@ patch(resolve(androidDir, 'build.gradle'), [
   [/com\.android\.tools\.build:gradle:[0-9.]+/, `com.android.tools.build:gradle:${AGP_VERSION}`],
 ]);
 
+// Optional release keystore signing (configured via environment variables in CI or locally)
+const keystoreB64 = process.env.ANDROID_KEYSTORE_BASE64?.trim();
+const keystoreFile = resolve(androidDir, 'app/release-keystore.jks');
+if (keystoreB64) {
+  writeFileSync(keystoreFile, Buffer.from(keystoreB64, 'base64'));
+  console.log('  wrote release-keystore.jks from ANDROID_KEYSTORE_BASE64');
+}
+
+const appGradle = resolve(androidDir, 'app/build.gradle');
+if (existsSync(appGradle)) {
+  const content = readFileSync(appGradle, 'utf8');
+  if (!content.includes('signingConfigs') && process.env.ANDROID_KEY_ALIAS) {
+    const signingBlock = `    signingConfigs {
+        release {
+            storeFile file(System.getenv("ANDROID_KEYSTORE_PATH") ?: "release-keystore.jks")
+            storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
+            keyAlias System.getenv("ANDROID_KEY_ALIAS")
+            keyPassword System.getenv("ANDROID_KEY_PASSWORD")
+        }
+    }
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release`;
+    patch(appGradle, [[/    buildTypes \{\s*release \{/, signingBlock]]);
+  }
+}
+
 console.log('Android project ready. Next: npx cap sync android');

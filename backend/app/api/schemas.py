@@ -18,7 +18,7 @@ class PointIn(BaseModel):
 
 
 class PointsIn(BaseModel):
-    points: list[PointIn] = Field(min_length=1, max_length=500)
+    points: list[PointIn] = Field(min_length=1, max_length=5000)
 
 
 class RunStarted(BaseModel):
@@ -159,6 +159,7 @@ class MeOut(BaseModel):
     user_id: str
     player_id: str
     display_name: str
+    email: str | None = None
     color_hex: str = "#00ff88"
     city: str = "nukus"
     avatar_data: str | None = None
@@ -169,6 +170,7 @@ class MeOut(BaseModel):
 
 class DisplayNameIn(BaseModel):
     display_name: str | None = Field(default=None, min_length=2, max_length=24)
+    email: str | None = Field(default=None, max_length=255)
     color_hex: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
     city: str | None = Field(default=None, max_length=32)
     avatar_data: str | None = Field(default=None, max_length=150_000)

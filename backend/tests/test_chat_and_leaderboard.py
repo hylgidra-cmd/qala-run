@@ -7,14 +7,26 @@ async def test_chat_and_leaderboard_flow(client: AsyncClient) -> None:
     # 1. Register two players
     res1 = await client.post(
         "/api/v1/auth/register",
-        json={"username": "runner_one", "password": "password123", "display_name": "Runner One", "city": "nukus"},
+        json={
+            "username": "runner_one",
+            "email": "runner_one@gmail.com",
+            "password": "password123",
+            "display_name": "Runner One",
+            "city": "nukus",
+        },
     )
     assert res1.status_code == 201
     token1 = res1.json()["token"]
 
     res2 = await client.post(
         "/api/v1/auth/register",
-        json={"username": "runner_two", "password": "password123", "display_name": "Runner Two", "city": "nukus"},
+        json={
+            "username": "runner_two",
+            "email": "runner_two@gmail.com",
+            "password": "password123",
+            "display_name": "Runner Two",
+            "city": "nukus",
+        },
     )
     assert res2.status_code == 201
     token2 = res2.json()["token"]

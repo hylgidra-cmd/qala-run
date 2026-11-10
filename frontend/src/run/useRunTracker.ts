@@ -29,6 +29,10 @@ const FLUSH_INTERVAL_MS = 4000;
 const FLUSH_ATTEMPTS = 3;
 const FLUSH_RETRY_DELAY_MS = 800;
 
+/** Maximum points per upload request to stay well within payload and rate limits. */
+const MAX_UPLOAD_CHUNK = 500;
+const LOOP_READY_TOLERANCE_M = 35;
+
 function distanceBetween(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371000;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -137,20 +141,23 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
       return true;
     }
 
-    const batch = pending.current;
-    pending.current = [];
+    while (pending.current.length > 0) {
+      const batch = pending.current.slice(0, MAX_UPLOAD_CHUNK);
+      pending.current = pending.current.slice(MAX_UPLOAD_CHUNK);
 
-    try {
-      await sendPoints(id, batch);
-      persistPending();
-      return true;
-    } catch (cause) {
-      // Keep the batch so a dropped connection does not lose the track.
-      pending.current = [...batch, ...pending.current];
-      persistPending();
-      setError(cause instanceof Error ? cause.message : t.run.couldNotUpload);
-      return false;
+      try {
+        await sendPoints(id, batch);
+        persistPending();
+      } catch (cause) {
+        // Keep the batch so a dropped connection does not lose the track.
+        pending.current = [...batch, ...pending.current];
+        persistPending();
+        setError(cause instanceof Error ? cause.message : t.run.couldNotUpload);
+        return false;
+      }
     }
+
+    return true;
   }, [persistPending]);
 
   const flushWithRetry = useCallback(async () => {
@@ -181,47 +188,84 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
 
   const recomputeLoopState = useCallback(
     (trackPts: TrackPoint[], manualAnchorIdx: number | null) => {
-      if (trackPts.length < 3) {
+      const n = trackPts.length;
+      if (n < 3) {
         setLoopGapM(null);
         applyLoopReady(false);
         setEffectiveLoopStartIdx(manualAnchorIdx ?? 0);
         return;
       }
 
-      const last = trackPts[trackPts.length - 1];
+      const last = trackPts[n - 1];
 
       // 1. If the user explicitly dropped a Flag (Anchor), measure closure to that Flag
-      if (manualAnchorIdx !== null && manualAnchorIdx >= 0 && manualAnchorIdx < trackPts.length - 2) {
+      if (manualAnchorIdx !== null && manualAnchorIdx >= 0 && manualAnchorIdx < n - 2) {
         const anchorPt = trackPts[manualAnchorIdx];
         const gap = distanceBetween(anchorPt.lat, anchorPt.lon, last.lat, last.lon);
         setLoopGapM(Math.round(gap));
-        applyLoopReady(trackPts.length - manualAnchorIdx >= 4 && gap <= 45);
+        applyLoopReady(n - manualAnchorIdx >= 4 && gap <= LOOP_READY_TOLERANCE_M);
         setEffectiveLoopStartIdx(manualAnchorIdx);
         return;
       }
 
-      // 2. Otherwise measure closure to start (0), OR detect a Lollipop self-intersection
+      // 2. Otherwise measure closure to start (0), OR detect a Lollipop / retraced stem
       const first = trackPts[0];
       const gap0 = distanceBetween(first.lat, first.lon, last.lat, last.lon);
 
-      if (gap0 <= 45) {
-        setLoopGapM(Math.round(gap0));
-        applyLoopReady(trackPts.length >= 4 && gap0 <= 45);
-        setEffectiveLoopStartIdx(0);
-        return;
-      }
-
-      // Check if the runner closed a sub-loop of >= 100m perimeter back to an earlier point
-      let bestIdx = 0;
-      let bestGap = gap0;
-      let cumulativeTailLen = 0;
       const totalLen = trackPts.reduce((acc, pt, idx) => {
         if (idx === 0) return 0;
         const p = trackPts[idx - 1];
         return acc + distanceBetween(p.lat, p.lon, pt.lat, pt.lon);
       }, 0);
 
-      for (let i = 1; i < trackPts.length - 3; i++) {
+      if (gap0 <= LOOP_READY_TOLERANCE_M) {
+        // Check for out-and-back retraced stem (Home -> Stem -> Loop -> Stem -> Home)
+        let stemK = 0;
+        let stemLen = 0;
+        const gaps: number[] = [gap0];
+        const stemLens: number[] = [0];
+        while (n - 1 - 2 * (stemK + 1) >= 3) {
+          const pA = trackPts[stemK + 1];
+          const pB = trackPts[n - 1 - (stemK + 1)];
+          const d = distanceBetween(pA.lat, pA.lon, pB.lat, pB.lon);
+          if (d <= 25) {
+            const stepLen = distanceBetween(trackPts[stemK].lat, trackPts[stemK].lon, pA.lat, pA.lon);
+            if (totalLen - 2 * (stemLen + stepLen) >= 90) {
+              stemLen += stepLen;
+              stemK += 1;
+              gaps.push(d);
+              stemLens.push(stemLen);
+              continue;
+            }
+          }
+          break;
+        }
+
+        if (stemK >= 2 && stemLen >= 25) {
+          let bestK = stemK;
+          while (bestK > 2 && gaps[bestK] > gaps[bestK - 1] + 2) {
+            bestK -= 1;
+          }
+          if (stemLens[bestK] >= 25) {
+            setLoopGapM(Math.round(gaps[bestK]));
+            applyLoopReady(true);
+            setEffectiveLoopStartIdx(bestK);
+            return;
+          }
+        }
+
+        setLoopGapM(Math.round(gap0));
+        applyLoopReady(n >= 4 && gap0 <= LOOP_READY_TOLERANCE_M);
+        setEffectiveLoopStartIdx(0);
+        return;
+      }
+
+      // Check if the runner closed a sub-loop of >= 90m perimeter back to an earlier point
+      let bestIdx = 0;
+      let bestGap = gap0;
+      let cumulativeTailLen = 0;
+
+      for (let i = 1; i < n - 3; i++) {
         const pPrev = trackPts[i - 1];
         const pCur = trackPts[i];
         cumulativeTailLen += distanceBetween(pPrev.lat, pPrev.lon, pCur.lat, pCur.lon);
@@ -229,14 +273,14 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
         if (subLoopLen < 90) break;
 
         const g = distanceBetween(pCur.lat, pCur.lon, last.lat, last.lon);
-        if (g <= 45 && g < bestGap) {
+        if (g <= LOOP_READY_TOLERANCE_M && g < bestGap) {
           bestGap = g;
           bestIdx = i;
         }
       }
 
       setLoopGapM(Math.round(bestGap));
-      applyLoopReady(bestGap <= 45);
+      applyLoopReady(bestGap <= LOOP_READY_TOLERANCE_M);
       setEffectiveLoopStartIdx(bestIdx);
     },
     [applyLoopReady],
@@ -331,7 +375,9 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
 
     if (orphan && orphan.runId !== activeRunId.current) {
       try {
-        await sendPoints(orphan.runId, orphan.points);
+        for (let i = 0; i < orphan.points.length; i += MAX_UPLOAD_CHUNK) {
+          await sendPoints(orphan.runId, orphan.points.slice(i, i + MAX_UPLOAD_CHUNK));
+        }
       } catch {
         // That run is gone. Nothing here is worth stopping a new one for.
       }

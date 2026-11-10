@@ -7,6 +7,8 @@ import type { CapacitorConfig } from '@capacitor/cli';
  * browser demo does keeps working; the native layer only adds what a browser
  * cannot do: background GPS, haptics and a full-screen game chrome.
  */
+const liveServerUrl = process.env.CAPACITOR_SERVER_URL?.trim();
+
 const config: CapacitorConfig = {
   appId: 'com.dontstop.qalarun',
   appName: "Don't Stop",
@@ -18,10 +20,11 @@ const config: CapacitorConfig = {
   },
   server: {
     // The WebView serves the app from this scheme, which makes the APK's
-    // origin `https://localhost`. The API has to allow that origin or every
-    // request from the APK fails CORS, so it is pinned here rather than left
-    // to a Capacitor default that could change under us.
+    // origin `https://localhost`. When CAPACITOR_SERVER_URL is set (e.g.
+    // https://qalarun-web.onrender.com), the APK loads live web updates
+    // directly from that URL without needing an APK reinstall.
     androidScheme: 'https',
+    ...(liveServerUrl ? { url: liveServerUrl, cleartext: false } : {}),
   },
   plugins: {
     SplashScreen: {

@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
+from app.api.auth import ensure_auth_columns, validate_gmail_address
 from app.api.clans import clan_of
 from app.api.deps import get_connection, get_demo_user
 from app.api.schemas import DisplayNameIn, MeOut, PlayerStanding, PlayerStats, RunHistoryOut
@@ -19,6 +20,7 @@ router = APIRouter(prefix="/api/v1", tags=["players"])
 
 
 async def load_me(connection: AsyncConnection, user_id: str) -> MeOut:
+    await ensure_auth_columns(connection)
     player = (
         await connection.execute(
             text(
@@ -26,6 +28,7 @@ async def load_me(connection: AsyncConnection, user_id: str) -> MeOut:
                 SELECT u.id,
                        u.player_id,
                        u.display_name,
+                       u.email,
                        u.color_hex,
                        u.city,
                        u.avatar_data,
@@ -79,6 +82,7 @@ async def load_me(connection: AsyncConnection, user_id: str) -> MeOut:
         user_id=str(player.id),
         player_id=player.player_id,
         display_name=player.display_name,
+        email=getattr(player, "email", None),
         color_hex=getattr(player, "color_hex", None) or "#00ff88",
         city=getattr(player, "city", "nukus") or "nukus",
         avatar_data=getattr(player, "avatar_data", None),
@@ -107,9 +111,16 @@ async def rename_me(
     user_id: Annotated[str, Depends(get_demo_user)],
     connection: Annotated[AsyncConnection, Depends(get_connection)],
 ) -> MeOut:
-    if body.display_name is None and body.color_hex is None and body.city is None and body.avatar_data is None:
+    if (
+        body.display_name is None
+        and body.email is None
+        and body.color_hex is None
+        and body.city is None
+        and body.avatar_data is None
+    ):
         raise HTTPException(422, "No update fields provided")
 
+    await ensure_auth_columns(connection)
     updates = []
     params: dict[str, str | None] = {"user_id": user_id}
 
@@ -119,6 +130,20 @@ async def rename_me(
             raise HTTPException(422, "display_name is too short")
         updates.append("display_name = :name")
         params["name"] = name
+
+    if body.email is not None:
+        try:
+            cleaned_email = validate_gmail_address(body.email)
+        except ValueError as err:
+            raise HTTPException(422, str(err)) from err
+        taken_email = await connection.scalar(
+            text("SELECT id FROM demo_users WHERE lower(email) = lower(:em) AND id <> :user_id"),
+            {"em": cleaned_email, "user_id": user_id},
+        )
+        if taken_email is not None:
+            raise HTTPException(409, "Bu Gmail manzili allaqachon boshqa akkauntga ulangan")
+        updates.append("email = :email")
+        params["email"] = cleaned_email
 
     if body.color_hex is not None:
         updates.append("color_hex = :color_hex")
@@ -163,7 +188,10 @@ async def players_leaderboard(
                u.color_hex,
                u.city,
                u.avatar_data,
-               (SELECT count(*) FROM runs r WHERE r.user_id = u.id AND r.status = 'accepted') AS runs_count,
+               (
+                   SELECT count(*) FROM runs r
+                    WHERE r.user_id = u.id AND r.status = 'accepted'
+               ) AS runs_count,
                COALESCE(
                    (SELECT sum(t.area_m2) FROM territories t
                      WHERE t.mode = 'solo'

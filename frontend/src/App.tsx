@@ -606,6 +606,10 @@ export function App() {
           <RegisterModal
             profile={profile}
             onComplete={() => setRegisterDismissed(true)}
+            onOpenAuth={() => {
+              setRegisterDismissed(true);
+              setAuthModalOpen(true);
+            }}
           />
         ) : null}
 

@@ -24,7 +24,6 @@ from app.config import get_settings
 from app.geo.cities import is_inside_city_bbox
 from app.geo.loop import (
     close_ring,
-    closing_gap_m,
     extract_closed_loop,
     path_length_m,
     perimeter_m,
@@ -127,8 +126,8 @@ async def start_run(
         await connection.execute(
             text(
                 """
-                INSERT INTO runs (user_id, mode)
-                VALUES (:user_id, :mode)
+                INSERT INTO runs (user_id, mode, started_at)
+                VALUES (:user_id, :mode, clock_timestamp())
                 RETURNING id, started_at
                 """
             ),
@@ -244,7 +243,7 @@ async def finish_run(
     run = (
         await connection.execute(
             text(
-                "SELECT id, mode FROM runs "
+                "SELECT id, mode, started_at FROM runs "
                 "WHERE id = :run_id AND user_id = :user_id AND status = 'active'"
             ),
             {"run_id": run_id, "user_id": user_id},
@@ -255,6 +254,7 @@ async def finish_run(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No active run with that id")
 
     mode = run.mode
+    run_started_at = run.started_at
     warnings: list[str] = []
 
     # A member who left mid-run has no clan to award the ground to.
@@ -331,7 +331,12 @@ async def finish_run(
         type=activity_type, confidence=confidence, avg_speed_ms=features.mean_speed
     )
 
-    coordinates = [(point.raw.lon, point.raw.lat) for point in smoothed]
+    coordinates = [
+        (point.lon, point.lat)
+        if (point.raw.accuracy_m or 0.0) > 12.0 and point.lon != 0.0 and point.lat != 0.0
+        else (point.raw.lon, point.raw.lat)
+        for point in smoothed
+    ]
     track_distance_m = path_length_m(coordinates)
 
     # --- 6, 7: speed ceiling and allowed activity ---
@@ -410,21 +415,32 @@ async def finish_run(
         text("SELECT pg_advisory_xact_lock(hashtext(:mode))"), {"mode": mode}
     )
 
-    # --- 10, 11, 13: polygon, ST_MakeValid, minus the exclusion union ---
+    # --- 10, 11, 13: polygon, ST_MakeValid, minus exclusions & first-finisher ground ---
     measured = (
         await connection.execute(
             text(
                 """
                 WITH ring AS (
                     SELECT ST_SetSRID(ST_GeomFromText(:wkt), 4326) AS line
-                ), poly AS (
-                    SELECT ST_CollectionExtract(ST_MakeValid(ST_MakePolygon(line)), 3) AS geom
+                ), built AS (
+                    SELECT ST_CollectionExtract(
+                               ST_MakeValid(ST_BuildArea(ST_UnaryUnion(line))), 3
+                           ) AS geom_area,
+                           ST_CollectionExtract(
+                               ST_MakeValid(ST_MakePolygon(line)), 3
+                           ) AS geom_poly
                       FROM ring
+                ), poly AS (
+                    SELECT CASE
+                             WHEN geom_area IS NOT NULL AND NOT ST_IsEmpty(geom_area) THEN geom_area
+                             ELSE geom_poly
+                           END AS geom
+                      FROM built
                 ), valid AS (
                     SELECT ST_Multi(geom) AS geom
                       FROM poly
                      WHERE geom IS NOT NULL AND NOT ST_IsEmpty(geom)
-                ), usable AS (
+                ), after_exclusions AS (
                     SELECT COALESCE(
                              ST_Multi(ST_CollectionExtract(ST_MakeValid(ST_Difference(
                                  v.geom,
@@ -436,14 +452,46 @@ async def finish_run(
                              v.geom
                            ) AS geom
                       FROM valid v
+                ), protected AS (
+                    SELECT ST_Union(t.geom) AS geom
+                      FROM territories t, after_exclusions ae
+                     WHERE t.mode = :mode
+                       AND (t.expires_at IS NULL OR t.expires_at > now())
+                       AND t.created_at >= :run_started_at
+                       AND (
+                           (:mode = 'solo' AND t.owner_user_id <> CAST(:user_id AS uuid))
+                           OR (:mode = 'clan' AND t.owner_clan_id <> CAST(:owner_clan_id AS uuid))
+                       )
+                       AND ST_Intersects(t.geom, ae.geom)
+                ), usable AS (
+                    SELECT CASE
+                             WHEN p.geom IS NOT NULL THEN
+                               COALESCE(
+                                 ST_Multi(ST_CollectionExtract(ST_MakeValid(ST_Difference(
+                                     ae.geom, p.geom
+                                 )), 3)),
+                                 ST_GeomFromText('MULTIPOLYGON EMPTY', 4326)
+                               )
+                             ELSE ae.geom
+                           END AS geom,
+                           (p.geom IS NOT NULL) AS had_protected_overlap
+                      FROM after_exclusions ae, protected p
                 )
                 SELECT ST_Area(v.geom::geography) AS raw_area_m2,
+                       ST_Area(ae.geom::geography) AS after_exclusions_area_m2,
                        ST_Area(u.geom::geography) AS usable_area_m2,
-                       ST_AsText(u.geom) AS usable_wkt
-                  FROM valid v, usable u
+                       ST_AsText(u.geom) AS usable_wkt,
+                       u.had_protected_overlap AS had_protected_overlap
+                  FROM valid v, after_exclusions ae, usable u
                 """
             ),
-            {"wkt": ring_wkt(loop_coordinates)},
+            {
+                "wkt": ring_wkt(loop_coordinates),
+                "mode": mode,
+                "run_started_at": run_started_at,
+                "user_id": user_id,
+                "owner_clan_id": str(owner_clan_id) if owner_clan_id is not None else None,
+            },
         )
     ).one_or_none()
 
@@ -460,7 +508,10 @@ async def finish_run(
         )
 
     raw_area = float(measured.raw_area_m2 or 0.0)
+    after_exclusions_area = float(measured.after_exclusions_area_m2 or 0.0)
     usable_area = float(measured.usable_area_m2 or 0.0)
+    if measured.had_protected_overlap:
+        warnings.append("FIRST_FINISHER_PRIORITY")
 
     # --- 12b: minimum area, separate from the perimeter check ---
     if raw_area < settings.min_area_m2:
@@ -475,7 +526,11 @@ async def finish_run(
             distance_m=track_distance_m,
         )
 
-    if usable_area <= 0:
+    if usable_area <= 0 or (
+        measured.had_protected_overlap
+        and after_exclusions_area > 0
+        and usable_area / after_exclusions_area < 0.2
+    ):
         return await _reject(
             connection,
             run_id,
@@ -501,7 +556,7 @@ async def finish_run(
         {"mode": mode, "wkt": measured.usable_wkt},
     )
 
-    # --- 14: take the overlap from whoever holds it now ---
+    # --- 14: take the overlap from whoever holds it now (excluding concurrent first-finishers) ---
     if mode == "clan":
         captured_sql = """
             SELECT t.owner_clan_id AS owner_id,
@@ -513,11 +568,16 @@ async def finish_run(
               JOIN clans c ON c.id = t.owner_clan_id
              WHERE t.mode = 'clan'
                AND t.owner_clan_id <> :owner_clan_id
+               AND t.created_at < :run_started_at
                AND (t.expires_at IS NULL OR t.expires_at > now())
                AND ST_Intersects(t.geom, ST_SetSRID(ST_GeomFromText(:wkt), 4326))
              GROUP BY t.owner_clan_id, c.name
         """
-        captured_params = {"wkt": measured.usable_wkt, "owner_clan_id": owner_clan_id}
+        captured_params = {
+            "wkt": measured.usable_wkt,
+            "owner_clan_id": owner_clan_id,
+            "run_started_at": run_started_at,
+        }
     else:
         captured_sql = """
             SELECT t.owner_user_id AS owner_id,
@@ -529,11 +589,16 @@ async def finish_run(
               JOIN demo_users u ON u.id = t.owner_user_id
              WHERE t.mode = 'solo'
                AND t.owner_user_id <> :user_id
+               AND t.created_at < :run_started_at
                AND (t.expires_at IS NULL OR t.expires_at > now())
                AND ST_Intersects(t.geom, ST_SetSRID(ST_GeomFromText(:wkt), 4326))
              GROUP BY t.owner_user_id, u.display_name
         """
-        captured_params = {"wkt": measured.usable_wkt, "user_id": user_id}
+        captured_params = {
+            "wkt": measured.usable_wkt,
+            "user_id": user_id,
+            "run_started_at": run_started_at,
+        }
 
     captured = (await connection.execute(text(captured_sql), captured_params)).all()
 
@@ -542,9 +607,9 @@ async def finish_run(
         text("SELECT display_name FROM demo_users WHERE id = :uid"), {"uid": user_id}
     ) or "Belgisiz"
 
-    # Trimming every overlapping territory, including the runner's own older
-    # ones, is what stops the same ground being counted twice. Only recompute
-    # area_m2 on the intersecting rows rather than scanning the whole table.
+    # Trimming every overlapping territory created before this run started (plus the
+    # runner's own older ones) stops the same ground being counted twice while
+    # preserving any territory won by a faster concurrent runner.
     await connection.execute(
         text(
             """
@@ -555,17 +620,28 @@ async def finish_run(
                        )), 3)) AS new_geom
                   FROM territories
                  WHERE mode = :mode
+                   AND (
+                       created_at < :run_started_at
+                       OR (:mode = 'solo' AND owner_user_id = CAST(:user_id AS uuid))
+                       OR (:mode = 'clan' AND owner_clan_id = CAST(:owner_clan_id AS uuid))
+                   )
                    AND ST_Intersects(geom, ST_SetSRID(ST_GeomFromText(:wkt), 4326))
             )
             UPDATE territories t
                SET geom = tr.new_geom,
                    area_m2 = COALESCE(ST_Area(tr.new_geom::geography), 0),
-                   updated_at = now()
+                   updated_at = clock_timestamp()
               FROM trimmed tr
              WHERE t.id = tr.id
             """
         ),
-        {"wkt": measured.usable_wkt, "mode": mode},
+        {
+            "wkt": measured.usable_wkt,
+            "mode": mode,
+            "run_started_at": run_started_at,
+            "user_id": user_id,
+            "owner_clan_id": str(owner_clan_id) if owner_clan_id is not None else None,
+        },
     )
     await connection.execute(
         text("DELETE FROM territories WHERE geom IS NULL OR ST_IsEmpty(geom) OR area_m2 <= 0")
@@ -621,9 +697,11 @@ async def finish_run(
         text(
             """
             INSERT INTO territories (mode, owner_user_id, owner_clan_id, run_id, area_m2, geom,
-                                     expires_at)
+                                     created_at, updated_at, expires_at)
             VALUES (:mode, :user_id, :owner_clan_id, :run_id, :area,
                     ST_SetSRID(ST_GeomFromText(:wkt), 4326),
+                    clock_timestamp(),
+                    clock_timestamp(),
                     now() + (CASE WHEN :mode = 'solo'
                                   THEN INTERVAL '7 days'
                                   ELSE INTERVAL '14 days' END))

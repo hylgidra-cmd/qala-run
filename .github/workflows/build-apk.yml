@@ -56,19 +56,33 @@ jobs:
         working-directory: frontend
         env:
           # The APK has no dev-server proxy, so the API has to be absolute.
-          VITE_API_URL: https://qalarun-api.onrender.com/api/v1
+          VITE_API_URL: ${{ vars.VITE_API_URL || 'https://qalarun-api.onrender.com/api/v1' }}
           VITE_MAP_STYLE_URL: https://tiles.openfreemap.org/styles/positron
         run: npm run build
 
       - name: Generate and sync the Android project
         working-directory: frontend
+        env:
+          CAPACITOR_SERVER_URL: ${{ vars.CAPACITOR_SERVER_URL || '' }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: npm run cap:sync
 
-      - name: Assemble the debug APK
+      - name: Assemble the APK
         working-directory: frontend/android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           chmod +x ./gradlew
           ./gradlew --no-daemon assembleDebug
+          if [ -n "$ANDROID_KEY_ALIAS" ] && [ -f "app/release-keystore.jks" ]; then
+            ./gradlew --no-daemon assembleRelease
+            cp app/build/outputs/apk/release/app-release.apk dontstop-release.apk
+          fi
 
       - name: Name the APK after the product
         working-directory: frontend/android
@@ -77,6 +91,8 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: dontstop-debug-apk
-          path: frontend/android/dontstop-debug.apk
+          path: |
+            frontend/android/dontstop-debug.apk
+            frontend/android/dontstop-release.apk
           if-no-files-found: error
           retention-days: 30

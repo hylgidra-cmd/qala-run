@@ -163,6 +163,9 @@ export function ProfilePanel({ profile, onClose, onLogout, clanPrompt = false }:
           </label>
           <div>
             <h2 className="profile-name">{me.display_name || 'Oyınshı'}</h2>
+            {me.email ? (
+              <p className="profile-email-tag">📧 {me.email}</p>
+            ) : null}
             <p className="profile-id">
               <span className="profile-id-label">{t.profile.playerId}</span>
               <strong>{me.player_id}</strong>

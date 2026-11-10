@@ -40,6 +40,7 @@ export interface Me {
   user_id: string;
   player_id: string;
   display_name: string;
+  email?: string | null;
   color_hex: string;
   city?: string;
   avatar_data?: string | null;
@@ -59,6 +60,7 @@ export function fetchMe() {
 
 export function updateMe(input: {
   display_name?: string;
+  email?: string;
   color_hex?: string;
   city?: string;
   avatar_data?: string | null;

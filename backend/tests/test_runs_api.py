@@ -207,6 +207,39 @@ class TestRunLifecycle:
         assert body["status"] == "accepted"
         assert body["activity"]["avg_speed_ms"] < 5.0
 
+    async def test_concurrent_runners_award_territory_to_first_finisher(
+        self, client, headers
+    ) -> None:
+        """When two friends start running together and walk the same loop,
+        whoever finishes first gets the territory and the second cannot overwrite it."""
+        friend_headers = {"X-Demo-User": uuid.uuid4().hex}
+        points = square_points(side_m=120.0)
+
+        start_a = await client.post("/api/v1/runs/start", headers=headers)
+        start_b = await client.post("/api/v1/runs/start", headers=friend_headers)
+        run_a = start_a.json()["run_id"]
+        run_b = start_b.json()["run_id"]
+
+        await client.post(
+            f"/api/v1/runs/{run_a}/points", headers=headers, json={"points": points}
+        )
+        await client.post(
+            f"/api/v1/runs/{run_b}/points", headers=friend_headers, json={"points": points}
+        )
+
+        # Runner A finishes first and claims the territory.
+        finish_a = await client.post(f"/api/v1/runs/{run_a}/finish", headers=headers)
+        body_a = finish_a.json()
+        assert body_a["status"] == "accepted"
+        assert body_a["awarded_area_m2"] > 10000.0
+
+        # Runner B (who started before Runner A finished) finishes second on the same loop.
+        finish_b = await client.post(f"/api/v1/runs/{run_b}/finish", headers=friend_headers)
+        body_b = finish_b.json()
+        assert body_b["status"] == "rejected"
+        assert body_b["reason"] == "NO_AWARDABLE_AREA"
+        assert "FIRST_FINISHER_PRIORITY" in body_b["warnings"]
+
 
 class TestRejections:
     async def test_a_straight_line_encloses_nothing(self, client, headers) -> None:

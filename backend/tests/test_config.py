@@ -65,3 +65,20 @@ class TestAdminKey:
         assert Settings(_env_file=None).admin_key == "dontstop-admin-2026"
         assert Settings(_env_file=None, ADMIN_KEY="custom-secret").admin_key == "custom-secret"
 
+
+class TestGmailValidation:
+    def test_accepts_valid_gmail_and_normalizes_case(self) -> None:
+        from app.api.auth import validate_gmail_address
+
+        assert validate_gmail_address("  Runner.Nukus+1@Gmail.com ") == "runner.nukus+1@gmail.com"
+
+    def test_rejects_non_gmail_or_empty_addresses(self) -> None:
+        from app.api.auth import validate_gmail_address
+
+        with pytest.raises(ValueError):
+            validate_gmail_address("")
+        with pytest.raises(ValueError):
+            validate_gmail_address("runner@yahoo.com")
+        with pytest.raises(ValueError):
+            validate_gmail_address("invalid-email")
+
