@@ -34,9 +34,14 @@ if (result.status !== 0) {
   process.exit(result.status ?? 1);
 }
 
-const output =
-  task === 'assembleRelease'
-    ? 'android/app/build/outputs/apk/release/'
-    : 'android/app/build/outputs/apk/debug/app-debug.apk';
+let output = 'android/app/build/outputs/apk/debug/app-debug.apk';
+if (task === 'assembleRelease') {
+  output = 'android/app/build/outputs/apk/release/';
+} else if (task === 'bundleRelease') {
+  output = 'android/app/build/outputs/bundle/release/app-release.aab';
+} else if (task === 'bundleDebug') {
+  output = 'android/app/build/outputs/bundle/debug/app-debug.aab';
+}
 
-console.log(`APK is in ${output}`);
+console.log(`Build artifact is in ${output}`);
+

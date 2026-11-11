@@ -11,11 +11,18 @@ interface ProfilePanelProps {
   profile: Profile;
   onClose: () => void;
   onLogout?: () => void;
+  onOpenSubscription?: () => void;
   /** True when the panel was opened by pressing Clan without a clan. */
   clanPrompt?: boolean;
 }
 
-export function ProfilePanel({ profile, onClose, onLogout, clanPrompt = false }: ProfilePanelProps) {
+export function ProfilePanel({
+  profile,
+  onClose,
+  onLogout,
+  onOpenSubscription,
+  clanPrompt = false,
+}: ProfilePanelProps) {
   const { me } = profile;
   const [name, setName] = useState(me?.display_name ?? '');
   const [saving, setSaving] = useState(false);
@@ -243,6 +250,31 @@ export function ProfilePanel({ profile, onClose, onLogout, clanPrompt = false }:
             <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: '#8faea1' }}>
               {t.profile.privacyActive}
             </p>
+          )}
+        </div>
+
+        {/* Subscription & 3-Day Free Trial Card */}
+        <div className={`profile-sub-card ${me.subscription?.status || 'trial'}`}>
+          <div className="profile-sub-info">
+            <span className="profile-sub-badge">
+              {me.subscription?.status === 'active'
+                ? '💎 PRO OBUNA AKTIV'
+                : me.subscription?.status === 'expired'
+                  ? '⚠️ OBUNA WAQTÍ TAWÍSÍLDÍ'
+                  : '🎁 3 KÚNLIK BIYPUL SÍNAQ'}
+            </span>
+            <span className="profile-sub-detail">
+              {me.subscription
+                ? me.subscription.is_active
+                  ? `Qalǵan waqıt: ${me.subscription.days_left} kún • Tarif: 5 000 swm/kún`
+                  : 'Juwırıwdı dawam etiw ushın kúnlik obunanı aktivlestiriń (5 000 swm/kún)'
+                : '3 kún dawamında biypul! Keyin kúnine 5 000 swm'}
+            </span>
+          </div>
+          {onOpenSubscription && (
+            <button type="button" className="profile-sub-btn" onClick={onOpenSubscription}>
+              {me.subscription?.is_active ? 'Uzaytırıw' : 'Aktivlestiriw'}
+            </button>
           )}
         </div>
 

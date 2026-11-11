@@ -43,6 +43,7 @@ import { useProfile } from './profile/useProfile';
 import { formatArea, formatDistance } from './run/format';
 import { RunPanel } from './run/RunPanel';
 import { type TerritoryMode, useRunTracker } from './run/useRunTracker';
+import { SubscriptionModal } from './subscription/SubscriptionModal';
 import { PhoneQr } from './ui/PhoneQr';
 
 export function App() {
@@ -52,6 +53,7 @@ export function App() {
   const [mode, setMode] = useState<TerritoryMode>('solo');
   const [panelOpen, setPanelOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [subModalOpen, setSubModalOpen] = useState(false);
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
@@ -141,6 +143,13 @@ export function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tracker.result]);
+
+  // Open SubscriptionModal automatically if a run start fails with SUBSCRIPTION_EXPIRED
+  useEffect(() => {
+    if (tracker.error && /SUBSCRIPTION_EXPIRED/i.test(tracker.error)) {
+      setSubModalOpen(true);
+    }
+  }, [tracker.error]);
 
   const chooseClan = () => {
     if (!profile.me?.clan) {
@@ -307,6 +316,19 @@ export function App() {
             </select>
             <ChevronDown size={11} className="city-chevron" aria-hidden="true" />
           </div>
+
+          <button
+            type="button"
+            className={`topbar-sub-btn ${profile.me?.subscription?.status || 'trial'}`}
+            onClick={() => setSubModalOpen(true)}
+            title="3 kún biypul / Kúnine 5 000 swm obuna"
+          >
+            {profile.me?.subscription?.status === 'active'
+              ? `💎 PRO (${profile.me.subscription.days_left}k)`
+              : profile.me?.subscription?.status === 'expired'
+                ? '⚠️ 5 000 swm'
+                : `🎁 ${profile.me?.subscription?.days_left ?? 3}k biypul`}
+          </button>
 
           <button
             type="button"
@@ -500,6 +522,20 @@ export function App() {
                 type="button"
                 className="drawer-nav-item"
                 onClick={() => {
+                  setSubModalOpen(true);
+                  setMobileMenuOpen(false);
+                }}
+              >
+                <span>💎</span>
+                <span>
+                  Obuna / 3 kún biypul (5 000 swm/kún)
+                </span>
+              </button>
+
+              <button
+                type="button"
+                className="drawer-nav-item"
+                onClick={() => {
                   window.location.hash = '#admin';
                   setIsAdmin(true);
                   setMobileMenuOpen(false);
@@ -618,6 +654,10 @@ export function App() {
             profile={profile}
             clanPrompt={clanPrompt}
             onClose={() => setPanelOpen(false)}
+            onOpenSubscription={() => {
+              setPanelOpen(false);
+              setSubModalOpen(true);
+            }}
             onLogout={() => {
               logout();
               setPanelOpen(false);
@@ -625,6 +665,16 @@ export function App() {
             }}
           />
         ) : null}
+
+        {subModalOpen && (
+          <SubscriptionModal
+            subscription={profile.me?.subscription}
+            onActivated={() => {
+              void profile.reload();
+            }}
+            onClose={() => setSubModalOpen(false)}
+          />
+        )}
 
         {authModalOpen && (
           <AuthPage
@@ -689,7 +739,11 @@ export function App() {
           />
         )}
 
-        <RunPanel tracker={tracker} apiReachable={apiReachable} />
+        <RunPanel
+          tracker={tracker}
+          apiReachable={apiReachable}
+          onOpenSubscription={() => setSubModalOpen(true)}
+        />
       </section>
     </main>
   );

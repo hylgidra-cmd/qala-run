@@ -13,6 +13,7 @@ interface RunPanelProps {
   tracker: RunTracker;
   /** False when no backend is reachable, e.g. on a static deployment. */
   apiReachable: boolean;
+  onOpenSubscription?: () => void;
 }
 
 function formatDuration(seconds: number): string {
@@ -21,7 +22,7 @@ function formatDuration(seconds: number): string {
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
-export function RunPanel({ tracker, apiReachable }: RunPanelProps) {
+export function RunPanel({ tracker, apiReachable, onOpenSubscription }: RunPanelProps) {
   const {
     phase,
     points,
@@ -50,6 +51,11 @@ export function RunPanel({ tracker, apiReachable }: RunPanelProps) {
           {/[0-9a-f-]{36}/i.test(error) ? (
             <button type="button" onClick={() => void tracker.recover()}>
               {t.run.release}
+            </button>
+          ) : null}
+          {/SUBSCRIPTION_EXPIRED|5\s?000/i.test(error) && onOpenSubscription ? (
+            <button type="button" onClick={onOpenSubscription}>
+              💎 Obunanı aktivlestiriw (5 000 swm)
             </button>
           ) : null}
         </div>

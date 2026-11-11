@@ -4,6 +4,7 @@ Every browser that shows up is given an 8-digit player id, the way PUBG and
 Free Fire hand one out: short enough to read to a friend, random, and never
 reused. The id is public; the device key behind it never leaves the server.
 """
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -13,10 +14,79 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 from app.api.auth import ensure_auth_columns, validate_gmail_address
 from app.api.clans import clan_of
 from app.api.deps import get_connection, get_demo_user
-from app.api.schemas import DisplayNameIn, MeOut, PlayerStanding, PlayerStats, RunHistoryOut
+from app.api.schemas import (
+    DisplayNameIn,
+    MeOut,
+    PlayerStanding,
+    PlayerStats,
+    RunHistoryOut,
+    SubscriptionActivateIn,
+    SubscriptionOut,
+)
 from app.geo.cities import CITIES
 
 router = APIRouter(prefix="/api/v1", tags=["players"])
+
+DAILY_SUBSCRIPTION_PRICE_UZS = 5000
+FREE_TRIAL_DAYS = 3
+
+
+def compute_subscription(
+    created_at: datetime | None,
+    trial_ends_at: datetime | None,
+    paid_until: datetime | None,
+    now: datetime | None = None,
+) -> SubscriptionOut:
+    current = now or datetime.now(UTC)
+    if current.tzinfo is None:
+        current = current.replace(tzinfo=UTC)
+
+    base_created = created_at or current
+    if base_created.tzinfo is None:
+        base_created = base_created.replace(tzinfo=UTC)
+
+    effective_trial_end = trial_ends_at or (base_created + timedelta(days=FREE_TRIAL_DAYS))
+    if effective_trial_end.tzinfo is None:
+        effective_trial_end = effective_trial_end.replace(tzinfo=UTC)
+
+    effective_paid_until = paid_until
+    if effective_paid_until is not None and effective_paid_until.tzinfo is None:
+        effective_paid_until = effective_paid_until.replace(tzinfo=UTC)
+
+    if effective_paid_until is not None and effective_paid_until > current:
+        active_until = max(effective_paid_until, effective_trial_end)
+        rem_hours = max(0.0, (active_until - current).total_seconds() / 3600.0)
+        return SubscriptionOut(
+            status="active",
+            is_active=True,
+            trial_ends_at=effective_trial_end.isoformat(),
+            paid_until=effective_paid_until.isoformat(),
+            hours_left=round(rem_hours, 1),
+            days_left=max(1, int((rem_hours + 23.9) // 24)),
+            daily_price_uzs=DAILY_SUBSCRIPTION_PRICE_UZS,
+        )
+
+    if effective_trial_end > current:
+        rem_hours = max(0.0, (effective_trial_end - current).total_seconds() / 3600.0)
+        return SubscriptionOut(
+            status="trial",
+            is_active=True,
+            trial_ends_at=effective_trial_end.isoformat(),
+            paid_until=effective_paid_until.isoformat() if effective_paid_until else None,
+            hours_left=round(rem_hours, 1),
+            days_left=max(1, int((rem_hours + 23.9) // 24)),
+            daily_price_uzs=DAILY_SUBSCRIPTION_PRICE_UZS,
+        )
+
+    return SubscriptionOut(
+        status="expired",
+        is_active=False,
+        trial_ends_at=effective_trial_end.isoformat(),
+        paid_until=effective_paid_until.isoformat() if effective_paid_until else None,
+        hours_left=0.0,
+        days_left=0,
+        daily_price_uzs=DAILY_SUBSCRIPTION_PRICE_UZS,
+    )
 
 
 async def load_me(connection: AsyncConnection, user_id: str) -> MeOut:
@@ -33,6 +103,8 @@ async def load_me(connection: AsyncConnection, user_id: str) -> MeOut:
                        u.city,
                        u.avatar_data,
                        u.created_at,
+                       u.trial_ends_at,
+                       u.paid_until,
                        (SELECT count(*) FROM runs r
                          WHERE r.user_id = u.id AND r.status = 'accepted') AS runs_accepted,
                        COALESCE(
@@ -78,6 +150,12 @@ async def load_me(connection: AsyncConnection, user_id: str) -> MeOut:
             )
         )
 
+    sub = compute_subscription(
+        created_at=getattr(player, "created_at", None),
+        trial_ends_at=getattr(player, "trial_ends_at", None),
+        paid_until=getattr(player, "paid_until", None),
+    )
+
     return MeOut(
         user_id=str(player.id),
         player_id=player.player_id,
@@ -94,6 +172,7 @@ async def load_me(connection: AsyncConnection, user_id: str) -> MeOut:
             total_distance_m=float(player.total_distance_m),
         ),
         clan=clan,
+        subscription=sub,
     )
 
 
@@ -102,6 +181,31 @@ async def read_me(
     user_id: Annotated[str, Depends(get_demo_user)],
     connection: Annotated[AsyncConnection, Depends(get_connection)],
 ) -> MeOut:
+    return await load_me(connection, user_id)
+
+
+@router.post("/subscription/activate", response_model=MeOut)
+async def activate_subscription(
+    body: SubscriptionActivateIn,
+    user_id: Annotated[str, Depends(get_demo_user)],
+    connection: Annotated[AsyncConnection, Depends(get_connection)],
+) -> MeOut:
+    """Activate or extend daily subscription (5,000 UZS / day)."""
+    await ensure_auth_columns(connection)
+    await connection.execute(
+        text(
+            """
+            UPDATE demo_users
+               SET paid_until = GREATEST(
+                       COALESCE(paid_until, now()),
+                       COALESCE(trial_ends_at, created_at + interval '3 days', now()),
+                       now()
+                   ) + make_interval(days => :days)
+             WHERE id = :user_id
+            """
+        ),
+        {"days": body.days, "user_id": user_id},
+    )
     return await load_me(connection, user_id)
 
 

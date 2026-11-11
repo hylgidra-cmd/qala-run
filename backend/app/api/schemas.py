@@ -152,6 +152,21 @@ class PlayerStats(BaseModel):
     total_distance_m: float = 0.0
 
 
+class SubscriptionOut(BaseModel):
+    status: str = "trial"  # "trial" | "active" | "expired"
+    is_active: bool = True
+    trial_ends_at: str | None = None
+    paid_until: str | None = None
+    hours_left: float = 72.0
+    days_left: int = 3
+    daily_price_uzs: int = 5000
+
+
+class SubscriptionActivateIn(BaseModel):
+    days: int = Field(default=1, ge=1, le=365)
+    provider: str = Field(default="click", max_length=32)
+
+
 class MeOut(BaseModel):
     """The player's own profile. Their id is theirs to read out; nobody
     else's device key is ever exposed."""
@@ -166,6 +181,7 @@ class MeOut(BaseModel):
     joined_at: str
     stats: PlayerStats
     clan: ClanBrief | None = None
+    subscription: SubscriptionOut | None = None
 
 
 class DisplayNameIn(BaseModel):

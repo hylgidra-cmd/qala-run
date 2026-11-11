@@ -82,3 +82,45 @@ class TestGmailValidation:
         with pytest.raises(ValueError):
             validate_gmail_address("invalid-email")
 
+
+class TestSubscriptionLogic:
+    def test_new_user_gets_three_day_free_trial(self) -> None:
+        from datetime import UTC, datetime
+
+        from app.api.players import compute_subscription
+
+        now = datetime(2026, 11, 11, 12, 0, tzinfo=UTC)
+        sub = compute_subscription(created_at=now, trial_ends_at=None, paid_until=None, now=now)
+
+        assert sub.status == "trial"
+        assert sub.is_active is True
+        assert sub.days_left == 3
+        assert sub.daily_price_uzs == 5000
+
+    def test_expired_trial_requires_subscription_until_paid(self) -> None:
+        from datetime import UTC, datetime, timedelta
+
+        from app.api.players import compute_subscription
+
+        created = datetime(2026, 11, 1, 12, 0, tzinfo=UTC)
+        now = created + timedelta(days=4)
+
+        expired = compute_subscription(
+            created_at=created,
+            trial_ends_at=created + timedelta(days=3),
+            paid_until=None,
+            now=now,
+        )
+        assert expired.status == "expired"
+        assert expired.is_active is False
+
+        active = compute_subscription(
+            created_at=created,
+            trial_ends_at=created + timedelta(days=3),
+            paid_until=now + timedelta(days=1),
+            now=now,
+        )
+        assert active.status == "active"
+        assert active.is_active is True
+        assert active.days_left == 1
+

@@ -319,13 +319,13 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
           const rawDist = distanceBetween(prev.lat, prev.lon, rawPoint.lat, rawPoint.lon);
           const dt = Math.max(0.1, rawPoint.ts - prev.ts);
 
-          // Filter out micro-jitter (< 1.5 meters unless time difference > 4 seconds)
-          if (rawDist < 1.5 && dt < 4) {
+          // Ignore stationary GPS drift (< 2.0 meters) so lines never tangle while standing still
+          if (rawDist < 2.0) {
             return previous;
           }
 
-          // Filter out extreme GPS teleport jumps (> 70 meters in < 3 seconds)
-          if (rawDist > 70 && dt < 3) {
+          // Ignore GPS multipath teleport jumps (> 70 m in < 3 s or > 16 m/s instantaneous jump)
+          if ((rawDist > 70 && dt < 3) || rawDist / dt > 16.0) {
             return previous;
           }
 

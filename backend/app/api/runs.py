@@ -103,6 +103,36 @@ async def start_run(
     if mode not in SUPPORTED_MODES:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Unsupported mode: {mode}")
 
+    from app.api.auth import ensure_auth_columns
+    from app.api.players import compute_subscription
+
+    await ensure_auth_columns(connection)
+    user_row = (
+        await connection.execute(
+            text(
+                """
+                SELECT created_at, trial_ends_at, paid_until
+                  FROM demo_users
+                 WHERE id = :user_id
+                """
+            ),
+            {"user_id": user_id},
+        )
+    ).one_or_none()
+
+    if user_row is not None:
+        sub = compute_subscription(
+            created_at=getattr(user_row, "created_at", None),
+            trial_ends_at=getattr(user_row, "trial_ends_at", None),
+            paid_until=getattr(user_row, "paid_until", None),
+        )
+        if not sub.is_active:
+            raise HTTPException(
+                status.HTTP_402_PAYMENT_REQUIRED,
+                "SUBSCRIPTION_EXPIRED: 3 kunlik bepul sinov muddati tugadi. "
+                "Davom etish uchun obunani faollashtiring (5 000 so'm / kun).",
+            )
+
     # The mode is fixed when the run starts and cannot change mid-run
     # (TZ section 23.2), so clan membership is checked here as well as at the
     # finish.

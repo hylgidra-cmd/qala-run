@@ -36,6 +36,16 @@ export interface Clan {
   invite_code: string | null;
 }
 
+export interface SubscriptionInfo {
+  status: 'trial' | 'active' | 'expired';
+  is_active: boolean;
+  trial_ends_at: string | null;
+  paid_until: string | null;
+  hours_left: number;
+  days_left: number;
+  daily_price_uzs: number;
+}
+
 export interface Me {
   user_id: string;
   player_id: string;
@@ -52,10 +62,18 @@ export interface Me {
     total_distance_m?: number;
   };
   clan: ClanBrief | null;
+  subscription?: SubscriptionInfo | null;
 }
 
 export function fetchMe() {
   return request<Me>('/me');
+}
+
+export function activateSubscription(days = 1, provider = 'click') {
+  return request<Me>('/subscription/activate', {
+    method: 'POST',
+    body: JSON.stringify({ days, provider }),
+  });
 }
 
 export function updateMe(input: {

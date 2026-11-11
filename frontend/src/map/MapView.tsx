@@ -202,7 +202,10 @@ export function MapView({
   // Active loop track (from Flag / loopStartIdx onwards)
   const track = useMemo(() => {
     const pts = trackPoints ?? [];
-    const slice = loopStartIdx > 0 && loopStartIdx < pts.length - 1 ? pts.slice(loopStartIdx) : pts;
+    if (pts.length < 2) return null;
+    const startIdx = loopStartIdx > 0 ? Math.min(loopStartIdx, pts.length - 2) : 0;
+    const slice = pts.slice(startIdx);
+    if (slice.length < 2) return null;
     const coordinates = slice.map((p) => [p.lon, p.lat]);
     return {
       type: 'Feature' as const,
@@ -213,6 +216,12 @@ export function MapView({
       properties: {},
     };
   }, [trackPoints, loopStartIdx]);
+
+  // Live runner head marker
+  const currentPoint = useMemo(() => {
+    const pts = trackPoints ?? [];
+    return pts.length > 1 ? pts[pts.length - 1] : null;
+  }, [trackPoints]);
 
   // Historical / GPS Art trail being viewed from HistoryModal
   const viewingTrackGeoJson = useMemo(() => {
@@ -369,14 +378,22 @@ export function MapView({
         )}
 
         {/* Active Track Line */}
-        <Source id="live-track" type="geojson" data={track}>
-          <Layer
-            id="live-track-line"
-            type="line"
-            layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-            paint={{ 'line-color': '#00ff88', 'line-width': 5, 'line-opacity': 0.95 }}
-          />
-        </Source>
+        {track && (
+          <Source id="live-track" type="geojson" data={track}>
+            <Layer
+              id="live-track-glow"
+              type="line"
+              layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+              paint={{ 'line-color': '#10251F', 'line-width': 8, 'line-opacity': 0.55 }}
+            />
+            <Layer
+              id="live-track-line"
+              type="line"
+              layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+              paint={{ 'line-color': '#00ff88', 'line-width': 5, 'line-opacity': 0.98 }}
+            />
+          </Source>
+        )}
 
         {/* Loop Closure Connector (Dashed Line back to Flag / Start Fix) */}
         {loopClosingLine && (
@@ -407,6 +424,23 @@ export function MapView({
                 background: '#00ff88',
                 border: '2.5px solid #10251F',
                 boxShadow: '0 0 10px rgba(0, 255, 136, 0.8)',
+              }}
+            />
+          </Marker>
+        )}
+
+        {/* Current Runner Head Marker */}
+        {currentPoint && (
+          <Marker longitude={currentPoint.lon} latitude={currentPoint.lat} anchor="center">
+            <div
+              title="Házirgi ornıńız"
+              style={{
+                width: '16px',
+                height: '16px',
+                borderRadius: '50%',
+                background: '#ffffff',
+                border: '4px solid #00a86b',
+                boxShadow: '0 0 14px rgba(0, 255, 136, 0.95)',
               }}
             />
           </Marker>

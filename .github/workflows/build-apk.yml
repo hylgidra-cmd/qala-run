@@ -70,7 +70,7 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: npm run cap:sync
 
-      - name: Assemble the APK
+      - name: Assemble the APK & Play Store AAB
         working-directory: frontend/android
         env:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -80,8 +80,9 @@ jobs:
           chmod +x ./gradlew
           ./gradlew --no-daemon assembleDebug
           if [ -n "$ANDROID_KEY_ALIAS" ] && [ -f "app/release-keystore.jks" ]; then
-            ./gradlew --no-daemon assembleRelease
+            ./gradlew --no-daemon assembleRelease bundleRelease
             cp app/build/outputs/apk/release/app-release.apk dontstop-release.apk
+            cp app/build/outputs/bundle/release/app-release.aab dontstop-release.aab
           fi
 
       - name: Name the APK after the product
@@ -94,5 +95,7 @@ jobs:
           path: |
             frontend/android/dontstop-debug.apk
             frontend/android/dontstop-release.apk
+            frontend/android/dontstop-release.aab
           if-no-files-found: error
           retention-days: 30
+

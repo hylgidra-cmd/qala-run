@@ -48,13 +48,16 @@ def validate_gmail_address(value: str) -> str:
 
 
 async def ensure_auth_columns(connection: AsyncConnection) -> None:
-    """Ensure email and google_sub columns exist even if migration 0011 has not run yet."""
+    """Ensure email, google_sub, trial_ends_at, and paid_until columns exist."""
     await connection.execute(
         text(
             """
             ALTER TABLE demo_users
               ADD COLUMN IF NOT EXISTS email VARCHAR(255),
-              ADD COLUMN IF NOT EXISTS google_sub VARCHAR(255)
+              ADD COLUMN IF NOT EXISTS google_sub VARCHAR(255),
+              ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMPTZ
+                  DEFAULT (now() + interval '3 days'),
+              ADD COLUMN IF NOT EXISTS paid_until TIMESTAMPTZ
             """
         )
     )
