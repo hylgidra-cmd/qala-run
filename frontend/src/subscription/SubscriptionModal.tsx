@@ -30,17 +30,17 @@ const TARIFF_PLANS: TariffPlan[] = [
     id: 'weekly',
     days: 7,
     title: '7 Kúnlik Paket',
-    priceUzs: 30000,
-    badge: '-15% jeńillik',
-    subtitle: 'Hár kúni 4 285 swmnan — háptelik klan hám jeke jarıslar ushın',
+    priceUzs: 15999,
+    badge: '-54% jeńillik',
+    subtitle: 'Hár kúni ~2 285 swmnan — háptelik klan hám jeke jarıslar ushın',
   },
   {
     id: 'monthly',
     days: 30,
     title: '30 Kúnlik PRO',
-    priceUzs: 120000,
-    badge: 'PRO',
-    subtitle: 'Hár kúni 4 000 swmnan — tolıq ay dawamında maksimal ústinlik',
+    priceUzs: 30999,
+    badge: 'PRO -79%',
+    subtitle: 'Hár kúni ~1 033 swmnan — tolıq ay dawamında maksimal ústinlik',
   },
 ];
 
