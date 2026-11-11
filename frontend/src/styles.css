@@ -3257,26 +3257,22 @@ a:focus-visible {
 
 /* -- City Switcher & Avatar Styles --------------------------- */
 .topbar-city-select {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #c7ff4a;
-  border-radius: 20px;
-  padding: 4px 10px;
-  font-size: 0.82rem;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  border: none;
+  color: #F7F9F6;
+  padding: 2px 4px;
+  font-size: 0.85rem;
   font-weight: 700;
   cursor: pointer;
   outline: none;
-  transition: all 0.2s;
-}
-
-.topbar-city-select:hover {
-  background: rgba(255, 255, 255, 0.14);
-  border-color: #c7ff4a;
+  flex: 1;
 }
 
 .topbar-city-select option {
-  background: #1a1a1a;
-  color: #fff;
+  background: #10251F;
+  color: #F7F9F6;
 }
 
 .city-select-input {
@@ -4359,12 +4355,39 @@ a:focus-visible {
 @media (max-width: 768px) {
   .mobile-menu-toggle {
     display: flex;
+    flex-shrink: 0;
+  }
+
+  .topbar {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    padding-left: 10px;
+    padding-right: 10px;
+    gap: 6px;
+  }
+
+  .topbar-left {
+    gap: 6px;
+    min-width: 0;
+    flex-shrink: 1;
+  }
+
+  .topbar-left .city-switcher,
+  .topbar-left .brand-sub {
+    display: none !important;
+  }
+
+  .brand-title {
+    font-size: 0.92rem;
+    white-space: nowrap;
   }
 
   .topbar-actions {
     display: flex !important;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
+    flex-shrink: 0;
   }
 
   .topbar .topbar-nav-btn,
@@ -4374,8 +4397,16 @@ a:focus-visible {
     display: none !important;
   }
 
+  .login-topbar-btn {
+    padding: 6px 11px;
+    font-size: 0.78rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
   .topbar .profile-pill-name {
-    max-width: 90px;
+    max-width: 80px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -4403,7 +4434,7 @@ a:focus-visible {
   padding: 20px 18px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   box-shadow: -10px 0 30px rgba(0, 0, 0, 0.7);
   overflow-y: auto;
 }
@@ -4439,7 +4470,7 @@ a:focus-visible {
 .drawer-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .drawer-label {
@@ -4453,6 +4484,22 @@ a:focus-visible {
 .drawer-city {
   width: 100%;
   justify-content: space-between;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-sizing: border-box;
+}
+
+.drawer-city select {
+  flex: 1;
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: #F7F9F6;
+  font-size: 0.88rem;
+  font-weight: 700;
+  outline: none;
 }
 
 .drawer-mode {
@@ -4468,8 +4515,8 @@ a:focus-visible {
 .drawer-nav-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 10px;
+  gap: 8px;
+  margin-top: 4px;
 }
 
 .drawer-nav-item {
@@ -4482,7 +4529,7 @@ a:focus-visible {
   border-radius: 12px;
   color: #effff5;
   font-family: 'Outfit', sans-serif;
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   font-weight: 650;
   cursor: pointer;
   transition: all 0.18s ease;
@@ -4500,6 +4547,34 @@ a:focus-visible {
   border-color: #21D8A0;
   color: #21D8A0;
   font-weight: 800;
+}
+
+.drawer-nav-item.exclusion-red-item {
+  background: rgba(255, 59, 48, 0.16);
+  border: 1.5px solid rgba(255, 59, 48, 0.55);
+  color: #ff5e57;
+  font-weight: 800;
+}
+
+.drawer-nav-item.exclusion-red-item:hover,
+.drawer-nav-item.exclusion-red-item.active {
+  background: rgba(255, 59, 48, 0.3);
+  border-color: #ff3b30;
+  color: #ffffff;
+  box-shadow: 0 0 14px rgba(255, 59, 48, 0.4);
+}
+
+.topbar-nav-btn.exclusion-red-top-btn {
+  background: rgba(255, 59, 48, 0.15);
+  border-color: rgba(255, 59, 48, 0.5);
+  color: #ff5e57;
+}
+
+.topbar-nav-btn.exclusion-red-top-btn.active,
+.topbar-nav-btn.exclusion-red-top-btn:hover {
+  background: rgba(255, 59, 48, 0.3);
+  border-color: #ff3b30;
+  color: #ffffff;
 }
 
 /* ── Enhanced Clan Section UI ─────────────────────────────────────── */
@@ -5048,4 +5123,331 @@ a:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Computer-Style Interactive Spectrum Color Picker ─────────────────── */
+.spectrum-picker-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+}
+
+.spectrum-sat-box {
+  position: relative;
+  width: 100%;
+  height: 115px;
+  border-radius: 10px;
+  cursor: crosshair;
+  touch-action: none;
+  user-select: none;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+.spectrum-sat-cursor {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2.5px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.7), inset 0 0 2px rgba(0, 0, 0, 0.5);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.spectrum-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.spectrum-preview-swatch {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  flex-shrink: 0;
+}
+
+.spectrum-hue-bar {
+  position: relative;
+  flex: 1;
+  height: 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  background: linear-gradient(
+    to right,
+    #ff0000 0%,
+    #ffff00 17%,
+    #00ff00 33%,
+    #00ffff 50%,
+    #0000ff 67%,
+    #ff00ff 83%,
+    #ff0000 100%
+  );
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+
+.spectrum-hue-cursor {
+  position: absolute;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #091713;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.65);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.spectrum-hex-badge {
+  font-family: 'Chakra Petch', monospace;
+  font-size: 0.74rem;
+  font-weight: 800;
+  color: #e2f1ea;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 4px 7px;
+  border-radius: 6px;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.spectrum-swatches-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 5px;
+}
+
+.spectrum-swatch-btn {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 6px;
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.spectrum-swatch-btn:hover {
+  transform: scale(1.12);
+}
+
+.spectrum-swatch-btn.active {
+  border: 2px solid #ffffff;
+  transform: scale(1.14);
+}
+
+/* ── 2-Step Google Account Chooser Modal UI ───────────────────────────── */
+.google-chooser-box {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.google-chooser-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.google-chooser-title {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.google-chooser-sub {
+  margin: 2px 0 0;
+  font-size: 0.76rem;
+  color: #9bb2a6;
+}
+
+.google-accounts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.google-account-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.18s ease;
+}
+
+.google-account-row:hover {
+  background: rgba(33, 216, 160, 0.15);
+  border-color: #21D8A0;
+  transform: translateY(-1px);
+}
+
+.google-acc-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 0.95rem;
+  color: #061510;
+  flex-shrink: 0;
+}
+
+.google-acc-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.google-acc-name {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.google-acc-email {
+  font-size: 0.75rem;
+  color: #9bb2a6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.google-acc-arrow {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #21D8A0;
+}
+
+.google-custom-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.google-custom-box label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #8faea1;
+  text-transform: uppercase;
+}
+
+.google-custom-row {
+  display: flex;
+  gap: 8px;
+}
+
+.google-custom-row input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1.5px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  padding: 9px 12px;
+  color: #ffffff;
+  font-size: 0.88rem;
+  outline: none;
+}
+
+.google-custom-row input:focus {
+  border-color: #21D8A0;
+}
+
+.google-next-btn {
+  padding: 9px 14px;
+  border-radius: 10px;
+  border: none;
+  background: #21D8A0;
+  color: #061510;
+  font-weight: 800;
+  font-size: 0.84rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.selected-google-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(66, 133, 244, 0.14);
+  border: 1px solid rgba(66, 133, 244, 0.45);
+}
+
+.selected-google-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #4285F4;
+  color: #ffffff;
+  font-weight: 900;
+  font-size: 0.82rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.selected-google-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.selected-google-text strong {
+  font-size: 0.82rem;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.selected-google-text span {
+  font-size: 0.68rem;
+  color: #9bb2a6;
+}
+
+.selected-google-change {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.google-step-hint {
+  margin: 3px 0 0;
+  font-size: 0.73rem;
+  color: #21D8A0;
+}
+
 

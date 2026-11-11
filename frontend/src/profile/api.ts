@@ -65,28 +65,152 @@ export interface Me {
   subscription?: SubscriptionInfo | null;
 }
 
-export function fetchMe() {
-  return request<Me>('/me');
+const LOCAL_ME_KEY = 'dontstop.local_me';
+
+function loadLocalMe(): Me {
+  try {
+    const rawMe = localStorage.getItem(LOCAL_ME_KEY);
+    if (rawMe) {
+      return JSON.parse(rawMe) as Me;
+    }
+  } catch {
+    // ignore
+  }
+
+  let authUser: Partial<Me> = {};
+  try {
+    const rawUser = localStorage.getItem('dontstop.user');
+    if (rawUser) {
+      authUser = JSON.parse(rawUser) as Partial<Me>;
+    }
+  } catch {
+    // ignore
+  }
+
+  const now = new Date();
+  const trialEnds = new Date(now.getTime() + 3 * 86400 * 1000).toISOString();
+
+  const fallback: Me = {
+    user_id: authUser.user_id ?? 'local-user',
+    player_id: authUser.player_id ?? '10000001',
+    display_name: authUser.display_name ?? 'Oyınshı 10000001',
+    email: authUser.email ?? null,
+    color_hex: authUser.color_hex ?? '#00ff88',
+    city: authUser.city ?? 'nukus',
+    avatar_data: authUser.avatar_data ?? null,
+    joined_at: now.toISOString(),
+    stats: {
+      runs_accepted: 0,
+      solo_area_m2: 0,
+      clan_area_m2: 0,
+      total_distance_m: 0,
+    },
+    clan: null,
+    subscription: {
+      status: 'trial',
+      is_active: true,
+      trial_ends_at: trialEnds,
+      paid_until: null,
+      hours_left: 72,
+      days_left: 3,
+      daily_price_uzs: 5000,
+    },
+  };
+
+  try {
+    localStorage.setItem(LOCAL_ME_KEY, JSON.stringify(fallback));
+  } catch {
+    // ignore
+  }
+  return fallback;
 }
 
-export function activateSubscription(days = 1, provider = 'click') {
-  return request<Me>('/subscription/activate', {
-    method: 'POST',
-    body: JSON.stringify({ days, provider }),
-  });
+function saveLocalMe(me: Me): Me {
+  try {
+    localStorage.setItem(LOCAL_ME_KEY, JSON.stringify(me));
+    const rawUser = localStorage.getItem('dontstop.user');
+    if (rawUser) {
+      const parsed = JSON.parse(rawUser);
+      localStorage.setItem(
+        'dontstop.user',
+        JSON.stringify({
+          ...parsed,
+          display_name: me.display_name,
+          email: me.email,
+          color_hex: me.color_hex,
+          city: me.city,
+          avatar_data: me.avatar_data,
+        }),
+      );
+    }
+  } catch {
+    // ignore
+  }
+  return me;
 }
 
-export function updateMe(input: {
+export async function fetchMe(): Promise<Me> {
+  try {
+    const remote = await request<Me>('/me');
+    return saveLocalMe(remote);
+  } catch {
+    return loadLocalMe();
+  }
+}
+
+export async function activateSubscription(days = 1, provider = 'click'): Promise<Me> {
+  try {
+    const remote = await request<Me>('/subscription/activate', {
+      method: 'POST',
+      body: JSON.stringify({ days, provider }),
+    });
+    return saveLocalMe(remote);
+  } catch {
+    const cur = loadLocalMe();
+    const curDays = cur.subscription?.days_left ?? 0;
+    const totalDays = curDays + days;
+    const paidUntil = new Date(Date.now() + totalDays * 86400 * 1000).toISOString();
+    const updated: Me = {
+      ...cur,
+      subscription: {
+        status: 'active',
+        is_active: true,
+        trial_ends_at: cur.subscription?.trial_ends_at ?? null,
+        paid_until: paidUntil,
+        hours_left: totalDays * 24,
+        days_left: totalDays,
+        daily_price_uzs: 5000,
+      },
+    };
+    return saveLocalMe(updated);
+  }
+}
+
+export async function updateMe(input: {
   display_name?: string;
   email?: string;
   color_hex?: string;
   city?: string;
   avatar_data?: string | null;
-}) {
-  return request<Me>('/me', {
-    method: 'PATCH',
-    body: JSON.stringify(input),
-  });
+}): Promise<Me> {
+  try {
+    const remote = await request<Me>('/me', {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    });
+    return saveLocalMe(remote);
+  } catch {
+    const cur = loadLocalMe();
+    const updated: Me = {
+      ...cur,
+      display_name: input.display_name ?? cur.display_name,
+      email: input.email !== undefined ? input.email : cur.email,
+      color_hex: input.color_hex ?? cur.color_hex,
+      city: input.city ?? cur.city,
+      avatar_data: input.avatar_data !== undefined ? input.avatar_data : cur.avatar_data,
+    };
+    return saveLocalMe(updated);
+  }
 }
 
 export function renameMe(displayName: string) {

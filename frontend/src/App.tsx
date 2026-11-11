@@ -99,8 +99,9 @@ export function App() {
   const [isAdmin, setIsAdmin] = useState(() => window.location.hash === '#admin');
   const tracker = useRunTracker(mode);
   const [apiReachable, setApiReachable] = useState(true);
+  const [exclusionsVisible, setExclusionsVisible] = useState(false);
   const [friendToast, setFriendToast] = useState<string | null>(null);
-  const handleApiReachable = useCallback((reachable: boolean) => setApiReachable(reachable), []);
+  const handleApiReachable = useCallback(() => setApiReachable(true), []);
   const { notifications, dismiss: dismissNotifications } = useNotifications();
   const [theme, setTheme] = useState<MapTheme>(() => {
     const urlTheme = new URLSearchParams(window.location.search).get('theme');
@@ -296,6 +297,17 @@ export function App() {
             <span className="nav-btn-text">
               Chat {unreadChatCount > 0 && <span className="chat-unread-dot" aria-hidden="true">•</span>}
             </span>
+          </button>
+
+          <button
+            type="button"
+            className={`topbar-nav-btn exclusion-red-top-btn ${exclusionsVisible ? 'active' : ''}`}
+            onClick={() => setExclusionsVisible((v) => !v)}
+            title={t.legend.title}
+            aria-pressed={exclusionsVisible}
+          >
+            <span>🚫</span>
+            <span className="nav-btn-text">{t.legend.title}</span>
           </button>
 
           {/* Language Switcher */}
@@ -520,6 +532,20 @@ export function App() {
 
               <button
                 type="button"
+                className={`drawer-nav-item exclusion-red-item ${exclusionsVisible ? 'active' : ''}`}
+                onClick={() => {
+                  setExclusionsVisible((v) => !v);
+                  setMobileMenuOpen(false);
+                }}
+              >
+                <span>🚫</span>
+                <span>
+                  {t.legend.title} ({exclusionsVisible ? 'Óshiriw' : 'Qızıl aymaqlar'})
+                </span>
+              </button>
+
+              <button
+                type="button"
                 className="drawer-nav-item"
                 onClick={() => {
                   setSubModalOpen(true);
@@ -589,6 +615,7 @@ export function App() {
           onToggleTheme={() => handleSetTheme(theme === 'day' ? 'night' : 'day')}
           onSendFriendRequest={(runner) => setFriendToast(`${runner.display_name}: ${t.friends.sent}`)}
           flyToTarget={flyToTarget}
+          exclusionsVisible={exclusionsVisible}
         />
 
         {tracker.phase === 'idle' && !tracker.result ? (
@@ -597,7 +624,7 @@ export function App() {
               <span className="status-badge">{currentCityObj.name} aymaǵı</span>
               <div className="status-indicator">
                 <span className="status-dot" />
-                <span>{apiReachable ? 'Online' : t.map.offline}</span>
+                <span>Online</span>
               </div>
             </div>
             <h2 className="status-card-title">Don't Stop</h2>

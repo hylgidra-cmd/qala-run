@@ -20,14 +20,14 @@ export const EXCLUSION_KINDS = [
 export type ExclusionKind = (typeof EXCLUSION_KINDS)[number];
 
 export const EXCLUSION_COLORS: Record<ExclusionKind, string> = {
-  building: '#5b6b8f',
-  private: '#e08a2e',
-  school: '#8256d8',
-  hospital: '#e0556b',
-  military: '#5f8a43',
-  water: '#2f9fd0',
-  industrial: '#8c5a3c',
-  other: '#6f7b86',
+  building: '#ff3b30',
+  private: '#ff2d55',
+  school: '#e61919',
+  hospital: '#ff4757',
+  military: '#d63031',
+  water: '#ff5252',
+  industrial: '#c0392b',
+  other: '#b71540',
 };
 
 /**

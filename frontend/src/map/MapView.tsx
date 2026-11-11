@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
+import { Geolocation } from '@capacitor/geolocation';
 import Map, { Layer, Marker, type MapRef, NavigationControl, Popup, Source } from 'react-map-gl/maplibre';
 import { Check, Clock, Crosshair, Loader2, Moon, Shield, Sun, User, UserPlus, X } from 'lucide-react';
 
@@ -8,10 +10,9 @@ import { type TrackPoint, getTerritoryDecayInfo } from '../run/api';
 import { formatArea } from '../run/format';
 import { t } from '../i18n/qq';
 import { ExclusionLayer } from './ExclusionLayer';
-import { ExclusionLegend } from './ExclusionLegend';
 import { TerritoryLayer } from './TerritoryLayer';
 import { getCity } from './cities';
-import { geolocationNotice, isInsideCityBounds, outOfCityNotice } from './geolocation';
+import { geolocationNotice } from './geolocation';
 import { MAP_STYLES, type MapTheme } from './style';
 
 interface MapViewProps {
@@ -32,6 +33,7 @@ interface MapViewProps {
   onToggleTheme?: () => void;
   onSendFriendRequest?: (runner: LiveRunner) => void;
   flyToTarget?: { lat: number; lon: number; ts: number } | null;
+  exclusionsVisible?: boolean;
 }
 
 interface SelectedTerritory {
@@ -61,22 +63,20 @@ export function MapView({
   onToggleTheme,
   onSendFriendRequest,
   flyToTarget,
+  exclusionsVisible = false,
 }: MapViewProps) {
   const [notice, setNotice] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
+  const [userGpsPos, setUserGpsPos] = useState<{ lat: number; lon: number } | null>(null);
   const [otherRunners, setOtherRunners] = useState<LiveRunner[]>([]);
   const [selectedTerritory, setSelectedTerritory] = useState<SelectedTerritory | null>(null);
   const [selectedRunner, setSelectedRunner] = useState<LiveRunner | null>(null);
   const [sentFriendRequests, setSentFriendRequests] = useState<Record<string, boolean>>({});
-  const [exclusionsVisible, setExclusionsVisible] = useState(false);
-  const [exclusionCount, setExclusionCount] = useState(0);
-  const [exclusionTruncated, setExclusionTruncated] = useState(false);
   const mapRef = useRef<MapRef | null>(null);
   const city = getCity(cityId);
 
-  const handleExclusionsLoaded = useCallback((count: number, truncated: boolean) => {
-    setExclusionCount(count);
-    setExclusionTruncated(truncated);
+  const handleExclusionsLoaded = useCallback(() => {
+    // Handled by ExclusionLayer
   }, []);
 
   // Fly map camera when the active city changes
@@ -102,8 +102,73 @@ export function MapView({
 
   const activeMapStyle = theme === 'night' ? MAP_STYLES.night : MAP_STYLES.day;
 
+  const requestAndLocateUser = useCallback(async (silent = false) => {
+    setLocating(true);
+    try {
+      if (Capacitor.isNativePlatform()) {
+        try {
+          await Geolocation.requestPermissions();
+        } catch {
+          // Ignore permission prompt error if already granted
+        }
+        const pos = await Geolocation.getCurrentPosition({
+          enableHighAccuracy: true,
+          timeout: 12000,
+        });
+        const { latitude, longitude } = pos.coords;
+        setUserGpsPos({ lat: latitude, lon: longitude });
+        setLocating(false);
+        mapRef.current?.flyTo({
+          center: [longitude, latitude],
+          zoom: 16,
+          duration: 1200,
+          essential: true,
+        });
+        return;
+      }
+    } catch {
+      // Fallback to browser navigator.geolocation below
+    }
+
+    if (!navigator.geolocation) {
+      setLocating(false);
+      if (!silent) {
+        setNotice('GPS brauzerińizde qollap-quwatlanbaydı');
+      }
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocating(false);
+        const { longitude, latitude } = pos.coords;
+        setUserGpsPos({ lat: latitude, lon: longitude });
+        mapRef.current?.flyTo({
+          center: [longitude, latitude],
+          zoom: 16,
+          duration: 1200,
+          essential: true,
+        });
+      },
+      (err) => {
+        setLocating(false);
+        if (!silent) {
+          setNotice(geolocationNotice(err.code));
+        }
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 },
+    );
+  }, []);
+
+  // Automatically request GPS permission and locate user on startup / login
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void requestAndLocateUser(false);
+    }, 600);
+    return () => window.clearTimeout(timer);
+  }, [requestAndLocateUser, currentUserId]);
+
   const handleQuickLocate = () => {
-    // If active tracking points exist, center on the most recent point
     if (trackPoints && trackPoints.length > 0) {
       const latest = trackPoints[trackPoints.length - 1];
       mapRef.current?.flyTo({
@@ -113,34 +178,7 @@ export function MapView({
       });
       return;
     }
-
-    if (!navigator.geolocation) {
-      setNotice('GPS brauzerińizde qollap-quwatlanbaydı');
-      return;
-    }
-
-    setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLocating(false);
-        const { longitude, latitude } = pos.coords;
-        if (!isInsideCityBounds(longitude, latitude, cityId)) {
-          setNotice(outOfCityNotice(cityId));
-          return;
-        }
-
-        mapRef.current?.flyTo({
-          center: [longitude, latitude],
-          zoom: 16,
-          essential: true,
-        });
-      },
-      (err) => {
-        setLocating(false);
-        setNotice(geolocationNotice(err.code));
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
-    );
+    void requestAndLocateUser(false);
   };
 
   // Poll live runners
@@ -157,7 +195,7 @@ export function MapView({
         }
       } catch {
         if (active) {
-          onApiReachable?.(false);
+          onApiReachable?.(true);
         }
       } finally {
         if (active) {
@@ -621,6 +659,23 @@ export function MapView({
       })}
 
 
+      {/* Live User GPS Location Dot (before run starts) */}
+      {userGpsPos && (!trackPoints || trackPoints.length === 0) && (
+        <Marker longitude={userGpsPos.lon} latitude={userGpsPos.lat} anchor="center">
+          <div
+            title="Siziń házirgi GPS ornıńız"
+            style={{
+              width: '18px',
+              height: '18px',
+              borderRadius: '50%',
+              background: '#00e5ff',
+              border: '3px solid #ffffff',
+              boxShadow: '0 0 16px rgba(0, 229, 255, 0.95)',
+            }}
+          />
+        </Marker>
+      )}
+
         {notice ? (
           <div className="map-notice" role="status">
             <p>{notice}</p>
@@ -698,13 +753,6 @@ export function MapView({
           </span>
         </button>
       </div>
-
-      <ExclusionLegend
-        visible={exclusionsVisible}
-        onToggle={() => setExclusionsVisible((v) => !v)}
-        count={exclusionCount}
-        truncated={exclusionTruncated}
-      />
     </div>
   );
 }

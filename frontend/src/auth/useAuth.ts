@@ -33,6 +33,36 @@ export function useAuth() {
     localStorage.setItem(TOKEN_KEY, u.token);
     localStorage.setItem(USER_KEY, JSON.stringify(u));
     localStorage.setItem('dontstop.registered', 'true');
+    try {
+      const now = new Date();
+      const trialEnds = new Date(now.getTime() + 3 * 86400 * 1000).toISOString();
+      localStorage.setItem(
+        'dontstop.local_me',
+        JSON.stringify({
+          user_id: u.user_id,
+          player_id: u.player_id,
+          display_name: u.display_name,
+          email: u.email ?? null,
+          color_hex: u.color_hex || '#00ff88',
+          city: u.city ?? 'nukus',
+          avatar_data: u.avatar_data ?? null,
+          joined_at: now.toISOString(),
+          stats: { runs_accepted: 0, solo_area_m2: 0, clan_area_m2: 0, total_distance_m: 0 },
+          clan: null,
+          subscription: {
+            status: 'trial',
+            is_active: true,
+            trial_ends_at: trialEnds,
+            paid_until: null,
+            hours_left: 72,
+            days_left: 3,
+            daily_price_uzs: 5000,
+          },
+        }),
+      );
+    } catch {
+      // ignore
+    }
     setUser(u);
   }, []);
 

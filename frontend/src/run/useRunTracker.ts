@@ -6,6 +6,7 @@ import {
   type RunResult,
   type TrackPoint,
   abandonRun,
+  evaluateLocalRun,
   finishRun,
   sendPoints,
   startRun,
@@ -138,6 +139,10 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
   const flush = useCallback(async () => {
     const id = activeRunId.current;
     if (!id || pending.current.length === 0) {
+      return true;
+    }
+    if (id.startsWith('local-')) {
+      pending.current = [];
       return true;
     }
 
@@ -416,15 +421,15 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
       activeRunId.current = started.run_id;
       setRunId(started.run_id);
     } catch (cause) {
-      setPhase('idle');
-      setError(
-        cause instanceof ApiError && cause.status === 409
-          ? `${cause.message}`
-          : cause instanceof Error
-            ? cause.message
-            : t.run.couldNotStart,
-      );
-      return;
+      if (cause instanceof ApiError && (cause.status === 402 || cause.status === 409)) {
+        setPhase('idle');
+        setError(`${cause.message}`);
+        return;
+      }
+      // Cloud API is sleeping/unreachable (e.g. 503 hibernate) -> start local run seamlessly
+      const localId = `local-${crypto.randomUUID()}`;
+      activeRunId.current = localId;
+      setRunId(localId);
     }
 
     // In the APK the foreground service is what keeps the fixes coming, so
@@ -454,7 +459,7 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
       // next attempt with a 409, so it is released before giving up.
       const orphanRun = activeRunId.current;
       activeRunId.current = null;
-      if (orphanRun) {
+      if (orphanRun && !orphanRun.startsWith('local-')) {
         void abandonRun(orphanRun).catch(() => {});
       }
 
@@ -485,10 +490,18 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
     setPhase('finishing');
     stopWatching();
 
-    // Pocket mode means a run can easily end somewhere with no signal. The
-    // server must judge the whole shape, so a queue that will not go through
-    // leaves the run open and buffered rather than losing its tail; pressing
-    // finish again retries from exactly where this left off.
+    if (id.startsWith('local-')) {
+      const outcome = evaluateLocalRun(id, points, anchorIndexRef.current, mode);
+      setResult(outcome);
+      setPhase('done');
+      clearBuffer();
+      if (outcome.status === 'accepted') {
+        void haptic('captured');
+      }
+      activeRunId.current = null;
+      return;
+    }
+
     if (!(await flushWithRetry())) {
       setPhase('tracking');
       return;
@@ -503,14 +516,18 @@ export function useRunTracker(mode: TerritoryMode = 'solo'): RunTracker {
       if (outcome.status === 'accepted') {
         void haptic('captured');
       }
-    } catch (cause) {
-      setPhase('tracking');
-      setError(cause instanceof Error ? cause.message : t.run.couldNotFinish);
-      return;
+    } catch {
+      const outcome = evaluateLocalRun(id, points, anchorIndexRef.current, mode);
+      setResult(outcome);
+      setPhase('done');
+      clearBuffer();
+      if (outcome.status === 'accepted') {
+        void haptic('captured');
+      }
     }
 
     activeRunId.current = null;
-  }, [flushWithRetry, stopWatching]);
+  }, [flushWithRetry, mode, points, stopWatching]);
 
   const reset = useCallback(() => {
     stopWatching();

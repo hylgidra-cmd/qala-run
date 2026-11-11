@@ -4,6 +4,7 @@ import { t } from '../i18n/qq';
 import { CITIES_LIST } from '../map/cities';
 import { formatArea } from '../run/format';
 import { DefaultAvatar } from '../ui/DefaultAvatar';
+import { SpectrumColorPicker } from '../ui/SpectrumColorPicker';
 import { ClanSection } from './ClanSection';
 import type { Profile } from './useProfile';
 
@@ -183,8 +184,8 @@ export function ProfilePanel({
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-          <label className="field" style={{ flex: 1 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <label className="field">
             <span>{t.profile.name}</span>
             <div className="field-row">
               <input
@@ -200,18 +201,13 @@ export function ProfilePanel({
             {nameError ? <p className="field-error">{nameError}</p> : null}
           </label>
 
-          <label className="field" style={{ width: '70px' }}>
-            <span>Reń</span>
-            <div className="field-row">
-              <input
-                type="color"
-                value={me.color_hex || '#00ff88'}
-                onChange={(e) => void profile.updateProfile({ colorHex: e.target.value })}
-                title="Oyın reńin ózgertiw"
-                style={{ height: '38px', padding: '2px', cursor: 'pointer', width: '100%' }}
-              />
-            </div>
-          </label>
+          <div className="field">
+            <span>O'yin rangi (Spektrdan tanlang)</span>
+            <SpectrumColorPicker
+              value={me.color_hex || '#00ff88'}
+              onChange={(hex) => void profile.updateProfile({ colorHex: hex })}
+            />
+          </div>
         </div>
 
         {/* City Selector */}

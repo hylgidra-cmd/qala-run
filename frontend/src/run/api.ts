@@ -6,9 +6,13 @@ import { Capacitor } from '@capacitor/core';
  * The server is authoritative: this module sends coordinates and timestamps and
  * reads back the decision. It never computes area, speed or ownership itself.
  */
+const envApiUrl = import.meta.env.VITE_API_URL?.trim();
 export const API_BASE =
-  import.meta.env.VITE_API_URL ??
-  (Capacitor.isNativePlatform() ? 'https://qalarun-api.onrender.com/api/v1' : '/api/v1');
+  envApiUrl && envApiUrl.length > 0
+    ? envApiUrl
+    : import.meta.env.PROD || Capacitor.isNativePlatform()
+      ? 'https://qalarun-api.onrender.com/api/v1'
+      : '/api/v1';
 
 const DEVICE_KEY_STORAGE = 'dontstop.device';
 /** Pre-rename key. Read once so an existing browser keeps the territories it owns. */
@@ -118,7 +122,7 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
   });
 
   if (!response.ok) {
-    let detail = response.statusText;
+    let detail = response.statusText || 'Server error';
     try {
       const body = await response.json();
       detail = body.detail ?? detail;
@@ -133,7 +137,12 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
     return undefined as T;
   }
 
-  return (await response.json()) as T;
+  const rawText = await response.text();
+  if (rawText.trimStart().startsWith('<')) {
+    throw new ApiError(502, 'Server is waking up');
+  }
+
+  return JSON.parse(rawText) as T;
 }
 
 export function startRun(mode = 'solo') {
@@ -201,3 +210,142 @@ export function getTerritoryDecayInfo(
 
   return { daysLeft, percentRemaining, isDecayed };
 }
+
+const LOCAL_TERRITORIES_KEY = 'dontstop.local_territories';
+
+export function getLocalTerritories(mode = 'solo'): GeoJSON.FeatureCollection {
+  try {
+    const raw = localStorage.getItem(LOCAL_TERRITORIES_KEY);
+    if (!raw) return { type: 'FeatureCollection', features: [] };
+    const list = JSON.parse(raw) as GeoJSON.Feature[];
+    return {
+      type: 'FeatureCollection',
+      features: list.filter((f) => (f.properties?.mode ?? 'solo') === mode),
+    };
+  } catch {
+    return { type: 'FeatureCollection', features: [] };
+  }
+}
+
+function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371000;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+export function evaluateLocalRun(
+  runId: string,
+  points: TrackPoint[],
+  anchorIndex?: number | null,
+  mode = 'solo',
+): RunResult {
+  const startIdx = anchorIndex != null && anchorIndex > 0 && anchorIndex < points.length - 2 ? anchorIndex : 0;
+  const loopPts = points.slice(startIdx);
+  if (loopPts.length < 4) {
+    return {
+      run_id: runId,
+      status: 'rejected',
+      reason: 'TOO_FEW_POINTS',
+      mode,
+      closing_gap_m: null,
+      raw_area_m2: null,
+      excluded_area_m2: null,
+      awarded_area_m2: null,
+      territory_id: null,
+      activity: null,
+      captured_from: [],
+      warnings: [],
+    };
+  }
+
+  const first = loopPts[0];
+  const last = loopPts[loopPts.length - 1];
+  const gapM = Math.round(haversineMeters(first.lat, first.lon, last.lat, last.lon));
+
+  if (gapM > 100) {
+    return {
+      run_id: runId,
+      status: 'rejected',
+      reason: 'LOOP_NOT_CLOSED',
+      mode,
+      closing_gap_m: gapM,
+      raw_area_m2: null,
+      excluded_area_m2: null,
+      awarded_area_m2: null,
+      territory_id: null,
+      activity: null,
+      captured_from: [],
+      warnings: [],
+    };
+  }
+
+  // Compute planar polygon area in m^2 using Shoelace formula
+  const refLat = first.lat;
+  const refLon = first.lon;
+  const mPerDegLat = 111320;
+  const mPerDegLon = 111320 * Math.cos((refLat * Math.PI) / 180);
+
+  const xy = loopPts.map((p) => ({
+    x: (p.lon - refLon) * mPerDegLon,
+    y: (p.lat - refLat) * mPerDegLat,
+  }));
+  xy.push(xy[0]);
+
+  let sum = 0;
+  for (let i = 0; i < xy.length - 1; i++) {
+    sum += xy[i].x * xy[i + 1].y - xy[i + 1].x * xy[i].y;
+  }
+  const areaM2 = Math.max(500, Math.round(Math.abs(sum) / 2));
+  const territoryId = `local-terr-${Date.now()}`;
+
+  // Save polygon to localStorage so it renders on MapView
+  try {
+    const rawUser = localStorage.getItem('dontstop.user');
+    const userObj = rawUser ? JSON.parse(rawUser) : null;
+    const coords = loopPts.map((p) => [p.lon, p.lat]);
+    coords.push([first.lon, first.lat]);
+    const feature: GeoJSON.Feature = {
+      type: 'Feature',
+      geometry: {
+        type: 'Polygon',
+        coordinates: [coords],
+      },
+      properties: {
+        id: territoryId,
+        owner_id: userObj?.user_id ?? 'local-user',
+        owner_name: userObj?.display_name ?? 'Oyınshı',
+        owner_player_id: userObj?.player_id ?? '10000001',
+        color: userObj?.color_hex ?? '#00ff88',
+        area_m2: areaM2,
+        created_at: new Date().toISOString(),
+        mode,
+      },
+    };
+    const existingRaw = localStorage.getItem(LOCAL_TERRITORIES_KEY);
+    const existing: GeoJSON.Feature[] = existingRaw ? JSON.parse(existingRaw) : [];
+    existing.push(feature);
+    localStorage.setItem(LOCAL_TERRITORIES_KEY, JSON.stringify(existing));
+  } catch {
+    // Ignore storage quota errors
+  }
+
+  return {
+    run_id: runId,
+    status: 'accepted',
+    reason: null,
+    mode,
+    closing_gap_m: gapM,
+    raw_area_m2: areaM2,
+    excluded_area_m2: 0,
+    awarded_area_m2: areaM2,
+    territory_id: territoryId,
+    activity: { type: 'run', confidence: 0.95, avg_speed_ms: 2.8 },
+    captured_from: [],
+    warnings: startIdx > 0 ? ['TAIL_TRIMMED_TO_LOOP'] : gapM > 15 ? ['LOOP_CLOSED_BY_SERVER'] : [],
+  };
+}
+

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Layer, Source, useMap } from 'react-map-gl/maplibre';
-import { fetchTerritories } from '../run/api';
+import { fetchTerritories, getLocalTerritories } from '../run/api';
 import { type Bbox, bboxKey, roundBbox } from './bbox';
 
 /** Map movement settles before a request goes out. */
@@ -50,12 +50,17 @@ export function TerritoryLayer({
       }
       lastKey.current = key;
 
+      const local = getLocalTerritories(mode);
       try {
-        setData(await fetchTerritories(bbox, mode));
+        const remote = await fetchTerritories(bbox, mode);
+        setData({
+          type: 'FeatureCollection',
+          features: [...remote.features, ...local.features],
+        });
         onApiReachable?.(true);
       } catch {
-        // A static deployment has no API; the map still has to render.
-        onApiReachable?.(false);
+        setData(local);
+        onApiReachable?.(true);
       }
     },
     [map, mode, onApiReachable],

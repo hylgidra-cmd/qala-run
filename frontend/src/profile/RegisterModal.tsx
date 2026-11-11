@@ -1,18 +1,6 @@
 import { useState } from 'react';
+import { SpectrumColorPicker } from '../ui/SpectrumColorPicker';
 import type { Profile } from './useProfile';
-
-const COLOR_PALETTE = [
-  '#00ff88', // Neon Green
-  '#00e5ff', // Cyan
-  '#ff3b30', // Flame Red
-  '#ffb800', // Cyber Gold
-  '#af52de', // Neon Purple
-  '#ff2d55', // Electric Pink
-  '#30d158', // Vivid Green
-  '#007aff', // Royal Blue
-  '#ffd60a', // Bright Yellow
-  '#c7ff4a', // Lime Green
-];
 
 const GMAIL_REGEX = /^[A-Za-z0-9._%+-]+@gmail\.com$/i;
 
@@ -29,7 +17,7 @@ export function RegisterModal({ profile, onComplete, onOpenAuth }: RegisterModal
       : '';
   const [name, setName] = useState(defaultName);
   const [email, setEmail] = useState(profile.me?.email ?? '');
-  const [color, setColor] = useState(profile.me?.color_hex || COLOR_PALETTE[0]);
+  const [color, setColor] = useState(profile.me?.color_hex || '#00ff88');
   const [copied, setCopied] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -155,28 +143,8 @@ export function RegisterModal({ profile, onComplete, onOpenAuth }: RegisterModal
           </div>
 
           <div className="form-group">
-            <label>Oyın reńińiz (Kartada usı reń kórinedi)</label>
-            <div className="register-color-palette">
-              {COLOR_PALETTE.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  className={`color-pill ${color.toLowerCase() === c.toLowerCase() ? 'selected' : ''}`}
-                  style={{ backgroundColor: c }}
-                  onClick={() => setColor(c)}
-                  aria-label={`Color ${c}`}
-                />
-              ))}
-              <label className="custom-color-btn" style={{ borderColor: color }} title="Basqa reń">
-                <input
-                  type="color"
-                  value={color}
-                  onChange={(e) => setColor(e.target.value)}
-                  className="visually-hidden"
-                />
-                🎨
-              </label>
-            </div>
+            <label>Oyın reńińiz (Spektrdan xohlagan reńdi saylań)</label>
+            <SpectrumColorPicker value={color} onChange={setColor} />
           </div>
 
           {error ? <p className="register-error" role="alert">{error}</p> : null}
