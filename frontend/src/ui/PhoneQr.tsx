@@ -1,21 +1,26 @@
 import { useEffect, useState } from 'react';
-import { Smartphone, X } from 'lucide-react';
+import { Download, Globe, Smartphone, X } from 'lucide-react';
 import QRCode from 'qrcode';
 import { t } from '../i18n/qq';
-import { isPhoneReachable, phoneShareUrl } from './qr';
+import { apkDownloadUrl, isPhoneReachable, phoneShareUrl } from './qr';
 
 interface PhoneQrProps {
   /** Injectable for tests; defaults to the current page. */
   href?: string;
   defaultOpen?: boolean;
+  initialMode?: 'apk' | 'web';
 }
 
-export function PhoneQr({ href, defaultOpen = true }: PhoneQrProps) {
+export function PhoneQr({ href, defaultOpen = true, initialMode = 'apk' }: PhoneQrProps) {
   const current = href ?? window.location.href;
   const reachable = isPhoneReachable(current);
   const shareUrl = phoneShareUrl(current);
+  const apkUrl = apkDownloadUrl(current);
+  const [tab, setTab] = useState<'apk' | 'web'>(initialMode);
   const [svg, setSvg] = useState<string | null>(null);
   const [open, setOpen] = useState(defaultOpen);
+
+  const activeUrl = tab === 'apk' ? apkUrl : shareUrl;
 
   useEffect(() => {
     if (!reachable) {
@@ -27,7 +32,7 @@ export function PhoneQr({ href, defaultOpen = true }: PhoneQrProps) {
 
     // toString('svg') keeps this canvas-free, so it renders identically in
     // the browser and under jsdom.
-    QRCode.toString(shareUrl, {
+    QRCode.toString(activeUrl, {
       type: 'svg',
       margin: 1,
       errorCorrectionLevel: 'M',
@@ -47,7 +52,7 @@ export function PhoneQr({ href, defaultOpen = true }: PhoneQrProps) {
     return () => {
       active = false;
     };
-  }, [reachable, shareUrl]);
+  }, [reachable, activeUrl]);
 
   if (!open) {
     return (
@@ -60,7 +65,7 @@ export function PhoneQr({ href, defaultOpen = true }: PhoneQrProps) {
           aria-label={t.qr.label}
         >
           <Smartphone size={16} className="qr-phone-icon" aria-hidden="true" />
-          <span className="qr-phone-text">Telefonda ashıw</span>
+          <span className="qr-phone-text">Telefonda ashıw (APK)</span>
         </button>
         <span className="phone-qr-slogan">Qaraqalpaqstan birge júgirdi.</span>
       </div>
@@ -89,6 +94,27 @@ export function PhoneQr({ href, defaultOpen = true }: PhoneQrProps) {
           </button>
         </div>
 
+        {reachable && (
+          <div className="qr-tabs">
+            <button
+              type="button"
+              className={`qr-tab ${tab === 'apk' ? 'active' : ''}`}
+              onClick={() => setTab('apk')}
+            >
+              <Download size={15} />
+              <span>Android APK</span>
+            </button>
+            <button
+              type="button"
+              className={`qr-tab ${tab === 'web' ? 'active' : ''}`}
+              onClick={() => setTab('web')}
+            >
+              <Globe size={15} />
+              <span>Veb-sayt</span>
+            </button>
+          </div>
+        )}
+
         <div className="qr-modal-body">
           {reachable ? (
             <>
@@ -96,16 +122,35 @@ export function PhoneQr({ href, defaultOpen = true }: PhoneQrProps) {
                 <div
                   className="qr-image"
                   role="img"
-                  aria-label={`QR code for ${shareUrl}`}
+                  aria-label={`QR code for ${activeUrl}`}
                   dangerouslySetInnerHTML={{ __html: svg }}
                 />
               ) : (
                 <p className="qr-hint">{t.qr.preparing}</p>
               )}
-              <div className="qr-url-box">
-                <p className="qr-url">{shareUrl}</p>
-              </div>
-              <p className="qr-hint">{t.qr.hint}</p>
+
+              {tab === 'apk' ? (
+                <div className="qr-apk-box">
+                  <a
+                    href={apkUrl}
+                    download="dontstop.apk"
+                    className="qr-apk-download-btn"
+                  >
+                    <Download size={16} />
+                    <span>APK fayldı júklep alıw</span>
+                  </a>
+                  <p className="qr-hint">
+                    Kameranı QR kodqa qaratıń yamasa túymeni basıp jańa APK versiyanı ornatıń.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="qr-url-box">
+                    <p className="qr-url">{shareUrl}</p>
+                  </div>
+                  <p className="qr-hint">{t.qr.hint}</p>
+                </>
+              )}
             </>
           ) : (
             <p className="qr-hint">{t.qr.localhost}</p>

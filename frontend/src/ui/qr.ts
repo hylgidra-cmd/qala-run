@@ -20,3 +20,13 @@ export function phoneShareUrl(href: string): string {
 
   return url.toString();
 }
+
+/** Direct download URL for the Android APK hosted in public/dontstop.apk */
+export function apkDownloadUrl(href: string): string {
+  const url = new URL(href);
+  url.pathname = '/dontstop.apk';
+  url.search = '';
+  url.hash = '';
+
+  return url.toString();
+}

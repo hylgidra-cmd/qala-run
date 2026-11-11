@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isPhoneReachable, phoneShareUrl } from './qr';
+import { apkDownloadUrl, isPhoneReachable, phoneShareUrl } from './qr';
 
 describe('isPhoneReachable', () => {
   it('rejects localhost, which a phone cannot resolve', () => {
@@ -36,6 +36,14 @@ describe('phoneShareUrl', () => {
   it('drops the hash', () => {
     expect(phoneShareUrl('https://dontstop-web.onrender.com/#map')).toBe(
       'https://dontstop-web.onrender.com/',
+    );
+  });
+});
+
+describe('apkDownloadUrl', () => {
+  it('points to /dontstop.apk at origin', () => {
+    expect(apkDownloadUrl('https://dontstop-web.onrender.com/run?foo=1')).toBe(
+      'https://dontstop-web.onrender.com/dontstop.apk',
     );
   });
 });
