@@ -90,6 +90,9 @@ class TestProfile:
             "solo_area_m2": 0.0,
             "clan_area_m2": 0.0,
             "total_distance_m": 0.0,
+            "longest_run_m": 0.0,
+            "city_rank": 1,
+            "streak_days": 0,
         }
         assert body["clan"] is None
 
