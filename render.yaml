@@ -48,6 +48,10 @@ services:
         generateValue: true
       - key: ADMIN_KEY
         generateValue: true
+      # Google sign-in stays off (503) until this holds the OAuth client id
+      # the site and the Android app request ID tokens for.
+      - key: GOOGLE_CLIENT_IDS
+        sync: false
       # The static site is a different origin, so it has to be allowed here.
       - key: CORS_ORIGINS
         # https://localhost is the Android WebView origin: without it every

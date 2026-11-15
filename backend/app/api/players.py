@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from app.api.auth import ensure_auth_columns, validate_gmail_address
+from app.api.auth import validate_gmail_address
 from app.api.clans import clan_of
 from app.api.deps import get_connection, get_demo_user
 from app.api.schemas import (
@@ -90,7 +90,6 @@ def compute_subscription(
 
 
 async def load_me(connection: AsyncConnection, user_id: str) -> MeOut:
-    await ensure_auth_columns(connection)
     player = (
         await connection.execute(
             text(
@@ -191,7 +190,6 @@ async def activate_subscription(
     connection: Annotated[AsyncConnection, Depends(get_connection)],
 ) -> MeOut:
     """Activate or extend daily subscription (5,000 UZS / day)."""
-    await ensure_auth_columns(connection)
     await connection.execute(
         text(
             """
@@ -224,7 +222,6 @@ async def rename_me(
     ):
         raise HTTPException(422, "No update fields provided")
 
-    await ensure_auth_columns(connection)
     updates = []
     params: dict[str, str | None] = {"user_id": user_id}
 

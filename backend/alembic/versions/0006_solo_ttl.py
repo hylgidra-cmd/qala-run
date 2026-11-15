@@ -15,8 +15,8 @@ so they are not deleted on the first cleanup run:
 """
 from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 revision: str = "0006_solo_ttl"
 down_revision: str | None = "0005_player_color"

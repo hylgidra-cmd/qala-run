@@ -103,10 +103,8 @@ async def start_run(
     if mode not in SUPPORTED_MODES:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Unsupported mode: {mode}")
 
-    from app.api.auth import ensure_auth_columns
     from app.api.players import compute_subscription
 
-    await ensure_auth_columns(connection)
     user_row = (
         await connection.execute(
             text(
@@ -694,7 +692,8 @@ async def finish_run(
                     """
                     INSERT INTO notifications (user_id, type, payload)
                     VALUES (:owner_id, 'territory_invaded',
-                            jsonb_build_object('invader', :invader, 'area_m2', :area))
+                            jsonb_build_object('invader', CAST(:invader AS text),
+                                               'area_m2', CAST(:area AS integer)))
                     """
                 ),
                 notif_params,
@@ -710,7 +709,8 @@ async def finish_run(
                         INSERT INTO notifications (user_id, type, payload)
                         SELECT m.user_id,
                                'territory_invaded',
-                               jsonb_build_object('invader', :invader, 'area_m2', :area)
+                               jsonb_build_object('invader', CAST(:invader AS text),
+                                               'area_m2', CAST(:area AS integer))
                           FROM clan_members m
                          WHERE m.clan_id = :clan_id
                         """

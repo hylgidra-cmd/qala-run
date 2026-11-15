@@ -8,8 +8,8 @@ Adds `city` (default 'nukus') and `avatar_data` (base64 image) to `demo_users`.
 """
 from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 revision: str = "0009_multi_city_and_avatar"
 down_revision: str | None = "0008_auth"

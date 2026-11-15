@@ -73,6 +73,20 @@ only run a real GPS test over HTTPS — never over `http://<laptop-ip>:5173`.
 TZ section 21.5 lists the two supported options: an HTTPS tunnel for a quick
 test, or a real deployment.
 
+## Secrets the API refuses to start without
+
+With `ENV=production` the API exits at boot unless:
+
+- `JWT_SECRET` is at least 32 characters and is not one of the placeholder
+  values published in this repository;
+- `ADMIN_KEY` is either unset - the admin routes then answer 403 to everyone -
+  or at least 16 characters. There is no built-in admin key.
+
+`GOOGLE_CLIENT_IDS` is a comma-separated list of Google OAuth client ids.
+`POST /api/v1/auth/google` accepts only an ID token issued to one of them, and
+answers 503 while the list is empty. The site and the Android app must request
+their tokens for the same (web) client id.
+
 ## First deploy
 
 1. Push this repository to GitHub.

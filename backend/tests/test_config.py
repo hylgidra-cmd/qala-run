@@ -60,10 +60,34 @@ class TestSizeFloors:
         assert settings.min_area_m2 == 2000.0
 
 
-class TestAdminKey:
-    def test_admin_key_has_default_and_can_be_overridden(self) -> None:
-        assert Settings(_env_file=None).admin_key == "dontstop-admin-2026"
+class TestSecrets:
+    def test_there_is_no_built_in_admin_key(self) -> None:
+        assert Settings(_env_file=None).admin_key == ""
         assert Settings(_env_file=None, ADMIN_KEY="custom-secret").admin_key == "custom-secret"
+
+    @pytest.mark.parametrize(
+        "published",
+        ["development-only-change-me", "replace_with_at_least_32_random_bytes", "too-short"],
+    )
+    def test_production_refuses_a_jwt_secret_anyone_can_know(self, published: str) -> None:
+        with pytest.raises(ValueError, match="JWT_SECRET"):
+            Settings(_env_file=None, ENV="production", jwt_secret=published)
+
+    def test_production_refuses_a_short_admin_key(self) -> None:
+        with pytest.raises(ValueError, match="ADMIN_KEY"):
+            Settings(_env_file=None, ENV="production", jwt_secret="s" * 32, ADMIN_KEY="short")
+
+    def test_production_boots_with_real_secrets(self) -> None:
+        settings = Settings(
+            _env_file=None, ENV="production", jwt_secret="s" * 32, ADMIN_KEY="k" * 16
+        )
+
+        assert settings.environment == "production"
+
+    def test_google_client_ids_are_a_comma_separated_list(self) -> None:
+        settings = Settings(_env_file=None, google_client_ids=" a.apps , b.apps ,")
+
+        assert settings.google_client_id_list == ["a.apps", "b.apps"]
 
 
 class TestGmailValidation:

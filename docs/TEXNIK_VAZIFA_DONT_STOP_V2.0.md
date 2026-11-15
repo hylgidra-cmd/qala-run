@@ -93,7 +93,7 @@ Loyiha doirasida quyidagi funksiyalar 100% ishlab chiqilgan, testlangan va jonli
 4. **Avtomatik GPS Ruxsat:** Dastur ochilganda avtomatik GPS ruxsatini so'rash va xaritani foydalanuvchining ustiga olib borish.
 
 ### 3.8. Admin Boshqaruv Markazi (Admin Live Operations Center)
-1. **Parol bilan himoyalangan kirish:** `dontstop-admin-2026`.
+1. **Kalit bilan himoyalangan kirish:** `ADMIN_KEY` muhit o'zgaruvchisi (kodda standart qiymat yo'q; o'rnatilmasa admin yopiq).
 2. **Jonli monitoring (Live Runners):** Real vaqtda shaharda yugurayotgan barcha foydalanuvchilar, ularning onlayn holati, koordinatalari va treklari.
 3. **Xaritani tozalash:** Bir tugma bilan xaritadagi hududlarni tozalash / reset qilish funksiyasi.
 

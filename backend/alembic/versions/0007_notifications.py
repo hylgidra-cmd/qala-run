@@ -10,8 +10,8 @@ a notification row is inserted for player A.
 """
 from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision: str = "0007_notifications"
