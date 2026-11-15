@@ -20,6 +20,7 @@ from app.api.schemas import (
     RunResult,
     RunStarted,
 )
+from app.api.standings import solo_rank
 from app.config import get_settings
 from app.geo.cities import is_inside_city_bbox
 from app.geo.loop import (
@@ -91,6 +92,7 @@ async def _reject(
         closing_gap_m=gap_m,
         activity=activity,
         warnings=warnings or [],
+        distance_m=distance_m,
     )
 
 
@@ -584,6 +586,12 @@ async def finish_run(
         {"mode": mode, "wkt": measured.usable_wkt},
     )
 
+    # Where the runner stood before this run changed anything. Solo only: clan
+    # ground is the clan's, and its place is read from the clan itself.
+    rank_before: int | None = None
+    if mode == "solo":
+        rank_before, _ = await solo_rank(connection, user_id, user_city)
+
     # --- 14: take the overlap from whoever holds it now (excluding concurrent first-finishers) ---
     if mode == "clan":
         captured_sql = """
@@ -779,9 +787,17 @@ async def finish_run(
         },
     )
 
+    rank_after: int | None = None
+    if mode == "solo":
+        rank_after, _ = await solo_rank(connection, user_id, user_city)
+
     return RunResult(
         run_id=run_id,
         status="accepted",
+        distance_m=track_distance_m,
+        duration_s=max(smoothed[-1].raw.ts - smoothed[0].raw.ts, 0.0),
+        rank_before=rank_before,
+        rank_after=rank_after,
         reason=None,
         mode=mode,
         closing_gap_m=gap_m,
