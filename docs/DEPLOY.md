@@ -87,6 +87,13 @@ With `ENV=production` the API exits at boot unless:
 answers 503 while the list is empty. The site and the Android app must request
 their tokens for the same (web) client id.
 
+The site reads that client id at build time from `VITE_GOOGLE_CLIENT_ID`. While
+it is unset the Google tab shows a notice instead of Google's button. In the
+Google Cloud console the client needs the site's origin under *Authorized
+JavaScript origins*. Google does not allow its sign-in inside an embedded
+WebView, so the Capacitor APK cannot use this tab; the native Android app
+signs in through Credential Manager instead.
+
 ## First deploy
 
 1. Push this repository to GitHub.

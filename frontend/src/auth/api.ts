@@ -252,75 +252,54 @@ export async function loginUser(usernameOrEmail: string, password: string): Prom
   }
 }
 
+/**
+ * Signs in with a Google ID token. There is deliberately no offline stand-in
+ * here: an account that Google has not vouched for is not a Google account.
+ */
 export async function googleAuthUser(input: {
-  id_token?: string;
-  email?: string;
+  id_token: string;
   display_name?: string;
   city?: string;
   color_hex?: string;
   avatar_data?: string | null;
 }): Promise<AuthUser> {
-  const localFallback = (): AuthUser => {
-    const cleanEmail = (input.email ?? 'player@gmail.com').trim().toLowerCase();
-    const accounts = loadLocalAccounts();
-    const existing = accounts.find((a) => a.email && a.email.toLowerCase() === cleanEmail);
-    const displayName =
-      input.display_name?.trim() || existing?.display_name || cleanEmail.split('@')[0];
-    const userObj: StoredLocalAccount = {
-      token: existing?.token ?? `local-jwt-${crypto.randomUUID()}`,
-      user_id: existing?.user_id ?? `u-${crypto.randomUUID()}`,
-      player_id: existing?.player_id ?? generatePlayerId(cleanEmail),
-      username: existing?.username ?? cleanEmail.split('@')[0].replace(/[^A-Za-z0-9_]/g, '_'),
-      display_name: displayName,
-      email: cleanEmail,
-      color_hex: input.color_hex ?? existing?.color_hex ?? '#00ff88',
-      city: input.city ?? existing?.city ?? 'nukus',
-      avatar_data: input.avatar_data ?? existing?.avatar_data ?? null,
-    };
-    const next = accounts.filter((a) => a.user_id !== userObj.user_id);
-    next.unshift(userObj);
-    saveLocalAccounts(next);
-    saveGoogleAccount({
-      email: cleanEmail,
-      display_name: userObj.display_name,
-      avatar_data: userObj.avatar_data,
-      color_hex: userObj.color_hex,
-      city: userObj.city,
-    });
-    return userObj;
-  };
+  const failure = 'Google orqali kirish amalga oshmadi';
+  let res: Response;
 
   try {
-    const res = await fetch(`${API_BASE}/auth/google`, {
+    res = await fetch(`${API_BASE}/auth/google`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        id_token: input.id_token ?? null,
-        email: input.email ?? null,
+        id_token: input.id_token,
         display_name: input.display_name ?? '',
         city: input.city ?? 'nukus',
         color_hex: input.color_hex ?? '#00ff88',
         avatar_data: input.avatar_data ?? null,
       }),
     });
-
-    const user = await parseJsonOrFallback(
-      res,
-      localFallback,
-      'Google orqali kirish amalga oshmadi',
-    );
-    saveGoogleAccount({
-      email: user.email || input.email || '',
-      display_name: user.display_name,
-      avatar_data: user.avatar_data,
-      color_hex: user.color_hex,
-      city: user.city,
-    });
-    return user;
-  } catch (err) {
-    if (err instanceof Error && !/fetch|network|json|doctype|unexpected/i.test(err.message)) {
-      throw err;
-    }
-    return localFallback();
+  } catch {
+    throw new Error('Server bilan bog\'lanib bo\'lmadi. Birozdan keyin qayta urinib ko\'ring.');
   }
+
+  let body: unknown = null;
+  try {
+    body = await res.json();
+  } catch {
+    body = null;
+  }
+
+  if (!res.ok || body === null) {
+    throw new Error(extractErrorMessage(body, failure));
+  }
+
+  const user = body as AuthUser;
+  saveGoogleAccount({
+    email: user.email ?? '',
+    display_name: user.display_name,
+    avatar_data: user.avatar_data,
+    color_hex: user.color_hex,
+    city: user.city,
+  });
+  return user;
 }

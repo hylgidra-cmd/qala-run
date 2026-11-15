@@ -2,7 +2,8 @@ import { type ChangeEvent, type FormEvent, useState } from 'react';
 import { CITIES_LIST, DEFAULT_CITY_ID } from '../map/cities';
 import { DefaultAvatar } from '../ui/DefaultAvatar';
 import { SpectrumColorPicker } from '../ui/SpectrumColorPicker';
-import { type SavedGoogleAccount, getSavedGoogleAccounts } from './api';
+import { GoogleSignInButton } from './GoogleSignInButton';
+import { readIdTokenClaims } from './google';
 import { useAuth } from './useAuth';
 
 interface Props {
@@ -11,7 +12,7 @@ interface Props {
 }
 
 type Tab = 'login' | 'register' | 'google';
-type GoogleStep = 'choose' | 'add_email' | 'nickname';
+type GoogleStep = 'choose' | 'nickname';
 
 const GMAIL_REGEX = /^[A-Za-z0-9._%+-]+@gmail\.com$/i;
 
@@ -41,10 +42,10 @@ function GoogleIcon({ size = 18 }: { size?: number }) {
 export function AuthPage({ onSuccess, onClose }: Props) {
   const { login, register, loginWithGoogle } = useAuth();
   const [tab, setTab] = useState<Tab>('google');
-  const [savedAccounts] = useState<SavedGoogleAccount[]>(() => getSavedGoogleAccounts());
-  const [googleStep, setGoogleStep] = useState<GoogleStep>(() =>
-    getSavedGoogleAccounts().length > 0 ? 'choose' : 'choose',
-  );
+  const [googleStep, setGoogleStep] = useState<GoogleStep>('choose');
+  // The signed token Google returned. It, not the address shown on screen,
+  // is what the server is sent.
+  const [googleIdToken, setGoogleIdToken] = useState<string | null>(null);
 
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -96,29 +97,15 @@ export function AuthPage({ onSuccess, onClose }: Props) {
     reader.readAsDataURL(file);
   };
 
-  const handleSelectGoogleAccount = (acct: SavedGoogleAccount) => {
-    setEmail(acct.email);
-    setDisplayName(acct.display_name || acct.email.split('@')[0]);
-    if (acct.color_hex) setColor(acct.color_hex);
-    if (acct.city) setCity(acct.city);
-    if (acct.avatar_data) setAvatarData(acct.avatar_data);
-    setError('');
-    setGoogleStep('nickname');
-  };
-
-  const handleConfirmEmailStep = () => {
-    let cleanEmail = email.trim().toLowerCase();
-    if (cleanEmail && !cleanEmail.includes('@')) {
-      cleanEmail = `${cleanEmail}@gmail.com`;
-      setEmail(cleanEmail);
-    }
-    if (!GMAIL_REGEX.test(cleanEmail)) {
-      setError('Faqat @gmail.com pochta manzilini kiriting (masalan: madiyar@gmail.com)');
+  const handleGoogleCredential = (idToken: string) => {
+    const claims = readIdTokenClaims(idToken);
+    if (!claims) {
+      setError('Google akkauntini o\'qib bo\'lmadi. Qayta urinib ko\'ring.');
       return;
     }
-    if (!displayName.trim()) {
-      setDisplayName(cleanEmail.split('@')[0]);
-    }
+    setGoogleIdToken(idToken);
+    setEmail(claims.email);
+    setDisplayName((current) => current.trim() || claims.name || claims.email.split('@')[0]);
     setError('');
     setGoogleStep('nickname');
   };
@@ -127,7 +114,7 @@ export function AuthPage({ onSuccess, onClose }: Props) {
     e.preventDefault();
     setError('');
 
-    if (tab === 'register' || tab === 'google') {
+    if (tab === 'register') {
       let cleanEmail = email.trim().toLowerCase();
       if (cleanEmail && !cleanEmail.includes('@')) {
         cleanEmail = `${cleanEmail}@gmail.com`;
@@ -144,10 +131,13 @@ export function AuthPage({ onSuccess, onClose }: Props) {
       if (tab === 'login') {
         await login(username.trim(), password);
       } else if (tab === 'google') {
-        const cleanEmail = email.trim().toLowerCase();
+        if (!googleIdToken) {
+          setGoogleStep('choose');
+          return;
+        }
         await loginWithGoogle({
-          email: cleanEmail,
-          display_name: displayName.trim() || cleanEmail.split('@')[0],
+          id_token: googleIdToken,
+          display_name: displayName.trim() || email.split('@')[0],
           city,
           color_hex: color,
           avatar_data: avatarData,
@@ -239,63 +229,7 @@ export function AuthPage({ onSuccess, onClose }: Props) {
             </div>
 
             <div className="google-accounts-list">
-              {savedAccounts.map((acct) => (
-                <button
-                  key={acct.email}
-                  type="button"
-                  className="google-account-row"
-                  onClick={() => handleSelectGoogleAccount(acct)}
-                >
-                  <div
-                    className="google-account-avatar"
-                    style={{ backgroundColor: acct.color_hex || '#21D8A0' }}
-                  >
-                    {acct.avatar_data ? (
-                      <img src={acct.avatar_data} alt="" />
-                    ) : (
-                      (acct.display_name || acct.email)[0].toUpperCase()
-                    )}
-                  </div>
-                  <div className="google-account-meta">
-                    <strong className="google-account-name">{acct.display_name}</strong>
-                    <span className="google-account-email">{acct.email}</span>
-                  </div>
-                  <span className="google-account-arrow">→</span>
-                </button>
-              ))}
-
-              {/* Instant Gmail account input card if they want to add/pick their Gmail */}
-              <div className="google-add-account-box">
-                <label className="google-add-label" htmlFor="google-quick-email">
-                  {savedAccounts.length > 0
-                    ? 'Yoki boshqa Google (@gmail.com) akkaunt:'
-                    : 'Google (@gmail.com) akkauntingizni tanlang:'}
-                </label>
-                <div className="google-add-row">
-                  <input
-                    id="google-quick-email"
-                    type="email"
-                    inputMode="email"
-                    autoComplete="email"
-                    placeholder="masalan: madiyar@gmail.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleConfirmEmailStep();
-                      }
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="google-add-continue-btn"
-                    onClick={handleConfirmEmailStep}
-                  >
-                    Tanlash →
-                  </button>
-                </div>
-              </div>
+              <GoogleSignInButton onCredential={handleGoogleCredential} />
             </div>
 
             {error && (
@@ -317,7 +251,10 @@ export function AuthPage({ onSuccess, onClose }: Props) {
               <button
                 type="button"
                 className="selected-google-change"
-                onClick={() => setGoogleStep('choose')}
+                onClick={() => {
+                  setGoogleIdToken(null);
+                  setGoogleStep('choose');
+                }}
               >
                 Almashtirish
               </button>
