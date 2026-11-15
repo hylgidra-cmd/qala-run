@@ -246,6 +246,9 @@ class TestGoogleSignIn:
         assert first.json()["email"] == "runner@gmail.com"
         assert first.json()["display_name"] == "Shamol_07"
         assert second.json()["user_id"] == first.json()["user_id"]
+        # Profile setup is offered once, to the sign-in that made the account.
+        assert first.json()["is_new"] is True
+        assert second.json()["is_new"] is False
 
     async def test_a_token_for_another_app_is_refused(self, client: AsyncClient, google) -> None:
         google[token_name("b")] = google_claims(aud="other.apps.googleusercontent.com")

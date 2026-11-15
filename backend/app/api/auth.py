@@ -147,6 +147,9 @@ class AuthOut(BaseModel):
     color_hex: str
     city: str = DEFAULT_CITY_ID
     avatar_data: str | None = None
+    # True only in the response that created the account, so a client knows
+    # to offer profile setup once instead of on every sign-in.
+    is_new: bool = False
 
 
 # ── endpoints ─────────────────────────────────────────────────────────────────
@@ -219,6 +222,7 @@ async def register(
         color_hex=created.color_hex or color_hex,
         city=city,
         avatar_data=body.avatar_data,
+        is_new=True,
     )
 
 
@@ -459,6 +463,7 @@ async def google_auth(
         color_hex=created.color_hex or color_hex,
         city=body.city,
         avatar_data=body.avatar_data,
+        is_new=True,
     )
 
 
