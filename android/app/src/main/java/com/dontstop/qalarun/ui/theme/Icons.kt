@@ -19,6 +19,22 @@ object DontStopIcons {
     val Clan = lineIcon("Clan", "M12 3 4 6v6c0 4.5 3.4 8 8 9 4.6-1 8-4.5 8-9V6l-8-3z")
     val Leaderboard = lineIcon("Leaderboard", "M4 20V12h4v8M10 20V6h4v14M16 20v-6h4v6")
     val Profile = lineIcon("Profile", circle(12f, 8f, 4f), "M4 21c1-4 4.5-6 8-6s7 2 8 6")
+
+    val Back = lineIcon("Back", "M15 5l-7 7 7 7")
+    val ChevronDown = lineIcon("ChevronDown", "M6 9l6 6 6-6")
+    val Camera = lineIcon("Camera", "M4 8h3l2-3h6l2 3h3v11H4z", circle(12f, 13f, 3.5f))
+    val Pin = lineIcon(
+        "Pin",
+        "M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z",
+        circle(12f, 9.5f, 2.5f),
+    )
+    val Gift = lineIcon(
+        "Gift",
+        "M20 12v9H4v-9M2 7h20v5H2zM12 21V7M12 7c-2-4-6-4-6-1s6 1 6 1zm0 0c2-4 6-4 6-1s-6 1-6 1z",
+    )
+
+    /** The design's own mark for the Google button, not Google's logo. */
+    val Account = lineIcon("Account", circle(12f, 12f, 9f), "M12 12h8")
 }
 
 /** An SVG circle as path data, since a vector path has no circle primitive. */

@@ -18,6 +18,8 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.dontstop.qalarun.R
+import com.dontstop.qalarun.data.auth.SessionState
+import com.dontstop.qalarun.ui.auth.AccountStub
 import com.dontstop.qalarun.ui.components.BottomBar
 import com.dontstop.qalarun.ui.components.PlaceholderScreen
 
@@ -29,7 +31,7 @@ import com.dontstop.qalarun.ui.components.PlaceholderScreen
  * the map's root leaves the app.
  */
 @Composable
-fun AppRoot() {
+fun AppRoot(session: SessionState, onSignIn: () -> Unit, onSignOut: () -> Unit) {
     val tabs = TopLevelTab.entries
     val home = TopLevelTab.Home.ordinal
     var selected by rememberSaveable { mutableIntStateOf(home) }
@@ -50,7 +52,7 @@ fun AppRoot() {
         entry<HistoryKey> { PlaceholderScreen(stringResource(R.string.tab_history)) }
         entry<ClanKey> { PlaceholderScreen(stringResource(R.string.tab_clan)) }
         entry<LeaderboardKey> { PlaceholderScreen(stringResource(R.string.tab_leaderboard)) }
-        entry<ProfileKey> { PlaceholderScreen(stringResource(R.string.tab_profile)) }
+        entry<ProfileKey> { AccountStub(session, onSignIn = onSignIn, onSignOut = onSignOut) }
     }
 
     val decorated = stacks.map { stack ->

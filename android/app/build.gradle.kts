@@ -1,8 +1,29 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.hilt)
 }
+
+// Machine- and deployment-specific values: local.properties (git-ignored)
+// first, then an environment variable for CI, then the default.
+val localProps = Properties().apply {
+    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use(::load)
+}
+
+fun setting(key: String, env: String, default: String): String =
+    (localProps.getProperty(key) ?: System.getenv(env))?.takeIf { it.isNotBlank() } ?: default
+
+// Must end with a slash: Retrofit resolves endpoint paths against it.
+val apiBaseUrl = setting("dontstop.apiBaseUrl", "DONTSTOP_API_BASE_URL", "https://qalarun-api.onrender.com/api/v1/")
+
+// The OAuth *web* client id, the one the API lists in GOOGLE_CLIENT_IDS. It
+// is public by nature, but left empty here so a fork cannot sign in as us;
+// with it empty the Google button explains that sign-in is not set up.
+val googleWebClientId = setting("dontstop.googleWebClientId", "DONTSTOP_GOOGLE_WEB_CLIENT_ID", "")
 
 android {
     // Same id as the Capacitor shell it replaces, so it installs as an update.
@@ -21,6 +42,9 @@ android {
         versionName = "0.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$googleWebClientId\"")
     }
 
     buildTypes {
@@ -38,8 +62,13 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+    testOptions {
+        // JVM tests pass Android objects through without using them.
+        unitTests.isReturnDefaultValues = true
+    }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -56,11 +85,26 @@ dependencies {
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.androidx.navigation3.ui)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services)
+    implementation(libs.google.id)
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.kotlinx.serialization)
+    implementation(libs.okhttp)
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
+    implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.okhttp.mockwebserver)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.test.runner)

@@ -20,13 +20,45 @@ cd android
 
 Versions are pinned in `gradle/libs.versions.toml` and nowhere else.
 
+## Configuration
+
+Two values differ per machine and deployment. Each is read from
+`local.properties` (git-ignored), then from an environment variable, then
+falls back to its default.
+
+| `local.properties` key | Environment variable | Default |
+| :--- | :--- | :--- |
+| `dontstop.apiBaseUrl` | `DONTSTOP_API_BASE_URL` | `https://qalarun-api.onrender.com/api/v1/` |
+| `dontstop.googleWebClientId` | `DONTSTOP_GOOGLE_WEB_CLIENT_ID` | empty |
+
+`googleWebClientId` is the OAuth **web** client id, the same one the API lists
+in `GOOGLE_CLIENT_IDS`: the app asks Google for an ID token issued to it, and
+the API accepts only tokens with that audience. Google also needs an *Android*
+OAuth client for this package name and the signing certificate's SHA-1; that
+one is registered in the Google Cloud console and never appears in the code.
+While the web client id is empty the app builds and runs, and the Google
+button answers that sign-in is not set up.
+
 ## Layout
 
 | Path | What lives there |
 | :--- | :--- |
+| `model/` | The player, cities and territory colours as the app sees them |
+| `data/api/` | The HTTP API: endpoints, JSON shapes, and failures a screen can act on |
+| `data/auth/` | Who is signed in (`AuthRepository`) and Google sign-in |
+| `data/session/` | The session kept across restarts |
+| `di/` | Hilt wiring |
 | `ui/theme/` | Colours, type, shapes and icons from the design's token board |
-| `ui/components/` | Pieces shared by screens (bottom bar) |
+| `ui/components/` | Pieces shared by screens (bottom bar, buttons) |
+| `ui/auth/` | Welcome and profile-setup screens |
 | `ui/navigation/` | Destinations and the shell with one back stack per tab |
+
+## Languages
+
+Uzbek is the default (`res/values`); Karakalpak, Russian, English, Kazakh and
+Turkish live in `res/values-*`. The choice on the welcome screen is applied by
+AppCompat's per-app language support, which also remembers it. A new string
+must be added to all six files; lint fails the build on a missing one.
 
 ## Design rules that are enforced
 
@@ -36,11 +68,13 @@ Versions are pinned in `gradle/libs.versions.toml` and nowhere else.
   are bundled under the SIL Open Font License (`licenses/`).
 - Touch targets are at least 48 dp, 64 dp on the run screen (`Dimens`).
 - Permissions are added to the manifest with the feature that needs them.
+- The server's error text is never shown as it is; every failure maps to a
+  translated message (`UiError`).
 
 ## Stages
 
 1. **Foundation** — project, theme, navigation shell, bottom bar. *(done)*
-2. Sign-in and profile setup.
+2. **Sign-in and profile setup** — Google sign-in, six languages, profile setup. *(done)*
 3. Map: territories, exclusion zones, city.
 4. Run engine: foreground GPS, offline queue, loop detection.
 5. Result, history, leaderboard, profile, settings.
