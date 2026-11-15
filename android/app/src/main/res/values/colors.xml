@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Only what is drawn before Compose starts; the palette lives in
+         ui/theme/Color.kt. -->
+    <color name="window_background">#F7F9F6</color>
+    <color name="brand_ink">#10251F</color>
+</resources>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">Don\'t Stop</string>
+
+    <string name="nav_label">Asosiy bo\'limlar</string>
+    <string name="tab_map">Xarita</string>
+    <string name="tab_history">Tarix</string>
+    <string name="tab_clan">Klan</string>
+    <string name="tab_leaderboard">Reyting</string>
+    <string name="tab_profile">Profil</string>
+
+    <string name="placeholder_soon">Bu bo\'lim keyingi bosqichda quriladi.</string>
+</resources>

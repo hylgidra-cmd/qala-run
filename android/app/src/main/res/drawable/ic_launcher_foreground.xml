@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A closed loop being run: the route, and the runner's dot on it. Kept
+     inside the 66dp safe zone of the 108dp adaptive-icon canvas. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:pathData="M38,72 V40 H62 V56 H74 V72 Z"
+        android:fillColor="#21D8A0"
+        android:fillAlpha="0.22" />
+    <path
+        android:pathData="M38,72 V40 H62 V56 H74"
+        android:strokeColor="#21D8A0"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M74,56 m-6,0 a6,6 0 1,0 12,0 a6,6 0 1,0 -12,0"
+        android:fillColor="#21D8A0" />
+</vector>
