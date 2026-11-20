@@ -1,10 +1,11 @@
-import logging
 from functools import lru_cache
 
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-logger = logging.getLogger(__name__)
+DEV_JWT_SECRET = "development-only-change-me"
+# Values that are published in this repository and so are not secrets.
+PUBLIC_JWT_SECRETS = frozenset({DEV_JWT_SECRET, "replace_with_at_least_32_random_bytes"})
 
 
 class Settings(BaseSettings):
@@ -20,8 +21,12 @@ class Settings(BaseSettings):
     environment: str = Field(default="development", alias="ENV")
     database_url: str = "postgresql+asyncpg://dontstop:change_me@localhost:5432/dontstop"
     redis_url: str = "redis://localhost:6379/0"
-    jwt_secret: str = "development-only-change-me"
-    admin_key: str = Field(default="dontstop-admin-2026", alias="ADMIN_KEY")
+    jwt_secret: str = DEV_JWT_SECRET
+    # No default: with no key set the admin routes answer 401 to everyone.
+    admin_key: str = Field(default="", alias="ADMIN_KEY")
+    # OAuth client ids (comma-separated) whose Google ID tokens we accept: the
+    # web client id that the Android app and the site request tokens for.
+    google_client_ids: str = ""
     cors_origins: str = "http://localhost:5173"
 
     # --- Pilot region (docs/PROJECT_DECISIONS.md) ---
@@ -71,10 +76,19 @@ class Settings(BaseSettings):
         return value
 
     @model_validator(mode="after")
-    def warn_weak_secrets_in_prod(self) -> "Settings":
-        if self.environment.lower() == "production" and self.jwt_secret == "development-only-change-me":
-            logger.warning("JWT_SECRET is using the development default in production! Set JWT_SECRET env var.")
+    def refuse_weak_secrets_in_production(self) -> "Settings":
+        """A forgeable token or a guessable admin key is worse than no boot."""
+        if self.environment.lower() != "production":
+            return self
+        if self.jwt_secret in PUBLIC_JWT_SECRETS or len(self.jwt_secret) < 32:
+            raise ValueError("JWT_SECRET must be set to at least 32 random characters")
+        if self.admin_key and len(self.admin_key) < 16:
+            raise ValueError("ADMIN_KEY must be at least 16 characters, or unset")
         return self
+
+    @property
+    def google_client_id_list(self) -> list[str]:
+        return [item.strip() for item in self.google_client_ids.split(",") if item.strip()]
 
     @property
     def pilot_bbox(self) -> tuple[float, float, float, float]:

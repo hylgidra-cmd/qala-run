@@ -5450,4 +5450,10 @@ a:focus-visible {
   color: #21D8A0;
 }
 
-
+/* Google renders its own button into this slot; keep the height so the
+   panel does not jump while the script loads. */
+.google-signin-slot {
+  display: flex;
+  justify-content: center;
+  min-height: 44px;
+}

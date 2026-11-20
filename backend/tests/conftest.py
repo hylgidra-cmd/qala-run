@@ -33,6 +33,15 @@ async def client():
 
     transaction = await connection.begin()
 
+    # The database is rolled back after every test but Redis is not, so a
+    # rate-limit counter from one run would fail the same test in the next.
+    try:
+        redis = get_redis()
+        async for key in redis.scan_iter("ratelimit:*"):
+            await redis.delete(key)
+    except Exception:  # noqa: BLE001 - the API itself tolerates a missing Redis
+        pass
+
     async def override_connection():
         yield connection
 

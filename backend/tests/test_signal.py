@@ -360,7 +360,7 @@ class TestAntiCheat:
             )
         )
 
-        prod_settings = Settings(_env_file=None, ENV="production")
+        prod_settings = Settings(_env_file=None, ENV="production", jwt_secret="s" * 32)
         cleaned = drop_bad_points(points, prod_settings)
 
         assert cleaned.dropped_low_accuracy == 1

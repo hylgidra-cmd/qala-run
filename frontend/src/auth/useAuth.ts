@@ -102,8 +102,7 @@ export function useAuth() {
 
   const loginWithGoogle = useCallback(
     async (input: {
-      id_token?: string;
-      email?: string;
+      id_token: string;
       display_name?: string;
       city?: string;
       color_hex?: string;

@@ -85,7 +85,15 @@ class TestProfile:
     async def test_a_fresh_profile_starts_at_zero(self, client) -> None:
         body = (await client.get("/api/v1/me", headers=device("pr6"))).json()
 
-        assert body["stats"] == {"runs_accepted": 0, "solo_area_m2": 0.0, "clan_area_m2": 0.0}
+        assert body["stats"] == {
+            "runs_accepted": 0,
+            "solo_area_m2": 0.0,
+            "clan_area_m2": 0.0,
+            "total_distance_m": 0.0,
+            "longest_run_m": 0.0,
+            "city_rank": 1,
+            "streak_days": 0,
+        }
         assert body["clan"] is None
 
     async def test_a_new_player_gets_a_color(self, client) -> None:

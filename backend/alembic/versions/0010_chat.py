@@ -10,8 +10,6 @@ with location sharing support.
 from collections.abc import Sequence
 
 from alembic import op
-import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 revision: str = "0010_chat"
 down_revision: str | None = "0009_multi_city_and_avatar"

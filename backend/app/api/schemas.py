@@ -66,6 +66,14 @@ class RunResult(BaseModel):
     activity: ActivityOut | None = None
     captured_from: list[CapturedFrom] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
+    # Server-measured, like everything else here; the client's own counters
+    # are only a live estimate.
+    distance_m: float | None = None
+    duration_s: float | None = None
+    # Place among the city's solo players before and after this run. Only an
+    # accepted solo run moves it; otherwise both are None.
+    rank_before: int | None = None
+    rank_after: int | None = None
 
 
 class ClanBrief(BaseModel):
@@ -87,6 +95,9 @@ class ClanMemberOut(BaseModel):
     display_name: str
     role: str
     joined_at: str
+    color_hex: str = "#00ff88"
+    # Ground this member's clan runs were awarded since Monday.
+    week_area_m2: float = 0.0
 
 
 class ClanOut(BaseModel):
@@ -97,6 +108,9 @@ class ClanOut(BaseModel):
     created_at: str
     member_count: int
     area_m2: float
+    # Place among all clans by ground held now.
+    rank: int = 1
+    week_area_m2: float = 0.0
     members: list[ClanMemberOut] = Field(default_factory=list)
     # Only ever filled in for a member of the clan.
     invite_code: str | None = None
@@ -132,6 +146,15 @@ class PlayerStanding(BaseModel):
     total_area_m2: float
 
 
+class MyStanding(BaseModel):
+    """The caller's own line on the leaderboard, wherever it falls."""
+
+    rank: int
+    city: str
+    period: str
+    total_area_m2: float
+
+
 class RunHistoryOut(BaseModel):
     id: str
     started_at: str
@@ -150,6 +173,11 @@ class PlayerStats(BaseModel):
     solo_area_m2: float
     clan_area_m2: float
     total_distance_m: float = 0.0
+    longest_run_m: float = 0.0
+    # Place among the solo players of the player's city, by ground held now.
+    city_rank: int = 1
+    # Days in a row with an accepted run, counted in the city's timezone.
+    streak_days: int = 0
 
 
 class SubscriptionOut(BaseModel):

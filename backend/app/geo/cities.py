@@ -17,6 +17,8 @@ class City:
     center_lat: float
     # [west, south, east, north]
     bbox: tuple[float, float, float, float]
+    # IANA zone: a player's day and week start at their own midnight.
+    tz: str = "Asia/Tashkent"
 
 
 CITIES: dict[str, City] = {
@@ -43,6 +45,7 @@ CITIES: dict[str, City] = {
         center_lon=76.8897,
         center_lat=43.2389,
         bbox=(76.70, 43.10, 77.10, 43.40),
+        tz="Asia/Almaty",
     ),
     "istanbul": City(
         id="istanbul",
@@ -51,6 +54,7 @@ CITIES: dict[str, City] = {
         center_lon=28.9784,
         center_lat=41.0082,
         bbox=(28.60, 40.80, 29.40, 41.30),
+        tz="Europe/Istanbul",
     ),
 }
 

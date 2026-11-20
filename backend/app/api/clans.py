@@ -19,6 +19,7 @@ from app.api.schemas import (
     ClanOut,
     ClanStanding,
 )
+from app.api.standings import clan_rank, week_start
 
 router = APIRouter(prefix="/api/v1", tags=["clans"])
 
@@ -96,15 +97,25 @@ async def load_clan(connection: AsyncConnection, clan_id: str, viewer_id: str) -
                 SELECT m.user_id,
                        u.player_id,
                        u.display_name,
+                       u.color_hex,
                        m.role,
-                       m.joined_at
+                       m.joined_at,
+                       COALESCE(
+                           (SELECT sum(r.awarded_area_m2) FROM runs r
+                             WHERE r.user_id = m.user_id
+                               AND r.mode = 'clan'
+                               AND r.status = 'accepted'
+                               AND r.finished_at >= GREATEST(:since, m.joined_at)),
+                           0
+                       ) AS week_area_m2
                   FROM clan_members m
                   JOIN demo_users u ON u.id = m.user_id
                  WHERE m.clan_id = :clan_id
                  ORDER BY m.joined_at
                 """
             ),
-            {"clan_id": clan_id},
+            # Clans are not tied to a city, so their week is the pilot's.
+            {"clan_id": clan_id, "since": week_start(None)},
         )
     ).all()
 
@@ -118,6 +129,8 @@ async def load_clan(connection: AsyncConnection, clan_id: str, viewer_id: str) -
         created_at=clan.created_at.isoformat(),
         member_count=len(members),
         area_m2=float(clan.area_m2),
+        rank=await clan_rank(connection, clan_id),
+        week_area_m2=sum(float(member.week_area_m2) for member in members),
         members=[
             ClanMemberOut(
                 user_id=str(member.user_id),
@@ -125,6 +138,8 @@ async def load_clan(connection: AsyncConnection, clan_id: str, viewer_id: str) -
                 display_name=member.display_name,
                 role=member.role,
                 joined_at=member.joined_at.isoformat(),
+                color_hex=member.color_hex or "#00ff88",
+                week_area_m2=float(member.week_area_m2),
             )
             for member in members
         ],

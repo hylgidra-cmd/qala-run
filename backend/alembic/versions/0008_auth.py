@@ -12,8 +12,8 @@ with a username+password instead of only a device key.
 """
 from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 revision: str = "0008_auth"
 down_revision: str | None = "0007_notifications"

@@ -47,22 +47,6 @@ def validate_gmail_address(value: str) -> str:
     return cleaned
 
 
-async def ensure_auth_columns(connection: AsyncConnection) -> None:
-    """Ensure email, google_sub, trial_ends_at, and paid_until columns exist."""
-    await connection.execute(
-        text(
-            """
-            ALTER TABLE demo_users
-              ADD COLUMN IF NOT EXISTS email VARCHAR(255),
-              ADD COLUMN IF NOT EXISTS google_sub VARCHAR(255),
-              ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMPTZ
-                  DEFAULT (now() + interval '3 days'),
-              ADD COLUMN IF NOT EXISTS paid_until TIMESTAMPTZ
-            """
-        )
-    )
-
-
 def _hash_password(plain: str) -> str:
     return bcrypt.hashpw(plain.encode(), bcrypt.gensalt()).decode()
 
@@ -137,10 +121,12 @@ class LoginIn(BaseModel):
 
 
 class GoogleAuthIn(BaseModel):
-    id_token: str | None = None
-    email: str | None = None
+    """Google sign-in. The ID token is the only proof of identity accepted:
+    the email and the Google account id are read from the verified token and
+    never from the request body."""
+
+    id_token: str = Field(min_length=20, max_length=4096)
     display_name: str = Field(default="", max_length=32)
-    google_sub: str | None = Field(default=None, max_length=255)
     city: str = DEFAULT_CITY_ID
     color_hex: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
     avatar_data: str | None = Field(default=None, max_length=_MAX_AVATAR_LEN)
@@ -161,6 +147,9 @@ class AuthOut(BaseModel):
     color_hex: str
     city: str = DEFAULT_CITY_ID
     avatar_data: str | None = None
+    # True only in the response that created the account, so a client knows
+    # to offer profile setup once instead of on every sign-in.
+    is_new: bool = False
 
 
 # ── endpoints ─────────────────────────────────────────────────────────────────
@@ -172,7 +161,6 @@ async def register(
 ) -> AuthOut:
     """Create a new account with mandatory @gmail.com address. Returns a JWT token."""
     await enforce_rate_limit(f"auth:register:{body.username.lower()}", limit=5, window_s=60)
-    await ensure_auth_columns(connection)
 
     # Check username taken
     taken_user = await connection.scalar(
@@ -234,6 +222,7 @@ async def register(
         color_hex=created.color_hex or color_hex,
         city=city,
         avatar_data=body.avatar_data,
+        is_new=True,
     )
 
 
@@ -245,7 +234,6 @@ async def login(
     """Verify username or @gmail.com + password, return JWT."""
     identifier = body.username.strip()
     await enforce_rate_limit(f"auth:login:{identifier.lower()}", limit=10, window_s=60)
-    await ensure_auth_columns(connection)
 
     row = (
         await connection.execute(
@@ -291,8 +279,24 @@ async def login(
     )
 
 
+_GOOGLE_ISSUERS = frozenset({"accounts.google.com", "https://accounts.google.com"})
+
+
 async def _verify_google_id_token(id_token: str) -> dict[str, str]:
-    """Verify a Google ID token via Google's tokeninfo endpoint."""
+    """Verify a Google ID token and return the identity it proves.
+
+    Google's tokeninfo endpoint checks the signature and the expiry. That
+    alone is not enough: a token issued to *any* app would pass, so the
+    audience must be one of our own OAuth client ids, and the email must be
+    one Google has verified.
+    """
+    client_ids = get_settings().google_client_id_list
+    if not client_ids:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Google orqali kirish sozlanmagan",
+        )
+
     try:
         async with httpx.AsyncClient(timeout=8.0) as client:
             resp = await client.get(
@@ -310,15 +314,27 @@ async def _verify_google_id_token(id_token: str) -> dict[str, str]:
             status.HTTP_401_UNAUTHORIZED,
             "Google tokeni yaroqsiz yoki muddati o'tgan",
         )
-    data = resp.json()
+    return _google_identity(resp.json(), client_ids)
+
+
+def _google_identity(data: dict, client_ids: list[str]) -> dict[str, str]:
+    """Check the claims of an already signature-verified token."""
+    invalid = HTTPException(
+        status.HTTP_401_UNAUTHORIZED,
+        "Google tokeni yaroqsiz yoki muddati o'tgan",
+    )
+    if str(data.get("aud", "")) not in client_ids:
+        raise invalid
+    if str(data.get("iss", "")) not in _GOOGLE_ISSUERS:
+        raise invalid
+    if str(data.get("email_verified", "")).lower() != "true":
+        raise invalid
+
+    sub = str(data.get("sub", "")).strip()
     email = str(data.get("email", "")).strip().lower()
-    if not email:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Google akkauntda email topilmadi")
-    return {
-        "email": email,
-        "sub": str(data.get("sub", "")),
-        "name": str(data.get("name", "")).strip(),
-    }
+    if not sub or not email:
+        raise invalid
+    return {"email": email, "sub": sub, "name": str(data.get("name", "")).strip()}
 
 
 def _sanitize_username_from_email(email: str) -> str:
@@ -336,18 +352,11 @@ async def google_auth(
     connection: Annotated[AsyncConnection, Depends(get_connection)],
 ) -> AuthOut:
     """Sign in or register with a Google Account (@gmail.com)."""
-    await ensure_auth_columns(connection)
 
-    google_sub = (body.google_sub or "").strip() or None
-    google_name = body.display_name.strip()
-    email = (body.email or "").strip().lower()
-
-    if body.id_token:
-        verified = await _verify_google_id_token(body.id_token)
-        email = verified["email"]
-        google_sub = verified["sub"] or google_sub
-        if not google_name and verified["name"]:
-            google_name = verified["name"][:24]
+    verified = await _verify_google_id_token(body.id_token)
+    email = verified["email"]
+    google_sub = verified["sub"]
+    google_name = body.display_name.strip() or verified["name"][:24]
 
     try:
         email = validate_gmail_address(email)
@@ -361,10 +370,12 @@ async def google_auth(
         await connection.execute(
             text(
                 """
-                SELECT id, player_id, display_name, email, color_hex, city, avatar_data
+                SELECT id, player_id, display_name, email, color_hex, city, avatar_data,
+                       google_sub
                   FROM demo_users
-                 WHERE lower(email) = lower(:em)
-                    OR (:gsub IS NOT NULL AND google_sub = :gsub)
+                 WHERE google_sub = :gsub
+                    OR (google_sub IS NULL AND lower(email) = lower(:em))
+                 ORDER BY (google_sub = :gsub) DESC NULLS LAST
                  LIMIT 1
                 """
             ),
@@ -374,17 +385,21 @@ async def google_auth(
 
     if existing is not None:
         user_id = str(existing.id)
-        if google_sub or existing.email is None:
+        if existing.google_sub is None:
+            # First Google sign-in on an account that was registered with this
+            # address and a password. Nobody proved they owned the address at
+            # registration, so whoever set that password may not be its owner:
+            # the password stops working and Google becomes the way in.
             await connection.execute(
                 text(
                     """
                     UPDATE demo_users
-                       SET email = COALESCE(email, :em),
-                           google_sub = COALESCE(google_sub, :gsub)
+                       SET google_sub = :gsub,
+                           password_hash = NULL
                      WHERE id = :uid
                     """
                 ),
-                {"em": email, "gsub": google_sub, "uid": user_id},
+                {"gsub": google_sub, "uid": user_id},
             )
         return AuthOut(
             token=_make_token(user_id),
@@ -448,6 +463,7 @@ async def google_auth(
         color_hex=created.color_hex or color_hex,
         city=body.city,
         avatar_data=body.avatar_data,
+        is_new=True,
     )
 
 
@@ -457,7 +473,6 @@ async def auth_me(
     connection: Annotated[AsyncConnection, Depends(get_connection)],
 ) -> AuthOut:
     """Decode token and return current user info."""
-    await ensure_auth_columns(connection)
     row = (
         await connection.execute(
             text(

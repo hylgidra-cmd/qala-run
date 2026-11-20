@@ -20,6 +20,7 @@ from app.api.schemas import (
     RunResult,
     RunStarted,
 )
+from app.api.standings import solo_rank
 from app.config import get_settings
 from app.geo.cities import is_inside_city_bbox
 from app.geo.loop import (
@@ -91,6 +92,7 @@ async def _reject(
         closing_gap_m=gap_m,
         activity=activity,
         warnings=warnings or [],
+        distance_m=distance_m,
     )
 
 
@@ -103,10 +105,8 @@ async def start_run(
     if mode not in SUPPORTED_MODES:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Unsupported mode: {mode}")
 
-    from app.api.auth import ensure_auth_columns
     from app.api.players import compute_subscription
 
-    await ensure_auth_columns(connection)
     user_row = (
         await connection.execute(
             text(
@@ -586,6 +586,12 @@ async def finish_run(
         {"mode": mode, "wkt": measured.usable_wkt},
     )
 
+    # Where the runner stood before this run changed anything. Solo only: clan
+    # ground is the clan's, and its place is read from the clan itself.
+    rank_before: int | None = None
+    if mode == "solo":
+        rank_before, _ = await solo_rank(connection, user_id, user_city)
+
     # --- 14: take the overlap from whoever holds it now (excluding concurrent first-finishers) ---
     if mode == "clan":
         captured_sql = """
@@ -694,7 +700,8 @@ async def finish_run(
                     """
                     INSERT INTO notifications (user_id, type, payload)
                     VALUES (:owner_id, 'territory_invaded',
-                            jsonb_build_object('invader', :invader, 'area_m2', :area))
+                            jsonb_build_object('invader', CAST(:invader AS text),
+                                               'area_m2', CAST(:area AS integer)))
                     """
                 ),
                 notif_params,
@@ -710,7 +717,8 @@ async def finish_run(
                         INSERT INTO notifications (user_id, type, payload)
                         SELECT m.user_id,
                                'territory_invaded',
-                               jsonb_build_object('invader', :invader, 'area_m2', :area)
+                               jsonb_build_object('invader', CAST(:invader AS text),
+                                               'area_m2', CAST(:area AS integer))
                           FROM clan_members m
                          WHERE m.clan_id = :clan_id
                         """
@@ -779,9 +787,17 @@ async def finish_run(
         },
     )
 
+    rank_after: int | None = None
+    if mode == "solo":
+        rank_after, _ = await solo_rank(connection, user_id, user_city)
+
     return RunResult(
         run_id=run_id,
         status="accepted",
+        distance_m=track_distance_m,
+        duration_s=max(smoothed[-1].raw.ts - smoothed[0].raw.ts, 0.0),
+        rank_before=rank_before,
+        rank_after=rank_after,
         reason=None,
         mode=mode,
         closing_gap_m=gap_m,

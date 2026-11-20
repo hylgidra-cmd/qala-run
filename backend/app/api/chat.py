@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 
 from app.api.clans import clan_of
 from app.api.deps import enforce_rate_limit, get_connection, get_demo_user
+from app.geo.cities import get_city
 
 router = APIRouter(prefix="/api/v1/chat", tags=["chat"])
 
@@ -243,3 +244,25 @@ async def get_unread_count(
     )
     return {"unread": int(count or 0)}
 
+
+@router.get("/online")
+async def get_online_count(
+    _user_id: Annotated[str, Depends(get_demo_user)],
+    connection: Annotated[AsyncConnection, Depends(get_connection)],
+    city: str | None = None,
+) -> dict[str, int]:
+    """How many players of a city were active in the last five minutes.
+
+    A number only: who they are and where they are is never part of it.
+    """
+    count = await connection.scalar(
+        text(
+            """
+            SELECT count(*) FROM demo_users
+             WHERE last_seen_at > now() - interval '5 minutes'
+               AND lower(city) = lower(:city)
+            """
+        ),
+        {"city": get_city(city).id},
+    )
+    return {"online": int(count or 0)}

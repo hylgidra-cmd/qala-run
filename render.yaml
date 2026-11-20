@@ -48,6 +48,10 @@ services:
         generateValue: true
       - key: ADMIN_KEY
         generateValue: true
+      # Google sign-in stays off (503) until this holds the OAuth client id
+      # the site and the Android app request ID tokens for.
+      - key: GOOGLE_CLIENT_IDS
+        sync: false
       # The static site is a different origin, so it has to be allowed here.
       - key: CORS_ORIGINS
         # https://localhost is the Android WebView origin: without it every
@@ -67,6 +71,10 @@ services:
       # Absolute, because there is no dev-server proxy in a static build.
       - key: VITE_API_URL
         value: https://qalarun-api.onrender.com/api/v1
+      # The Google OAuth web client id, the same one as GOOGLE_CLIENT_IDS on
+      # the API. Unset, the Google tab shows a notice instead of the button.
+      - key: VITE_GOOGLE_CLIENT_ID
+        sync: false
     routes:
       # Single-page app: unknown paths must still load index.html.
       - type: rewrite

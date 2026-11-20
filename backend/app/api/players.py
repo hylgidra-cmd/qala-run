@@ -11,19 +11,21 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from app.api.auth import ensure_auth_columns, validate_gmail_address
+from app.api.auth import validate_gmail_address
 from app.api.clans import clan_of
 from app.api.deps import get_connection, get_demo_user
 from app.api.schemas import (
     DisplayNameIn,
     MeOut,
+    MyStanding,
     PlayerStanding,
     PlayerStats,
     RunHistoryOut,
     SubscriptionActivateIn,
     SubscriptionOut,
 )
-from app.geo.cities import CITIES
+from app.api.standings import Period, run_streak, since_for, solo_area_sql, solo_rank
+from app.geo.cities import CITIES, get_city
 
 router = APIRouter(prefix="/api/v1", tags=["players"])
 
@@ -90,7 +92,6 @@ def compute_subscription(
 
 
 async def load_me(connection: AsyncConnection, user_id: str) -> MeOut:
-    await ensure_auth_columns(connection)
     player = (
         await connection.execute(
             text(
@@ -112,6 +113,11 @@ async def load_me(connection: AsyncConnection, user_id: str) -> MeOut:
                              WHERE r.user_id = u.id AND r.status = 'accepted'),
                            0
                        ) AS total_distance_m,
+                       COALESCE(
+                           (SELECT max(r.distance_m) FROM runs r
+                             WHERE r.user_id = u.id AND r.status = 'accepted'),
+                           0
+                       ) AS longest_run_m,
                        COALESCE(
                            (SELECT sum(t.area_m2) FROM territories t
                              WHERE t.mode = 'solo'
@@ -150,6 +156,10 @@ async def load_me(connection: AsyncConnection, user_id: str) -> MeOut:
             )
         )
 
+    city = getattr(player, "city", "nukus") or "nukus"
+    city_rank, _ = await solo_rank(connection, user_id, city)
+    streak_days = await run_streak(connection, user_id, city)
+
     sub = compute_subscription(
         created_at=getattr(player, "created_at", None),
         trial_ends_at=getattr(player, "trial_ends_at", None),
@@ -162,7 +172,7 @@ async def load_me(connection: AsyncConnection, user_id: str) -> MeOut:
         display_name=player.display_name,
         email=getattr(player, "email", None),
         color_hex=getattr(player, "color_hex", None) or "#00ff88",
-        city=getattr(player, "city", "nukus") or "nukus",
+        city=city,
         avatar_data=getattr(player, "avatar_data", None),
         joined_at=player.created_at.isoformat(),
         stats=PlayerStats(
@@ -170,6 +180,9 @@ async def load_me(connection: AsyncConnection, user_id: str) -> MeOut:
             solo_area_m2=float(player.solo_area_m2),
             clan_area_m2=clan_area,
             total_distance_m=float(player.total_distance_m),
+            longest_run_m=float(player.longest_run_m),
+            city_rank=city_rank,
+            streak_days=streak_days,
         ),
         clan=clan,
         subscription=sub,
@@ -191,7 +204,6 @@ async def activate_subscription(
     connection: Annotated[AsyncConnection, Depends(get_connection)],
 ) -> MeOut:
     """Activate or extend daily subscription (5,000 UZS / day)."""
-    await ensure_auth_columns(connection)
     await connection.execute(
         text(
             """
@@ -224,7 +236,6 @@ async def rename_me(
     ):
         raise HTTPException(422, "No update fields provided")
 
-    await ensure_auth_columns(connection)
     updates = []
     params: dict[str, str | None] = {"user_id": user_id}
 
@@ -277,11 +288,16 @@ async def rename_me(
 async def players_leaderboard(
     connection: Annotated[AsyncConnection, Depends(get_connection)],
     city: str | None = None,
+    period: Period = "all",
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
 ) -> list[PlayerStanding]:
-    """Returns top solo players by total territory area, optionally filtered by city."""
+    """Top solo players, optionally of one city.
+
+    `period=all` ranks by ground held now; `period=week` by ground awarded
+    since Monday in the city's timezone.
+    """
     where_clause = "WHERE lower(u.city) = lower(:city)" if city else ""
-    params: dict[str, object] = {"limit": limit}
+    params: dict[str, object] = {"limit": limit, "since": since_for(period, city)}
     if city:
         params["city"] = city
 
@@ -294,15 +310,11 @@ async def players_leaderboard(
                u.avatar_data,
                (
                    SELECT count(*) FROM runs r
-                    WHERE r.user_id = u.id AND r.status = 'accepted'
+                    WHERE r.user_id = u.id
+                      AND r.status = 'accepted'
+                      AND r.finished_at >= :since
                ) AS runs_count,
-               COALESCE(
-                   (SELECT sum(t.area_m2) FROM territories t
-                     WHERE t.mode = 'solo'
-                       AND t.owner_user_id = u.id
-                       AND (t.expires_at IS NULL OR t.expires_at > now())),
-                   0
-               ) AS total_area_m2
+               {solo_area_sql(period)} AS total_area_m2
           FROM demo_users u
          {where_clause}
          ORDER BY total_area_m2 DESC, runs_count DESC
@@ -323,6 +335,22 @@ async def players_leaderboard(
         )
         for row in rows
     ]
+
+
+@router.get("/players/leaderboard/me", response_model=MyStanding)
+async def my_standing(
+    user_id: Annotated[str, Depends(get_demo_user)],
+    connection: Annotated[AsyncConnection, Depends(get_connection)],
+    period: Period = "all",
+) -> MyStanding:
+    """The caller's place in their own city, even when it is below the list."""
+    city = await connection.scalar(
+        text("SELECT city FROM demo_users WHERE id = :user_id"), {"user_id": user_id}
+    )
+    city_id = get_city(city).id
+    place, area = await solo_rank(connection, user_id, city_id, period)
+
+    return MyStanding(rank=place, city=city_id, period=period, total_area_m2=area)
 
 
 @router.get("/me/runs", response_model=list[RunHistoryOut])
