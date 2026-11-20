@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Uzbek is the default language; values-* hold the other five. -->
+    <string name="app_name" translatable="false">Don\'t Stop</string>
+    <string name="nav_label">Asosiy bo\'limlar</string>
+    <string name="tab_map">Xarita</string>
+    <string name="tab_history">Tarix</string>
+    <string name="tab_clan">Klan</string>
+    <string name="tab_leaderboard">Reyting</string>
+    <string name="tab_profile">Profil</string>
+    <string name="placeholder_soon">Bu bo\'lim keyingi bosqichda quriladi.</string>
+    <string name="welcome_headline">Yugur. Egalla.\nHimoya qil.</string>
+    <string name="welcome_lead">Shahar bo\'ylab yopiq aylana yugurib, ichidagi hududni o\'zingniki qil.</string>
+    <string name="language_label">Ilova tili</string>
+    <string name="sign_in_google">Google bilan kirish</string>
+    <string name="signing_in">Kirilmoqda…</string>
+    <string name="browse_map_first">Avval xaritani ko\'rish</string>
+    <string name="welcome_terms">Davom etib, Foydalanish shartlari va Maxfiylik siyosatiga rozilik bildirasiz.</string>
+    <string name="error_offline">Server bilan bog\'lanib bo\'lmadi. Internetni tekshirib, qayta urinib ko\'ring.</string>
+    <string name="error_google_not_configured">Google orqali kirish bu versiyada hali sozlanmagan.</string>
+    <string name="error_google_failed">Google akkauntiga kirib bo\'lmadi. Telefonda Google akkaunti borligini tekshiring.</string>
+    <string name="error_server_unavailable">Bu xizmat serverda vaqtincha o\'chirilgan. Birozdan keyin urinib ko\'ring.</string>
+    <string name="error_session_expired">Sessiya muddati tugadi. Qaytadan kiring.</string>
+    <string name="error_unexpected">Kutilmagan xato yuz berdi. Qayta urinib ko\'ring.</string>
+    <string name="error_avatar">Bu rasmni o\'qib bo\'lmadi. Boshqasini tanlang.</string>
+    <string name="action_back">Orqaga</string>
+    <string name="setup_step">2-qadam / 2</string>
+    <string name="setup_title">O\'yinchi profili</string>
+    <string name="setup_lead">Xaritada hamma shu nom va rangni ko\'radi.</string>
+    <string name="avatar_pick">Rasm yuklash</string>
+    <string name="avatar_change">Rasmni almashtirish</string>
+    <string name="player_id_label">O\'yinchi ID</string>
+    <string name="player_id_hint">Do\'stlaring seni shu raqam bilan topadi</string>
+    <string name="nickname_label">Nikneym</string>
+    <string name="nickname_rule">2 tadan 24 tagacha belgi</string>
+    <string name="territory_color_label">Hudud rangi</string>
+    <string name="city_label">Shahar</string>
+    <string name="trial_notice">3 kunlik bepul sinov darhol boshlanadi</string>
+    <string name="start_game">O\'yinni boshlash</string>
+    <string name="saving">Saqlanmoqda…</string>
+    <string name="color_mint">Yalpiz</string>
+    <string name="color_blue">Ko\'k</string>
+    <string name="color_gold">Oltin</string>
+    <string name="color_orange">To\'q sariq</string>
+    <string name="color_violet">Binafsha</string>
+    <string name="color_pink">Pushti</string>
+    <string name="color_sky">Osmon</string>
+    <string name="color_lime">Laym</string>
+    <string name="color_rose">Qizil-pushti</string>
+    <string name="color_teal">Firuza</string>
+    <string name="color_brown">Jigarrang</string>
+    <string name="color_slate">Kulrang</string>
+    <string name="guest_prompt">Hudud egallash uchun akkauntga kiring.</string>
+    <string name="action_sign_in">Kirish</string>
+    <string name="action_sign_out">Chiqish</string>
+</resources>

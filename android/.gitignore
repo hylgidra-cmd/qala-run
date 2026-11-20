@@ -1,0 +1,16 @@
+.gradle/
+build/
+.kotlin/
+captures/
+local.properties
+*.iml
+.idea/
+
+# Signing material never lives in the repository.
+*.jks
+*.keystore
+keystore.properties
+google-services.json
+
+*.hprof
+*.aab
